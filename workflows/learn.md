@@ -144,12 +144,18 @@ Priority order, first match wins:
 
 ```
 P1: Explicit file paths in conversation
-    src/mac/Packages/{Module}/ → {Module}
-    src/mac/App/{SubDir}/      → App.{SubDir}
-    src/plugins/{Plugin}/      → {Plugin}
+    Extract module from path using industry-standard directory conventions:
+    src/{module}/          → {module}
+    lib/{module}/          → {module}
+    packages/{module}/     → {module}
+    apps/{module}/         → {module}
+    services/{module}/     → {module}
+    components/{module}/   → {module}
+    plugins/{module}/      → {module}
+    Nested paths use dot notation: src/auth/middleware/ → auth.middleware
 
 P2: Recent tool calls
-    Last 10 Read/Edit file_path → extract module
+    Last 10 Read/Edit file_path → extract module using P1 rules
     Module appearing ≥2 times → scope
 
 P3: Keywords
@@ -188,11 +194,11 @@ Body format varies by tag:
 
 | Tag | Sections |
 |-----|----------|
-| rationale | `# Title` → Why → Rejected alternative → Constraint |
-| constraint | `# Title` → Rule → Why → Check |
-| pitfall | `# Title` → Symptom → Root cause → Lesson |
-| concept | `# Title` → Overview → Key steps → Boundary |
-| reference | `# Title` → What → Usage → Caveats |
+| rationale | `# 标题` → 为什么 → 被拒绝的方案 → 约束 |
+| constraint | `# 标题` → 规则 → 为什么 → 检查方式 |
+| pitfall | `# 标题` → 症状 → 根因 → 教训 |
+| concept | `# 标题` → 概述 → 关键步骤 → 边界 |
+| reference | `# 标题` → 是什么 → 用法 → 注意事项 |
 
 No frontmatter in .md files — all metadata lives in index.jsonl.
 

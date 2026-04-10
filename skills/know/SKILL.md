@@ -1,14 +1,13 @@
 ---
 name: know
-description: Project knowledge compiler for AI agents — retrieve scoped context and persist high-value tacit knowledge to reduce exploration errors.
+description: Project knowledge compiler for AI agents — persist high-value tacit knowledge and write structured documents to reduce exploration errors.
 ---
 
 # Know
 
-`/know [scope]` → retrieve context. `/know learn` → persist knowledge. `/know write` → write structured documents.
+`/know learn` → persist knowledge. `/know write` → write structured documents.
 
-Three capabilities, one entry point:
-- **Retrieve**: surface the right context at the right time
+Two capabilities, one entry point:
 - **Learn**: correct the AI's mental model by recording tacit knowledge
 - **Write**: turn conversation discussion results into structured documents in `docs/`
 
@@ -30,7 +29,6 @@ Output blocks are user-facing formatted displays. Use `> [marker]` prefix:
 
 | Marker | Semantics | When |
 |--------|-----------|------|
-| `> [retrieved]` | 检索结果展示 | retrieve 完成 |
 | `> [suggest-learn]` | 检测到高价值知识，提议持久化 | learn implicit signal |
 | `> [learn]` | 待确认的知识条目 | learn Step 7 |
 | `> [persisted]` | 写入完成确认 | learn Step 8 |
@@ -79,8 +77,6 @@ KNOW_CTL="scripts/know-ctl.sh"
 
 | Input | Intent | Dispatch |
 |-------|--------|----------|
-| `/know` | Retrieve project-wide context | → `workflows/retrieve.md` (scope=project) |
-| `/know <scope>` | Retrieve scoped context | → `workflows/retrieve.md` (scope=input) |
 | `/know learn` | Persist knowledge from conversation | → `workflows/learn.md` |
 | AI detects signal | Propose persistence | → `workflows/learn.md` (requires user consent) |
 | `/know write` | Write discussion result as structured document | → `workflows/write.md` |
@@ -124,18 +120,18 @@ All writes must display content and receive user confirmation before persisting.
 
 **Scope field**: string for single scope, JSON array for cross-module (e.g. `["LoppyMetrics", "LoppyScoring"]`). In JSONL, arrays are serialized inline: `"scope":["A","B"]`.
 
-| Field | Filter | Sort | Output | Expand | Lifecycle |
-|-------|--------|------|--------|--------|-----------|
-| tag | ✓ | | | | |
-| tier | ✓ | ✓ | | | |
-| scope | ✓ | | | | |
-| tm | ✓ | | | | |
-| summary | ✓ (text match) | | ✓ | | |
-| path | | | | ✓ | |
-| hits | | ✓ | | | ✓ |
-| revs | | | | | ✓ |
-| created | | | | | ✓ |
-| updated | | ✓ | | | ✓ |
+| Field | Filter | Lifecycle |
+|-------|--------|-----------|
+| tag | ✓ | |
+| tier | ✓ | |
+| scope | ✓ | |
+| tm | ✓ | |
+| summary | ✓ (text match) | |
+| path | | |
+| hits | | ✓ |
+| revs | | ✓ |
+| created | | ✓ |
+| updated | | ✓ |
 
 ### Scope Keypath
 
@@ -148,51 +144,12 @@ LoppyMetrics.DataEngine          → matches LoppyMetrics.DataEngine.*
 LoppyMetrics.DataEngine.refresh  → exact match
 ```
 
-### Scope Resolution from File Path
-
-Extract module scope from file paths using industry-standard directory conventions.
-
-**Priority order** (first match wins):
-
-```
-P1: Project-specific rules (if defined in workflow)
-    Example: src/mac/Packages/{Module}/  → {Module}
-
-P2: Industry-standard root directories
-    src/{module}/          → {module}
-    lib/{module}/          → {module}
-    packages/{module}/     → {module}
-    apps/{module}/         → {module}
-    services/{module}/     → {module}
-    modules/{module}/      → {module}
-    internal/{module}/     → {module}
-    pkg/{module}/          → {module}
-    components/{module}/   → {module}
-    plugins/{module}/      → {module}
-
-P3: Language-specific conventions
-    app/models/            → models         (Rails)
-    app/controllers/       → controllers    (Rails)
-    cmd/{name}/            → {name}         (Go)
-    crates/{name}/         → {name}         (Rust)
-
-P4: Generic fallback
-    Take the first directory after project root that is NOT a generic container
-    (NOT: src, lib, app, test, tests, spec, docs, scripts, config, build, dist, out, node_modules, vendor, .git)
-    → use that directory name as scope
-
-P5: Last resort
-    Use filename without extension as scope
-```
-
-`{module}` = first directory level after the root marker. Nested paths use dot notation: `src/auth/middleware/` → `auth.middleware`.
-
 ### Tier Rules
 
-| Tier | Name | Token Budget | Detail File | Retrieval Priority |
-|------|------|-------------|-------------|-------------------|
-| 1 | 重要 | ≤ 220 tokens | required | Injected on scope match |
-| 2 | 备忘 | — | none (summary only) | Injected on anchor match |
+| Tier | Name | Token Budget | Detail File |
+|------|------|-------------|-------------|
+| 1 | 重要 | ≤ 220 tokens | required |
+| 2 | 备忘 | — | none (summary only) |
 
 **Tier assignment criteria** (learn workflow):
 - 重要 (tier 1): confirmed knowledge (verified via test, reproduction, or multi-source agreement); missing it would cause errors
@@ -225,29 +182,12 @@ Signal detection → Claim extraction → Route interception → 2-question tier
 → Display and confirm → Write index.jsonl + entries/
 ```
 
-### Retrieve (context injection)
-
-Surface the right knowledge at the right time. Full spec: `workflows/retrieve.md`
-
-```
-Trigger → Resolve scope keypath → know-ctl.sh query → Sort → Truncate by entry limit
-→ Output (active tier-1: expand detail; rest: summary only) → Increment hits
-```
-
-| Trigger | Scope Source | Max Entries |
-|---------|-------------|-------------|
-| `/know` | project | 10 |
-| `/know <scope>` | user-specified | 10 |
-| Read/Edit file | file path extraction | 3 |
-| Task description | keyword extraction | 5 |
-| Decision point | current scope | 3 |
-
 ### Write (document authoring)
 
 Turn conversation results into structured, versioned documents. Full spec: `workflows/write.md`
 
 ```
-Trigger → Infer parameters → Resolve ambiguity → Version check
-→ Load template → Extract and fill → Preview and confirm → Write file
+Trigger → Infer parameters → Confirm parameters → Load template
+→ Extract and fill → Preview and confirm → Write file
 → Update CLAUDE.md index → Done
 ```

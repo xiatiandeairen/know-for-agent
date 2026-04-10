@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">know-for-agent</h1>
   <p align="center">
-    Knowledge compiler for AI agents — scoped retrieval and mental model correction.
+    Knowledge compiler for AI agents — persist tacit knowledge and write structured documents.
   </p>
 </p>
 
@@ -25,9 +25,8 @@
 
 **know-for-agent** is a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code) that gives AI agents persistent project memory. It solves two problems:
 
-1. **Context loss** — AI agents start every session from scratch. Know retrieves scoped knowledge so the agent has the right context immediately.
-2. **Repeated errors** — AI agents make the same mistakes across sessions. Know records tacit knowledge (rationale, constraints, pitfalls) to correct the agent's mental model.
-3. **Design artifacts lost** — Discussion results stay in conversations and disappear. Know writes them as structured, versioned documents.
+1. **Repeated errors** — AI agents make the same mistakes across sessions. Know records tacit knowledge (rationale, constraints, pitfalls) to correct the agent's mental model.
+2. **Design artifacts lost** — Discussion results stay in conversations and disappear. Know writes them as structured, versioned documents.
 
 ## Installation
 
@@ -42,12 +41,6 @@ git submodule add git@github.com:xiatiandeairen/know-for-agent.git src/plugins/k
 ## Quick Start
 
 ```bash
-# Retrieve project-wide knowledge
-/know
-
-# Retrieve scoped to a module
-/know LoppyMetrics
-
 # Persist knowledge from current conversation
 /know learn
 
@@ -55,18 +48,12 @@ git submodule add git@github.com:xiatiandeairen/know-for-agent.git src/plugins/k
 /know write
 ```
 
-Know also triggers automatically:
-- When you open a file → retrieves knowledge scoped to that module
-- When you describe a task → retrieves relevant context
-- When AI is about to make a decision → checks for constraints and pitfalls
-
 ## How It Works
 
-### Three Capabilities
+### Two Capabilities
 
 | Capability | Direction | Purpose |
 |-----------|-----------|---------|
-| **Retrieve** | .knowledge/ → AI context | Surface the right knowledge at the right time |
 | **Learn** | Conversation → .knowledge/ | Record tacit knowledge to reduce future errors |
 | **Write** | Conversation → .know/docs/ | Turn discussion results into structured documents |
 
@@ -89,16 +76,6 @@ Each index entry (two tiers: 重要/备忘):
 {"tag":"constraint","tier":1,"scope":"LoppyMetrics","tm":"active:defensive","summary":"Thresholds only in PressureLevel, no hardcoded numbers","path":"entries/constraint/pressure-thresholds.md","hits":3,"revs":0,"created":"2026-03-15","updated":"2026-04-08"}
 ```
 
-### Retrieve Pipeline
-
-```
-Trigger → Resolve scope keypath → Filter index.jsonl → Sort → Truncate → Output
-```
-
-- Scope uses dot-separated keypaths with prefix matching (`LoppyMetrics.DataEngine` matches `LoppyMetrics`)
-- Active entries are injected silently; passive entries shown on explicit `/know`
-- Token cost is minimal: most queries only read summaries, detail files loaded on demand
-
 ### Learn Pipeline
 
 ```
@@ -112,20 +89,15 @@ Signal detection → Claim extraction → Route interception → 2-question tier
 
 ### Two-Tier System
 
-| Tier | Name | Detail File | Retrieval | Decay |
-|------|------|-------------|-----------|-------|
-| 1 | 重要 (important) | ≤ 220 tokens | Scope match → inject | 180d without hits → demote |
-| 2 | 备忘 (memo) | Summary only | Anchor match → inject | 30d without hits → delete |
+| Tier | Name | Detail File | Decay |
+|------|------|-------------|-------|
+| 1 | 重要 (important) | ≤ 220 tokens | 180d without hits → demote |
+| 2 | 备忘 (memo) | Summary only | 30d without hits → delete |
 
 ## Architecture
 
 ```
 /know (SKILL.md)
-├── retrieve (workflows/retrieve.md)
-│   ├── Scope resolution (file path / task description / user input)
-│   ├── Index filtering (know-ctl.sh query)
-│   ├── Priority sorting (active > passive, tier, hits, recency)
-│   └── Output (silent injection or explicit list)
 ├── learn (workflows/learn.md)
 │   ├── Signal detection (6 types, rule-based filtering)
 │   ├── Route interception (5 fast-drop rules)
@@ -133,7 +105,8 @@ Signal detection → Claim extraction → Route interception → 2-question tier
 │   ├── Conflict detection (2-phase)
 │   └── Write (index.jsonl + entries/)
 └── write (workflows/write.md)
-    ├── Infer document parameters (type, name, version, parent)
+    ├── Infer parameters (type, name, version, parent)
+    ├── Confirm parameters (single confirmation)
     ├── Load template (9 types)
     ├── Extract and fill content from conversation
     └── Write file + update CLAUDE.md index

@@ -16,7 +16,7 @@ CLAUDE_MD       = CLAUDE.md          # project root
 
 9 types across 3 levels:
 
-### Project version level (under `.know/docs/{project}/v{n}/`)
+### Project version level (under `.know/docs/v{n}/`)
 
 | Type | Path | Description |
 |------|------|-------------|
@@ -27,13 +27,13 @@ CLAUDE_MD       = CLAUDE.md          # project root
 | schema | `v{n}/schema/{topic}.md` | All API/interface specs — directory, multiple files by topic |
 | decision | `v{n}/decision/{topic}.md` | ADR records — directory, multiple files by topic |
 
-### Requirement level (under `.know/docs/{project}/requirements/{requirement}/`)
+### Requirement level (under `.know/docs/requirements/{requirement}/`)
 
 | Type | Path | Description |
 |------|------|-------------|
 | prd | `prd.md` | Product requirements — single file |
 
-### Feature level (under `.know/docs/{project}/requirements/{requirement}/{feature}/`)
+### Feature level (under `.know/docs/requirements/{requirement}/{feature}/`)
 
 | Type | Path | Description |
 |------|------|-------------|
@@ -116,38 +116,55 @@ If the expected parent document does not exist:
   > B) 先创建 PRD，再写当前文档
   ```
 
-### 2e: Project Name
-
-Check `.know/docs/` for existing project directories:
-- Single existing project directory → use that project name
-- No project directory exists → infer from repo name (e.g. git remote or folder name); if unclear, ask user
-- Multiple project directories → ask user which project this document belongs to
-
 ---
 
-## Step 3: Resolve Ambiguity
+## Step 3: Confirm Parameters
 
-If any parameter cannot be confidently inferred, ask user to choose:
+Show all inferred parameters in one confirmation block and wait for user confirmation.
+
+**Project-level docs** — include version. Run version check first:
+
+```bash
+# [RUN] Check existing version directories
+ls -d .know/docs/v*/ 2>/dev/null | sort -V | tail -1
+```
+
+| Result | Action |
+|--------|--------|
+| No `v*/` directories | Default to v1 |
+| Latest is `v{n}/` | Default to v{n+1}, let user confirm or change |
 
 ```
 > [write] 从对话中检测到以下内容，请确认:
 >
-> 项目: know-for-agent
-> 类型: prd
-> 需求: know-write
-> 操作: 新建 (requirements/know-write/prd.md)
+> 类型: arch
+> 版本: v2 (当前最新 v1，新建 v2)
+> 关联: 无
 >
 > 是否正确? [确认 / 修改]
 ```
 
-For project-level docs with version:
+**Requirement docs**:
 
 ```
 > [write] 从对话中检测到以下内容，请确认:
 >
-> 项目: know-for-agent
-> 类型: arch
-> 版本: v2 (更新当前 v1/arch.md → v2/arch.md)
+> 类型: prd
+> 需求: know-write
+> 关联: roadmap (v1/roadmap.md)
+>
+> 是否正确? [确认 / 修改]
+```
+
+**Feature docs**:
+
+```
+> [write] 从对话中检测到以下内容，请确认:
+>
+> 类型: tech
+> 需求: know-write
+> 功能: write-workflow
+> 关联: prd (requirements/know-write/prd.md)
 >
 > 是否正确? [确认 / 修改]
 ```
@@ -156,8 +173,8 @@ If multiple interpretations exist (e.g. conversation covers both PRD and tech de
 
 ```
 > [write] 对话中包含多种文档内容:
-> 1. know-for-agent/requirements/know-write — prd
-> 2. know-for-agent/requirements/know-write/write-workflow — tech
+> 1. requirements/know-write — prd
+> 2. requirements/know-write/write-workflow — tech
 >
 > 写哪个? [1 / 2 / 两个都写]
 ```
@@ -166,33 +183,7 @@ If multiple interpretations exist (e.g. conversation covers both PRD and tech de
 
 ---
 
-## Step 4: Resolve Version Number
-
-**Project-level docs only** (roadmap, arch, ops, marketing, schema, decision):
-
-```bash
-# [RUN] Check existing version directories
-ls -d .know/docs/{project}/v*/ 2>/dev/null | sort -V | tail -1
-```
-
-| Result | Action |
-|--------|--------|
-| No `v*/` directories | Create `v1/` — this is a new project |
-| Latest is `v{n}/` | Ask user: updating `v{n}/` in place, or creating new `v{n+1}/`? |
-
-```
-> [write] 当前最新版本是 v1。请选择:
-> 1. 更新 v1 (覆盖 v1/arch.md)
-> 2. 创建 v2 (新建 v2/arch.md，保留 v1)
->
-> [1 / 2]
-```
-
-**Requirement/feature docs**: skip this step — no version concept, overwrite in place.
-
----
-
-## Step 5: Load Template
+## Step 4: Load Template
 
 ```bash
 # [RUN] Load document template
@@ -213,7 +204,7 @@ If template file missing → use minimal default structure:
 
 ---
 
-## Step 6: Extract and Fill Content
+## Step 5: Extract and Fill Content
 
 Using the loaded template as structure guide:
 
@@ -234,12 +225,12 @@ Content quality rules:
 
 ---
 
-## Step 7: Preview
+## Step 6: Preview
 
 Wait for user confirmation before proceeding. Display complete document for review:
 
 ```
-> [write] 预览: .know/docs/{project}/v{n}/arch.md
+> [write] 预览: .know/docs/v{n}/arch.md
 >
 > --- 文档内容 ---
 > # {Title}
@@ -252,75 +243,79 @@ Wait for user confirmation before proceeding. Display complete document for revi
 For requirement/feature docs:
 
 ```
-> [write] 预览: .know/docs/{project}/requirements/{requirement}/prd.md
+> [write] 预览: .know/docs/requirements/{requirement}/prd.md
 ```
 
-User confirms → Step 8.
+User confirms → Step 7.
 User requests edits → adjust content, re-display preview.
 
 ---
 
-## Step 8: Write Document
+## Step 7: Write Document
 
 ```bash
 # [RUN] Create directory if needed and write document
 
 # Project-level single file:
-mkdir -p .know/docs/{project}/v{n}
-# Write tool: .know/docs/{project}/v{n}/roadmap.md   (or arch.md / ops.md / marketing.md)
+mkdir -p .know/docs/v{n}
+# Write tool: .know/docs/v{n}/roadmap.md   (or arch.md / ops.md / marketing.md)
 
 # Project-level directory type:
-mkdir -p .know/docs/{project}/v{n}/schema
-# Write tool: .know/docs/{project}/v{n}/schema/{topic}.md
+mkdir -p .know/docs/v{n}/schema
+# Write tool: .know/docs/v{n}/schema/{topic}.md
 
 # Requirement:
-mkdir -p .know/docs/{project}/requirements/{requirement}
-# Write tool: .know/docs/{project}/requirements/{requirement}/prd.md
+mkdir -p .know/docs/requirements/{requirement}
+# Write tool: .know/docs/requirements/{requirement}/prd.md
 
 # Feature:
-mkdir -p .know/docs/{project}/requirements/{requirement}/{feature}
-# Write tool: .know/docs/{project}/requirements/{requirement}/{feature}/tech.md
-#          or .know/docs/{project}/requirements/{requirement}/{feature}/ui.md
+mkdir -p .know/docs/requirements/{requirement}/{feature}
+# Write tool: .know/docs/requirements/{requirement}/{feature}/tech.md
+#          or .know/docs/requirements/{requirement}/{feature}/ui.md
 ```
 
 ```
-> [written] .know/docs/{project}/v{n}/arch.md
+> [written] .know/docs/v{n}/arch.md
 ```
 
 ---
 
-## Step 9: Update CLAUDE.md Document Index
+## Step 8: Update CLAUDE.md Document Index
 
 ### Index format
 
-The document index lives in project CLAUDE.md under `## 文档索引`:
+The document index lives in project CLAUDE.md under `## Know` → `### 文档索引`:
 
 ```markdown
-## 文档索引
+## Know
 
-### v1
-- [Roadmap](.know/docs/know-for-agent/v1/roadmap.md)
-- [架构设计](.know/docs/know-for-agent/v1/arch.md)
-- [JSONL Schema](.know/docs/know-for-agent/v1/schema/jsonl-index.md)
-- [存储方案选择](.know/docs/know-for-agent/v1/decision/storage-choice.md)
+### 文档索引
 
-### Requirements
-- [know-write](.know/docs/know-for-agent/requirements/know-write/prd.md)
-  - [write-workflow / tech](.know/docs/know-for-agent/requirements/know-write/write-workflow/tech.md)
-  - [write-workflow / ui](.know/docs/know-for-agent/requirements/know-write/write-workflow/ui.md)
+#### v1
+- [Roadmap](.know/docs/v1/roadmap.md)
+- [架构设计](.know/docs/v1/arch.md)
+- [JSONL Schema](.know/docs/v1/schema/jsonl-index.md)
+- [存储方案选择](.know/docs/v1/decision/storage-choice.md)
+
+#### Requirements
+- [know-write](.know/docs/requirements/know-write/prd.md)
+  - [write-workflow / tech](.know/docs/requirements/know-write/write-workflow/tech.md)
+  - [write-workflow / ui](.know/docs/requirements/know-write/write-workflow/ui.md)
 ```
 
 ### Update procedure
 
 1. Read current CLAUDE.md
-2. If `## 文档索引` section missing → create it with `### v1` and `### Requirements` headers
-3. For project-level docs → find or create the `### v{n}` section header, add/update entry
-4. For requirement docs → find or create `### Requirements`, add/update entry for `{requirement}`
-5. For feature docs → find the `{requirement}` entry under `### Requirements`, add/update indented sub-entry
+2. If `## Know` section missing → create it with `### 文档索引`, `#### v1` and `#### Requirements` headers
+3. For project-level docs → find or create the `#### v{n}` section header, add/update entry
+4. For requirement docs → find or create `#### Requirements`, add/update entry for `{requirement}`
+5. For feature docs → find the `{requirement}` entry under `#### Requirements`, add/update indented sub-entry
 
 **Display title rule**: read the document's first line (`# xxx`), use `xxx` as the display title.
 
-**Version section order**: newer versions appear AFTER older versions (`### v1` then `### v2`).
+**Requirement display title**: use the requirement slug as display title (e.g. `know-write`), not the document H1.
+
+**Version section order**: newer versions appear AFTER older versions (`#### v1` then `#### v2`).
 
 **Duplicate handling**: if an entry with the same file path already exists, update the link text and date in place using Edit tool; do not add a new line.
 
@@ -334,22 +329,22 @@ Entry formats:
 
 **Project-level single file:**
 ```
-- [{H1 title}](.know/docs/{project}/v{n}/roadmap.md) | YYYY-MM-DD
+- [{H1 title}](.know/docs/v{n}/roadmap.md) | YYYY-MM-DD
 ```
 
 **Project-level directory type:**
 ```
-- [{H1 title}](.know/docs/{project}/v{n}/schema/{topic}.md) | YYYY-MM-DD
+- [{H1 title}](.know/docs/v{n}/schema/{topic}.md) | YYYY-MM-DD
 ```
 
 **Requirement:**
 ```
-- [{requirement}](.know/docs/{project}/requirements/{requirement}/prd.md) | YYYY-MM-DD ← roadmap
+- [{requirement}](.know/docs/requirements/{requirement}/prd.md) | YYYY-MM-DD ← roadmap
 ```
 
 **Feature (indented under requirement):**
 ```
-  - [{feature} / tech](.know/docs/{project}/requirements/{requirement}/{feature}/tech.md) | YYYY-MM-DD ← prd
+  - [{feature} / tech](.know/docs/requirements/{requirement}/{feature}/tech.md) | YYYY-MM-DD ← prd
 ```
 
 ```
@@ -358,11 +353,11 @@ Entry formats:
 
 ---
 
-## Step 10: Confirmation
+## Step 9: Confirmation
 
 ```
 > [write] 完成
-> 文档: .know/docs/{project}/v{n}/arch.md
+> 文档: .know/docs/v{n}/arch.md
 > 索引: CLAUDE.md 已更新
 ```
 
@@ -370,7 +365,7 @@ For requirement/feature docs:
 
 ```
 > [write] 完成
-> 文档: .know/docs/{project}/requirements/{requirement}/prd.md
+> 文档: .know/docs/requirements/{requirement}/prd.md
 > 索引: CLAUDE.md 已更新
 ```
 
@@ -383,7 +378,7 @@ For requirement/feature docs:
 If conversation does not contain enough material to fill more than 30% of template sections:
 
 ```
-> [write] 对话中关于 {project}/{type}/{name} 的内容不足，以下部分缺失:
+> [write] 对话中关于 {type}/{name} 的内容不足，以下部分缺失:
 > - {missing section 1}
 > - {missing section 2}
 >
@@ -392,16 +387,16 @@ If conversation does not contain enough material to fill more than 30% of templa
 
 ### CLAUDE.md does not exist
 
-Create CLAUDE.md with `## 文档索引` section containing `### v1` and `### Requirements` headers.
+Create CLAUDE.md with `## Know` section containing `### 文档索引` with `#### v1` and `#### Requirements` headers.
 
 ### Writing multiple documents from one conversation
 
-Process each document through the full pipeline (Step 4-10) sequentially. Share the confirmation at the end:
+Process each document through the full pipeline (Step 4-9) sequentially. Share the confirmation at the end:
 
 ```
 > [write] 批量完成:
-> 1. .know/docs/know-for-agent/requirements/know-write/prd.md
-> 2. .know/docs/know-for-agent/requirements/know-write/write-workflow/tech.md
+> 1. .know/docs/requirements/know-write/prd.md
+> 2. .know/docs/requirements/know-write/write-workflow/tech.md
 > 索引: CLAUDE.md 已更新
 ```
 
@@ -411,7 +406,7 @@ If `v{n}/` already contains the target file when writing (race condition or stal
 
 ```bash
 # Re-check existing version directories
-ls .know/docs/{project}/
+ls -d .know/docs/v*/ 2>/dev/null | sort -V | tail -1
 ```
 
 Ask user again whether to update in place or increment version. Do not overwrite without confirmation.
