@@ -110,7 +110,7 @@ All writes must display content and receive user confirmation before persisting.
 ```json
 {
   "tag":      "rationale|constraint|pitfall|concept|reference",
-  "tier":     1|2|3,
+  "tier":     1|2,
   "scope":    "Module.Class.method",
   "tm":       "passive|active:defensive|active:directive",
   "summary":  "≤80 chars, must contain retrieval anchor terms",
@@ -148,18 +148,55 @@ LoppyMetrics.DataEngine          → matches LoppyMetrics.DataEngine.*
 LoppyMetrics.DataEngine.refresh  → exact match
 ```
 
+### Scope Resolution from File Path
+
+Extract module scope from file paths using industry-standard directory conventions.
+
+**Priority order** (first match wins):
+
+```
+P1: Project-specific rules (if defined in workflow)
+    Example: src/mac/Packages/{Module}/  → {Module}
+
+P2: Industry-standard root directories
+    src/{module}/          → {module}
+    lib/{module}/          → {module}
+    packages/{module}/     → {module}
+    apps/{module}/         → {module}
+    services/{module}/     → {module}
+    modules/{module}/      → {module}
+    internal/{module}/     → {module}
+    pkg/{module}/          → {module}
+    components/{module}/   → {module}
+    plugins/{module}/      → {module}
+
+P3: Language-specific conventions
+    app/models/            → models         (Rails)
+    app/controllers/       → controllers    (Rails)
+    cmd/{name}/            → {name}         (Go)
+    crates/{name}/         → {name}         (Rust)
+
+P4: Generic fallback
+    Take the first directory after project root that is NOT a generic container
+    (NOT: src, lib, app, test, tests, spec, docs, scripts, config, build, dist, out, node_modules, vendor, .git)
+    → use that directory name as scope
+
+P5: Last resort
+    Use filename without extension as scope
+```
+
+`{module}` = first directory level after the root marker. Nested paths use dot notation: `src/auth/middleware/` → `auth.middleware`.
+
 ### Tier Rules
 
-| Tier | Token Budget | Detail File | Retrieval Priority |
-|------|-------------|-------------|-------------------|
-| 1 | ≤ 220 tokens | required | Injected on scope match |
-| 2 | ≤ 160 tokens | required | Injected on anchor match |
-| 3 | — | none (summary only) | Not actively retrieved |
+| Tier | Name | Token Budget | Detail File | Retrieval Priority |
+|------|------|-------------|-------------|-------------------|
+| 1 | 重要 | ≤ 220 tokens | required | Injected on scope match |
+| 2 | 备忘 | — | none (summary only) | Injected on anchor match |
 
 **Tier assignment criteria** (learn workflow):
-- Tier 1 requires confirmed knowledge (verified via test, reproduction, or multi-source agreement)
-- Tier 2: likely to cause errors if missing, but not yet fully confirmed
-- Tier 3: worth noting but low impact if missing
+- 重要 (tier 1): confirmed knowledge (verified via test, reproduction, or multi-source agreement); missing it would cause errors
+- 备忘 (tier 2): worth noting; missing it wastes time but unlikely to cause errors
 
 **Summary rules**:
 - ≤ 80 characters; if exceeds, compress to fit — never truncate mid-word
@@ -169,10 +206,9 @@ LoppyMetrics.DataEngine.refresh  → exact match
 ### Decay Policy
 
 ```
-tier 3 + hits=0 + created > 30d  → delete
-tier 2 + hits=0 + created > 90d  → demote to tier 3
-tier 1 + hits=0 + created > 180d → demote to tier 2
-revs > 3 + tier 1                → demote to tier 2 (unstable)
+备忘 (tier 2) + hits=0 + created > 30d   → delete
+重要 (tier 1) + hits=0 + created > 180d  → demote to 备忘
+revs > 3 + 重要 (tier 1)                 → demote to 备忘 (unstable)
 ```
 
 ---
@@ -184,7 +220,7 @@ revs > 3 + tier 1                → demote to tier 2 (unstable)
 Record tacit high-value knowledge that code and git cannot express. Full spec: `workflows/learn.md`
 
 ```
-Signal detection → Claim extraction → Route interception → 3-question tier assessment
+Signal detection → Claim extraction → Route interception → 2-question tier assessment
 → Entry generation → Conflict detection (keyword pre-filter + LLM similarity)
 → Display and confirm → Write index.jsonl + entries/
 ```

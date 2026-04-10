@@ -27,6 +27,7 @@
 
 1. **Context loss** — AI agents start every session from scratch. Know retrieves scoped knowledge so the agent has the right context immediately.
 2. **Repeated errors** — AI agents make the same mistakes across sessions. Know records tacit knowledge (rationale, constraints, pitfalls) to correct the agent's mental model.
+3. **Design artifacts lost** — Discussion results stay in conversations and disappear. Know writes them as structured, versioned documents.
 
 ## Installation
 
@@ -49,6 +50,9 @@ git submodule add git@github.com:xiatiandeairen/know-for-agent.git src/plugins/k
 
 # Persist knowledge from current conversation
 /know learn
+
+# Write discussion results as structured document
+/know write
 ```
 
 Know also triggers automatically:
@@ -58,12 +62,13 @@ Know also triggers automatically:
 
 ## How It Works
 
-### Two Capabilities
+### Three Capabilities
 
 | Capability | Direction | Purpose |
 |-----------|-----------|---------|
 | **Retrieve** | .knowledge/ → AI context | Surface the right knowledge at the right time |
 | **Learn** | Conversation → .knowledge/ | Record tacit knowledge to reduce future errors |
+| **Write** | Conversation → .know/docs/ | Turn discussion results into structured documents |
 
 ### Storage: JSONL Index + Markdown Details
 
@@ -78,7 +83,7 @@ Know also triggers automatically:
     └── reference/           #   External tool guides
 ```
 
-Each index entry:
+Each index entry (two tiers: 重要/备忘):
 
 ```json
 {"tag":"constraint","tier":1,"scope":"LoppyMetrics","tm":"active:defensive","summary":"Thresholds only in PressureLevel, no hardcoded numbers","path":"entries/constraint/pressure-thresholds.md","hits":3,"revs":0,"created":"2026-03-15","updated":"2026-04-08"}
@@ -97,21 +102,20 @@ Trigger → Resolve scope keypath → Filter index.jsonl → Sort → Truncate �
 ### Learn Pipeline
 
 ```
-Signal detection → Claim extraction → Route interception → 3-question tier assessment
+Signal detection → Claim extraction → Route interception → 2-question tier assessment
 → Entry generation → Conflict detection → User confirmation → Write
 ```
 
-- 6 signal types detected: user corrections, technical choices, root causes, business logic, constraints, integrations
-- 3-question assessment replaces complex scoring: derivable? → impact if missing? → reuse frequency?
+- 6 signal types with rule-based filtering (must contain detection pattern keywords)
+- 2-question assessment: impact if missing? → reuse frequency?
 - 2-phase conflict detection: keyword pre-filter (jq) → LLM similarity assessment
 
-### Tier System
+### Two-Tier System
 
-| Tier | Purpose | Detail File | Retrieval | Decay |
-|------|---------|-------------|-----------|-------|
-| 1 | Core knowledge | ≤ 220 tokens | Scope match → inject | 180d without hits → demote |
-| 2 | Conditional knowledge | ≤ 160 tokens | Anchor match → inject | 90d without hits → demote |
-| 3 | Observation pool | Summary only | Not actively retrieved | 30d without hits → delete |
+| Tier | Name | Detail File | Retrieval | Decay |
+|------|------|-------------|-----------|-------|
+| 1 | 重要 (important) | ≤ 220 tokens | Scope match → inject | 180d without hits → demote |
+| 2 | 备忘 (memo) | Summary only | Anchor match → inject | 30d without hits → delete |
 
 ## Architecture
 
@@ -122,12 +126,17 @@ Signal detection → Claim extraction → Route interception → 3-question tier
 │   ├── Index filtering (know-ctl.sh query)
 │   ├── Priority sorting (active > passive, tier, hits, recency)
 │   └── Output (silent injection or explicit list)
-└── learn (workflows/learn.md)
-    ├── Signal detection (6 types)
-    ├── Route interception (5 fast-drop rules)
-    ├── 3-question tier assessment
-    ├── Conflict detection (2-phase)
-    └── Write (index.jsonl + entries/)
+├── learn (workflows/learn.md)
+│   ├── Signal detection (6 types, rule-based filtering)
+│   ├── Route interception (5 fast-drop rules)
+│   ├── 2-question tier assessment (重要/备忘)
+│   ├── Conflict detection (2-phase)
+│   └── Write (index.jsonl + entries/)
+└── write (workflows/write.md)
+    ├── Infer document parameters (type, name, version, parent)
+    ├── Load template (9 types)
+    ├── Extract and fill content from conversation
+    └── Write file + update CLAUDE.md index
 
 scripts/know-ctl.sh
 ├── query    Filter index by scope/tag/tier/tm

@@ -172,7 +172,7 @@ If multiple interpretations exist (e.g. conversation covers both PRD and tech de
 
 ```bash
 # [RUN] Check existing version directories
-ls .know/docs/{project}/
+ls -d .know/docs/{project}/v*/ 2>/dev/null | sort -V | tail -1
 ```
 
 | Result | Action |
@@ -224,10 +224,13 @@ Using the loaded template as structure guide:
 5. Do NOT include frontmatter — metadata lives in CLAUDE.md index
 
 Content quality rules:
-- Full sentences, not bullet fragments from chat
-- Technical accuracy preserved from conversation
-- Ambiguities or open questions called out explicitly
+- Each template section must contain at least 2-3 complete sentences; if conversation lacks content for a section, keep the section header and write "待定 — {缺失原因}" as content
+- Do NOT paste conversation fragments as-is; rewrite all content as standalone, readable prose
+- Code examples and tables from conversation may be quoted directly
+- Technical accuracy preserved from conversation; do not infer or fabricate details not discussed
+- Ambiguities or open questions called out explicitly with "开放问题:" prefix
 - Cross-references to related docs where applicable (use relative paths)
+- Match user's language for document content (Chinese conversation → Chinese document)
 
 ---
 
@@ -315,27 +318,38 @@ The document index lives in project CLAUDE.md under `## 文档索引`:
 4. For requirement docs → find or create `### Requirements`, add/update entry for `{requirement}`
 5. For feature docs → find the `{requirement}` entry under `### Requirements`, add/update indented sub-entry
 
+**Display title rule**: read the document's first line (`# xxx`), use `xxx` as the display title.
+
+**Version section order**: newer versions appear AFTER older versions (`### v1` then `### v2`).
+
+**Duplicate handling**: if an entry with the same file path already exists, update the link text and date in place using Edit tool; do not add a new line.
+
+**Feature ordering**: append new features after existing ones under the same requirement.
+
+**Date annotation**: every entry ends with ` | YYYY-MM-DD` (today's date).
+
+**Parent annotation**: requirement/feature entries that have a parent add ` ← {parent type}` after the date.
+
 Entry formats:
 
 **Project-level single file:**
 ```
-- [显示标题](.know/docs/{project}/v{n}/roadmap.md)
+- [{H1 title}](.know/docs/{project}/v{n}/roadmap.md) | YYYY-MM-DD
 ```
 
 **Project-level directory type:**
 ```
-- [显示标题](.know/docs/{project}/v{n}/schema/{topic}.md)
+- [{H1 title}](.know/docs/{project}/v{n}/schema/{topic}.md) | YYYY-MM-DD
 ```
 
 **Requirement:**
 ```
-- [{requirement}](.know/docs/{project}/requirements/{requirement}/prd.md)
+- [{requirement}](.know/docs/{project}/requirements/{requirement}/prd.md) | YYYY-MM-DD ← roadmap
 ```
 
 **Feature (indented under requirement):**
 ```
-  - [{feature} / tech](.know/docs/{project}/requirements/{requirement}/{feature}/tech.md)
-  - [{feature} / ui](.know/docs/{project}/requirements/{requirement}/{feature}/ui.md)
+  - [{feature} / tech](.know/docs/{project}/requirements/{requirement}/{feature}/tech.md) | YYYY-MM-DD ← prd
 ```
 
 ```
