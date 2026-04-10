@@ -2,7 +2,7 @@
 
 ## 背景
 
-know 插件需要将对话中产生的隐性知识（代码和 git 无法表达的部分）持久化为结构化条目，供未来会话加载使用。learn 管线是知识的入口，负责信号检测、质量过滤、结构化和持久化。关联 PRD：`requirements/know-learn/prd.md`。
+know 插件需要将对话中产生的隐性知识持久化为结构化条目，供未来会话加载使用。learn 管线是知识的入口，负责信号检测、质量过滤、结构化和持久化。关联 PRD：`requirements/know-learn/prd.md`。
 
 ## 方案
 
@@ -24,27 +24,12 @@ scripts/know-ctl.sh                      ← append/search 命令
   ├─ 1. Trigger          显式调用 / 6 种隐式信号检测
   ├─ 2. Claim Extract    对话 → 最小知识单元，独立可检索
   ├─ 3. Route Intercept  5 条 fast-DROP：可推导 / CLAUDE.md / memory / 无结论 / 一次性
-  ├─ 4. Tier Assess      Q1 缺失影响 × Q2 复现频率 → 重要(T1) / 备忘(T2) / DROP
+  ├─ 4. Tier Assess      Q1 缺失影响 × Q2 复现频率 → critical(T1) / memo(T2) / DROP
   ├─ 5. Entry Generate   tag + scope + tm + summary(≤80ch) + detail(.md)
   ├─ 6. Conflict Detect  关键词预筛(know-ctl search) + LLM 语义判断
   ├─ 7. Confirm          展示完整条目，用户确认/编辑/取消
   └─ 8. Write            know-ctl append + 写入 entries/{tag}/{slug}.md
 ```
-
-### 信号检测规则
-
-6 种信号，每种需匹配至少一个关键词才触发：
-
-| 信号 | 关键词（任一匹配） | 推断 tag |
-|------|-------------------|---------|
-| 用户纠正 | don't, not X use Y, change to, wrong, should be | constraint / rationale |
-| 技术选型 | chose, picked, decided, over, instead of, compared | rationale |
-| 根因发现 | turns out, root cause, the issue was, because of | pitfall |
-| 业务逻辑 | the flow is, algorithm, works by, rule is | concept |
-| 约束声明 | must not, forbidden, always, never | constraint |
-| 外部集成 | API, endpoint, SDK, configured via | reference |
-
-隐式信号在任务完成后批量提议，不打断工作流。
 
 ### JSONL 条目结构（10 字段）
 
@@ -63,31 +48,34 @@ scripts/know-ctl.sh                      ← append/search 命令
 }
 ```
 
+### 信号检测规则
+
+| 信号 | 检测模式 | 推断 tag |
+|------|---------|---------|
+| 用户纠正 | "don't", "not X use Y", "change to", "wrong", "should be" | constraint / rationale |
+| 技术选型 | "chose", "picked", "decided", "over", "instead of", "compared" | rationale |
+| 根因发现 | "turns out", "root cause", "the issue was", "because of" | pitfall |
+| 业务逻辑 | "the flow is", "algorithm", "works by", "rule is" | concept |
+| 约束声明 | "must not", "forbidden", "always", "never" | constraint |
+| 外部集成 | "API", "endpoint", "SDK", "configured via" | reference |
+
 ### 路由拦截（5 条 DROP 规则）
 
 顺序检查，首条命中即终止：
 
-| 规则 | 判断标准 | 示例 |
-|------|---------|------|
-| 代码可推导 | 不熟悉代码库的 AI 也能在 2 分钟内通过 grep/git log/阅读代码得出 | "PressureLevel 枚举有 35/55/75" |
-| 属于 CLAUDE.md | 每次会话都需要的项目级规则 | 编码规范、项目约定 |
-| 属于 auto memory | 与项目无关的个人偏好 | "我喜欢用 vim" |
-| 无结论 | 讨论未收敛，确认后再持久化 | "还在考虑用 A 还是 B" |
-| 一次性 | 不会再遇到 | "这次部署用了临时 flag" |
+| 规则 | 判断标准 |
+|------|---------|
+| 代码可推导 | 不熟悉代码库的 AI 也能在 2 分钟内通过 grep/git log 得出 |
+| 属于 CLAUDE.md | 每次会话都需要的项目级规则 |
+| 属于 auto memory | 与项目无关的个人偏好 |
+| 无结论 | 讨论未收敛 |
+| 一次性 | 不会再遇到 |
 
 ### 冲突检测（2 阶段）
 
-```
-阶段 1: 关键词预筛
-  摘要 ≤30ch → 提取 2 关键词
-  摘要 30-60ch → 提取 3 关键词
-  摘要 >60ch → 提取 4 关键词
-  → know-ctl search "<kw1>|<kw2>" → 候选集 (0-5 条)
+**阶段 1: 关键词预筛** — 从摘要提取关键词（≤30ch→2词, 30-60ch→3词, >60ch→4词），`know-ctl search` 匹配候选集。
 
-阶段 2: LLM 语义判断
-  候选摘要 vs 新摘要 → 无关/补充/重复/矛盾
-  重复或矛盾 → conflict block（更新/保留/合并/跳过）
-```
+**阶段 2: LLM 语义判断** — 候选摘要 vs 新摘要，分类为：无关 / 补充 / 重复 / 矛盾。重复或矛盾 → 展示冲突选项。
 
 ### 详情文件格式（按 tag）
 
@@ -121,18 +109,16 @@ scripts/know-ctl.sh                      ← append/search 命令
 | index.jsonl 不存在 | know-ctl append 自动创建 |
 | 隐式信号无关键词匹配 | 静默忽略 |
 
-## 交付标准
+## 风险与未决项
 
-- 6 种信号类型均有对应的关键词匹配规则
-- 路由拦截正确拦截代码可推导和无结论的 claim
-- 冲突检测 2 阶段串联：预筛缩小范围 → LLM 判断分类
-- append 命令验证必填字段后写入 index.jsonl
-- tier 1 条目写入详情文件，tier 2 仅索引
+- `know-ctl append` 仅校验 tag/tier/scope/summary/updated 五个字段，未校验 created —— 依赖调用方正确传入
+- 隐式信号关键词覆盖面有限，非英文对话可能漏检
+- JSONL 百条以上时 jq 逐行扫描性能待验证
 
 ## 文件变更
 
 | 操作 | 文件 | 说明 |
 |------|------|------|
 | 新建 | workflows/learn.md | 8 步学习工作流 |
-| 新建 | scripts/know-ctl.sh | append/search 命令 |
+| 新建 | scripts/know-ctl.sh | CLI 索引操作工具 |
 | 修改 | skills/know/SKILL.md | 添加 learn 路由、存储架构、JSONL schema |

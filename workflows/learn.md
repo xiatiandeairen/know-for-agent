@@ -37,10 +37,10 @@ Signals without any matching keyword are silently dropped. Do not propose ambigu
 Implicit signals are batched and proposed after task completion. User selects which to persist, then each claim is processed sequentially through Step 2-8 (one at a time, confirm each before next):
 
 ```
-> [suggest-learn] Detected 2 high-value knowledge items:
-> 1. [constraint] Thresholds defined only in PressureLevel, no hardcoded numbers
-> 2. [pitfall] DataEngine singleton leaks state across test targets
-> Persist? [all / select / skip]
+[suggest-learn] Detected 2 high-value knowledge items:
+1. [constraint] Thresholds defined only in PressureLevel, no hardcoded numbers
+2. [pitfall] DataEngine singleton leaks state across test targets
+Persist? [all / select / skip]
 ```
 
 ---
@@ -242,16 +242,16 @@ Present candidate summaries alongside new claim summary. Classify:
 Conflict block format:
 
 ```
-> [conflict] Similar entry found:
->
-> Existing: {existing summary}
-> New: {new summary}
->
-> Choose:
-> A) Update existing entry
-> B) Keep both
-> C) Merge into one
-> D) Skip new entry
+[conflict] Similar entry found:
+
+Existing: {existing summary}
+New: {new summary}
+
+Choose:
+A) Update existing entry
+B) Keep both
+C) Merge into one
+D) Skip new entry
 ```
 
 ---
@@ -263,19 +263,18 @@ Wait for user confirmation before proceeding.
 Present complete entry:
 
 ```
-> [learn] Entry pending confirmation:
->
-> Tag: constraint | Tier: 1 | Scope: LoppyMetrics
-> Trigger: active:defensive
-> Summary: Thresholds defined only in PressureLevel, no hardcoded numbers
->
-> --- entries/constraint/pressure-thresholds.md ---
-> # Thresholds defined only in PressureLevel
-> All pressure thresholds (35/55/75) are defined in the PressureLevel enum.
-> ## Why
-> Scattered magic numbers caused inconsistent scoring in v1.
-> ## How to check
-> grep for hardcoded 35/55/75 outside PressureLevel.
+[learn] Entry pending confirmation:
+
+Tag: constraint | Tier: 1 | Scope: LoppyMetrics
+Summary: Thresholds defined only in PressureLevel, no hardcoded numbers
+
+--- entries/constraint/pressure-thresholds.md ---
+# Thresholds defined only in PressureLevel
+All pressure thresholds (35/55/75) are defined in the PressureLevel enum.
+## Why
+Scattered magic numbers caused inconsistent scoring in v1.
+## How to check
+grep for hardcoded 35/55/75 outside PressureLevel.
 ```
 
 User confirms → Step 8.
@@ -313,5 +312,5 @@ For critical (tier 1): write detail file to `$ENTRIES_DIR/{tag}/{slug}.md`.
 For memo (tier 2): index entry only, `path: null`.
 
 ```
-> [persisted] entries/constraint/pressure-thresholds.md (tier 1)
+[persisted] entries/constraint/pressure-thresholds.md (tier 1)
 ```

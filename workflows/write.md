@@ -111,9 +111,9 @@ If the expected parent document does not exist:
 - prd without roadmap → proceed, note in output: "Related roadmap not yet created"
 - tech/ui without prd → warn user and ask:
   ```
-  > [write] Related PRD not found ({expected path})
-  > A) Continue without parent link
-  > B) Create PRD first, then write current document
+  [write] Related PRD not found ({expected path})
+  A) Continue without parent link
+  B) Create PRD first, then write current document
   ```
 
 ---
@@ -135,48 +135,48 @@ ls -d .know/docs/v*/ 2>/dev/null | sort -V | tail -1
 | Latest is `v{n}/` | Default to v{n+1}, let user confirm or change |
 
 ```
-> [write] Inferred from conversation, please confirm:
->
-> Type: arch
-> Version: v2 (current latest v1, creating v2)
-> Parent: none
->
-> Correct? [confirm / modify]
+[write] Inferred from conversation, please confirm:
+
+Type: arch
+Version: v2 (current latest v1, creating v2)
+Parent: none
+
+Correct?
 ```
 
 **Requirement docs**:
 
 ```
-> [write] Inferred from conversation, please confirm:
->
-> Type: prd
-> Requirement: know-write
-> Parent: roadmap (v1/roadmap.md)
->
-> Correct? [confirm / modify]
+[write] Inferred from conversation, please confirm:
+
+Type: prd
+Requirement: know-write
+Parent: roadmap (v1/roadmap.md)
+
+Correct?
 ```
 
 **Feature docs**:
 
 ```
-> [write] Inferred from conversation, please confirm:
->
-> Type: tech
-> Requirement: know-write
-> Feature: write-workflow
-> Parent: prd (requirements/know-write/prd.md)
->
-> Correct? [confirm / modify]
+[write] Inferred from conversation, please confirm:
+
+Type: tech
+Requirement: know-write
+Feature: write-workflow
+Parent: prd (requirements/know-write/prd.md)
+
+Correct?
 ```
 
 If multiple interpretations exist (e.g. conversation covers both PRD and tech design), present choices:
 
 ```
-> [write] Conversation contains multiple document types:
-> 1. requirements/know-write — prd
-> 2. requirements/know-write/write-workflow — tech
->
-> Which to write? [1 / 2 / both]
+[write] Conversation contains multiple document types:
+1. requirements/know-write — prd
+2. requirements/know-write/write-workflow — tech
+
+Which to write? [1 / 2 / both]
 ```
 
 Both → process sequentially, each following full pipeline from Step 4.
@@ -224,6 +224,17 @@ Content quality rules:
 - Cross-references to related docs where applicable (use relative paths)
 - Match user's language for document content (Chinese conversation → Chinese document)
 
+**Update mode** (when overwriting an existing document):
+
+Before generating content, read the existing document and the corresponding template, then check:
+
+1. **Structure compliance** — existing sections must match template structure. Missing sections → add. Extra sections not in template → evaluate whether to keep or remove
+2. **Content accuracy** — facts, numbers, descriptions must match current implementation. Outdated content → update based on conversation context and current code state
+3. **Reference integrity** — all relative paths (`requirements/...`, `v1/...`) and cross-references must point to existing files. Broken references → fix or remove
+4. **Title convention** — H1 title must follow the template naming rule for its document level
+
+Fix all issues found; do not carry forward known errors from the existing document.
+
 ---
 
 ## Step 6: Preview
@@ -231,20 +242,17 @@ Content quality rules:
 Wait for user confirmation before proceeding. Display complete document for review:
 
 ```
-> [write] Preview: .know/docs/v{n}/arch.md
->
-> --- document content ---
-> # {Title}
-> ...full document content...
-> --- end ---
->
-> Write? [confirm / modify]
+[write] Preview: .know/docs/v{n}/arch.md
+
+{full document content in markdown}
+
+Write?
 ```
 
 For requirement/feature docs:
 
 ```
-> [write] Preview: .know/docs/requirements/{requirement}/prd.md
+[write] Preview: .know/docs/requirements/{requirement}/prd.md
 ```
 
 User confirms → Step 7.
@@ -276,7 +284,7 @@ mkdir -p .know/docs/requirements/{requirement}/{feature}
 ```
 
 ```
-> [written] .know/docs/v{n}/arch.md
+[written] .know/docs/v{n}/arch.md
 ```
 
 ---
@@ -293,15 +301,12 @@ The document index lives in project CLAUDE.md under `## Know` → `### 文档索
 ### 文档索引
 
 #### v1
-- [Roadmap](.know/docs/v1/roadmap.md)
-- [Architecture](.know/docs/v1/arch.md)
-- [JSONL Schema](.know/docs/v1/schema/jsonl-index.md)
-- [Storage Choice](.know/docs/v1/decision/storage-choice.md)
+- [know 产品路线图](.know/docs/v1/roadmap.md) | 2026-04-10
+- [know 架构设计](.know/docs/v1/arch.md) | 2026-04-10
 
 #### Requirements
-- [know-write](.know/docs/requirements/know-write/prd.md)
-  - [write-workflow / tech](.know/docs/requirements/know-write/write-workflow/tech.md)
-  - [write-workflow / ui](.know/docs/requirements/know-write/write-workflow/ui.md)
+- [know-write](.know/docs/requirements/know-write/prd.md) | 2026-04-10 ← roadmap
+  - [tech](.know/docs/requirements/know-write/tech.md) | 2026-04-10 ← prd
 ```
 
 ### Update procedure
@@ -312,9 +317,16 @@ The document index lives in project CLAUDE.md under `## Know` → `### 文档索
 4. For requirement docs → find or create `#### Requirements`, add/update entry for `{requirement}`
 5. For feature docs → find the `{requirement}` entry under `#### Requirements`, add/update indented sub-entry
 
-**Display title rule**: read the document's first line (`# xxx`), use `xxx` as the display title.
+**Display title rule**:
+- Project-level docs: read the document's first line (`# xxx`), use `xxx` as the display title
+- Requirement docs: use the requirement slug as display title (e.g. `know-write`), not the document H1
+- Feature docs: use `{type}` as display title (e.g. `tech`, `ui`)
 
-**Requirement display title**: use the requirement slug as display title (e.g. `know-write`), not the document H1.
+**Title naming convention** (must match template):
+- Project-level single file: `# {项目名} {文档类型}` (e.g. `# know 产品路线图`)
+- Project-level directory type: `# {主题名} {文档类型}` (e.g. `# JSONL 索引 接口规范`)
+- Requirement: `# {用户入口}` (e.g. `# /know learn`)
+- Feature: `# {需求名} {文档类型}` (e.g. `# /know learn 技术方案`)
 
 **Version section order**: newer versions appear AFTER older versions (`#### v1` then `#### v2`).
 
@@ -349,7 +361,7 @@ Entry formats:
 ```
 
 ```
-> [index] CLAUDE.md document index updated
+[index] CLAUDE.md document index updated
 ```
 
 ---
@@ -357,17 +369,15 @@ Entry formats:
 ## Step 9: Confirmation
 
 ```
-> [write] Done
-> Document: .know/docs/v{n}/arch.md
-> Index: CLAUDE.md updated
+[written] .know/docs/v{n}/arch.md
+[index] CLAUDE.md updated
 ```
 
 For requirement/feature docs:
 
 ```
-> [write] Done
-> Document: .know/docs/requirements/{requirement}/prd.md
-> Index: CLAUDE.md updated
+[written] .know/docs/requirements/{requirement}/prd.md
+[index] CLAUDE.md updated
 ```
 
 ---
@@ -379,11 +389,11 @@ For requirement/feature docs:
 If conversation does not contain enough material to fill more than 30% of template sections:
 
 ```
-> [write] Insufficient content for {type}/{name}, missing sections:
-> - {missing section 1}
-> - {missing section 2}
->
-> Continue (missing sections marked "TBD")? [confirm / skip]
+[write] Insufficient content for {type}/{name}, missing sections:
+- {missing section 1}
+- {missing section 2}
+
+Continue (missing sections marked "TBD")?
 ```
 
 ### CLAUDE.md does not exist
@@ -395,10 +405,10 @@ Create CLAUDE.md with `## Know` section containing `### 文档索引` with `####
 Process each document through the full pipeline (Step 4-9) sequentially. Share the confirmation at the end:
 
 ```
-> [write] Batch complete:
-> 1. .know/docs/requirements/know-write/prd.md
-> 2. .know/docs/requirements/know-write/write-workflow/tech.md
-> Index: CLAUDE.md updated
+[write] Batch complete:
+1. .know/docs/requirements/know-write/prd.md
+2. .know/docs/requirements/know-write/write-workflow/tech.md
+[index] CLAUDE.md updated
 ```
 
 ### Version conflict

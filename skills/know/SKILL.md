@@ -25,39 +25,39 @@ Two capabilities, one entry point:
 
 ### Output Blocks
 
-Output blocks are user-facing formatted displays. Use `> [marker]` prefix:
+Output blocks are user-facing formatted displays. Use `[marker]` prefix:
 
 | Marker | Semantics | When |
 |--------|-----------|------|
-| `> [suggest-learn]` | High-value knowledge detected, propose persistence | learn implicit signal |
-| `> [learn]` | Entry pending confirmation | learn Step 7 |
-| `> [persisted]` | Write complete confirmation | learn Step 8 |
-| `> [conflict]` | Similar entry exists, user decision needed | learn Step 6 conflict |
-| `> [skipped]` | Route interception, not persisted | learn Step 3 DROP |
-| `> [write]` | Document write pipeline status | write steps |
-| `> [written]` | Document write complete | write Step 8 |
-| `> [index]` | Index update confirmation | write Step 9 |
+| `[suggest-learn]` | High-value knowledge detected, propose persistence | learn implicit signal |
+| `[learn]` | Entry pending confirmation | learn Step 7 |
+| `[persisted]` | Write complete confirmation | learn Step 8 |
+| `[conflict]` | Similar entry exists, user decision needed | learn Step 6 conflict |
+| `[skipped]` | Route interception, not persisted | learn Step 3 DROP |
+| `[write]` | Document write pipeline status | write steps |
+| `[written]` | Document write complete | write Step 8 |
+| `[index]` | Index update confirmation | write Step 9 |
 
 **Conflict block format**:
 
 ```
-> [conflict] Similar entry found:
->
-> Existing: {existing summary}
-> New: {new summary}
->
-> Choose:
-> A) Update existing entry
-> B) Keep both
-> C) Merge into one
-> D) Skip new entry
+[conflict] Similar entry found:
+
+Existing: {existing summary}
+New: {new summary}
+
+Choose:
+A) Update existing entry
+B) Keep both
+C) Merge into one
+D) Skip new entry
 ```
 
 **Skipped block format**:
 
 ```
-> [skipped] {claim summary}
-> Reason: {drop reason — e.g. derivable from code / belongs in CLAUDE.md / no conclusion}
+[skipped] {claim summary}
+Reason: {drop reason — e.g. derivable from code / belongs in CLAUDE.md / no conclusion}
 ```
 
 ### Path Constants

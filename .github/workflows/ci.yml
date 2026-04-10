@@ -1,0 +1,89 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate plugin
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate plugin.json
+        run: |
+          echo "Checking plugin.json structure..."
+          python3 -c "
+          import json, sys
+          with open('.claude-plugin/plugin.json') as f:
+              data = json.load(f)
+          required = ['name', 'version', 'description']
+          missing = [k for k in required if k not in data]
+          if missing:
+              print(f'Missing required fields: {missing}')
+              sys.exit(1)
+          print(f'Plugin: {data[\"name\"]} v{data[\"version\"]}')
+          "
+
+      - name: Validate marketplace.json
+        run: |
+          python3 -c "
+          import json, sys
+          with open('.claude-plugin/marketplace.json') as f:
+              data = json.load(f)
+          assert 'name' in data, 'Missing name'
+          assert 'plugins' in data, 'Missing plugins array'
+          print(f'Marketplace: {data[\"name\"]} ({len(data[\"plugins\"])} plugins)')
+          "
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check skill files exist
+        run: |
+          echo "Checking required skill files..."
+          for f in skills/know/SKILL.md; do
+            if [ ! -f "$f" ]; then
+              echo "Missing: $f"
+              exit 1
+            fi
+            echo "OK: $f"
+          done
+
+      - name: Check workflow files exist
+        run: |
+          echo "Checking required workflow files..."
+          for f in decision status trap rule ref; do
+            if [ ! -f "workflows/knowledge/$f.md" ]; then
+              echo "Missing: workflows/knowledge/$f.md"
+              exit 1
+            fi
+            echo "OK: workflows/knowledge/$f.md"
+          done
+          for f in report review brief; do
+            if [ ! -f "workflows/collab/$f.md" ]; then
+              echo "Missing: workflows/collab/$f.md"
+              exit 1
+            fi
+            echo "OK: workflows/collab/$f.md"
+          done
+
+      - name: Lint shell scripts
+        run: |
+          if command -v shellcheck &> /dev/null; then
+            shellcheck scripts/*.sh
+          else
+            echo "shellcheck not available, using bash -n"
+            for f in scripts/*.sh; do
+              bash -n "$f" && echo "OK: $f" || exit 1
+            done
+          fi
