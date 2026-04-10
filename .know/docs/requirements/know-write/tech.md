@@ -2,7 +2,7 @@
 
 ## 背景
 
-know 插件有 retrieve 和 learn 两条管线，面向知识条目（短摘要 ≤220 tokens）。用户在对话中讨论的完整设计文档无处沉淀。需要新增 write 能力，将对话结果按模板写入 `docs/` 目录。
+know 插件有 learn 管线，面向知识条目（短摘要 ≤220 tokens）。用户在对话中讨论的完整设计文档无处沉淀。需要新增 write 能力，将对话结果按模板写入 `.know/docs/` 目录。
 
 ## 方案
 
@@ -10,92 +10,120 @@ know 插件有 retrieve 和 learn 两条管线，面向知识条目（短摘要 
 
 ```
 skills/know/SKILL.md                    ← 意图路由，新增 write 入口
-workflows/write.md                       ← 10 步工作流
+workflows/write.md                       ← 9 步工作流
 workflows/templates/{type}.md            ← 9 种文档模板
-docs/{project}/{type}/[name]/v{n}.md     ← 产出目录
+.know/docs/v{n}/                         ← 项目版本级文档
+.know/docs/requirements/{name}/          ← 需求/功能级文档
 CLAUDE.md ## 文档索引                     ← 索引 + 层级关系
 ```
 
-### 工作流（10 步）
+### 工作流（9 步）
 
 ```
 /know write [hint]
   │
   ├─ 1. Trigger          解析 hint
-  ├─ 2. Infer            推断 project / type / name / version / parent
+  ├─ 2. Infer            推断 type / name / version / parent
   │     ├─ 2a: type      对话内容特征匹配 9 种类型
-  │     ├─ 2b: name      对话主题 → kebab-case slug（可选，roadmap 无 name）
-  │     ├─ 2c: version   检查目录是否存在 → 新建 v1 或递增
-  │     ├─ 2d: parent    prd←roadmap, tech/ui/api←prd, 其余独立
-  │     └─ 2e: project   检查 docs/ 已有项目目录，单项目直接用，多项目确认
+  │     ├─ 2b: name      对话主题 → kebab-case slug（项目版本级单文件无需 name）
+  │     ├─ 2c: version   项目版本级检查 v*/ 目录递增；需求/功能级无版本
+  │     └─ 2d: parent    prd←roadmap, tech/ui←prd, 其余独立
   ├─ 3. Confirm          展示推断结果，歧义时让用户选择
-  ├─ 4. Version          ls docs/{project}/{type}/[name]/v*.md → max+1
-  ├─ 5. Template         加载 workflows/templates/{type}.md
-  ├─ 6. Fill             从对话提取内容，按模板结构组织完整散文
-  ├─ 7. Preview          展示全文，用户确认
-  ├─ 8. Write            mkdir -p + 写入文件
-  ├─ 9. Index            更新 CLAUDE.md 文档索引
-  └─ 10. Done            输出路径 + 版本号
+  ├─ 4. Template         加载 workflows/templates/{type}.md
+  ├─ 5. Fill             从对话提取内容，按模板结构组织完整散文
+  ├─ 6. Preview          展示全文，用户确认
+  ├─ 7. Write            mkdir -p + 写入文件
+  ├─ 8. Index            更新 CLAUDE.md 文档索引
+  └─ 9. Done             输出路径
 ```
+
+### 文档类型（9 种，3 层）
+
+**项目版本级**（`v{n}/` 下）：
+
+| 类型 | 路径 | 说明 |
+|------|------|------|
+| roadmap | `v{n}/roadmap.md` | 产品路线图，单文件 |
+| arch | `v{n}/arch.md` | 架构设计，单文件 |
+| ops | `v{n}/ops.md` | 运营：发布、反馈、迭代，单文件 |
+| marketing | `v{n}/marketing.md` | 营销：推广、内容策略、launch plan，单文件 |
+| schema | `v{n}/schema/{topic}.md` | API/接口规范，目录，按主题分文件 |
+| decision | `v{n}/decision/{topic}.md` | ADR 决策记录，目录，按主题分文件 |
+
+**需求级**（`requirements/{name}/`）：prd.md
+
+**功能级**（`requirements/{name}/{feature}/`）：tech.md / ui.md
 
 ### 推断规则
 
 | 对话特征 | 推断类型 |
 |---------|---------|
-| 功能列表、优先级、方向 | roadmap |
-| 需求、用户故事、做/不做 | prd |
-| 架构、模块、数据流、实现 | tech |
-| 布局、交互、组件、状态 | ui |
+| 功能列表、优先级、时间线、里程碑 | roadmap |
+| 用户故事、验收标准、需求、范围 | prd |
+| 系统设计、数据模型、实现方案 | tech |
+| 线框、布局、交互流、组件规格 | ui |
 | 系统边界、模块拆分、基础设施 | arch |
-| 接口、请求响应、协议 | api |
-| 选 A 不选 B、trade-off | decision |
-| 发布、用户获取、反馈、迭代 | ops |
+| 接口、请求响应、协议、schema 规范 | schema |
+| 选 A 不选 B、trade-off 分析 | decision |
+| 发布计划、反馈循环、迭代 | ops |
 | 推广、内容策略、launch plan | marketing |
 
 名称取对话核心主题，转 kebab-case。有 hint 时优先匹配。
 
+### 父文档关系
+
+prd ← roadmap，tech/ui ← prd，其余类型独立。父文档缺失时：prd 无 roadmap → 继续，备注"关联 roadmap 尚未创建"；tech/ui 无 prd → 警告用户，选择继续或先创建 prd。
+
 ### 版本机制
 
-- `v{n}.md` 递增，全量写入
-- 旧版本文件保留，不删不改
-- CLAUDE.md 索引始终指向最新版本
+- 项目版本级文档：`v{n}/` 目录递增，旧版本保留，CLAUDE.md 索引按版本分组
+- 需求/功能级文档：原地覆写，无版本控制（单一事实源，用 git 追溯历史）
 
 ### 目录结构
 
 ```
-docs/{project}/{type}/[name]/v{n}.md
-
-示例:
-docs/know-for-agent/roadmap/v1.md              ← 无 name
-docs/know-for-agent/prd/know-write/v1.md       ← 有 name
-docs/know-for-agent/tech/know-write/v1.md      ← 有 name
+.know/docs/
+├── v1/                                        ← 项目版本级
+│   ├── roadmap.md                             ← 单文件类型
+│   ├── arch.md
+│   ├── schema/{topic}.md                      ← 目录类型，按主题
+│   └── decision/{topic}.md
+└── requirements/                              ← 需求/功能级
+    └── know-write/
+        ├── prd.md                             ← 需求文档
+        └── write-workflow/
+            └── tech.md                        ← 功能文档
 ```
 
 ### 索引格式（CLAUDE.md）
 
 ```markdown
-## 文档索引
+## Know
 
-### Roadmap
-- [know-for-agent Roadmap](docs/know-for-agent/roadmap/v1.md) v1 | 2026-04-09
+### 文档索引
 
-### PRD
-- [/know write](docs/know-for-agent/prd/know-write/v1.md) v1 | 2026-04-09 ← roadmap
+#### v1
+- [know Roadmap](.know/docs/v1/roadmap.md) | 2026-04-09
+- [架构设计](.know/docs/v1/arch.md) | 2026-04-09
+
+#### Requirements
+- [know-write](.know/docs/requirements/know-write/prd.md) | 2026-04-09 ← roadmap
+  - [write-workflow / tech](.know/docs/requirements/know-write/write-workflow/tech.md) | 2026-04-09 ← prd
 ```
 
-索引不存在时创建 `## 文档索引` + 9 个类型 header。
+索引不存在时创建 `## Know` → `### 文档索引` + `#### v1` 和 `#### Requirements` header。
 
 ## 关键决策
 
 | 决策 | 选择 | 为什么 |
 |------|------|--------|
 | 元数据存储 | CLAUDE.md，无独立 meta 文件 | agent 天然读 CLAUDE.md，少一个文件 |
-| 写入模式 | 全量覆写 | 单一事实源，版本文件管历史 |
+| 写入模式 | 项目版本级全量覆写+版本递增，需求级原地覆写 | 版本级保留历史，需求级用 git 追溯 |
 | 模板位置 | workflows/templates/ | 跟插件走，不污染用户项目 |
 | 层级标注 | `← parent` 文本标记 | 人可读、agent 可解析、零依赖 |
 | 文档格式 | 纯 Markdown，无 frontmatter | 元数据全在索引里，文档保持干净 |
-| name 可选 | roadmap 等单文档类型不需要 name | 避免冗余嵌套 |
-| project 维度 | 目录加 {project} 层 | 支持多项目，单项目自动推断 |
+| name 可选 | roadmap 等项目版本级单文件类型不需要 name | 避免冗余嵌套 |
+| 目录结构 | `.know/docs/` 下按 `v{n}/` 和 `requirements/` 分层 | 项目版本和需求文档职责清晰 |
 | 交互风格 | 自然语言确认，参考 sprint skill | 用户友好，不暴露内部标记 |
 
 ## 边界情况
@@ -105,7 +133,7 @@ docs/know-for-agent/tech/know-write/v1.md      ← 有 name
 | 对话内容不足 | 提示缺失章节，用户选择标"待定"或跳过 |
 | 同一对话涉及多种文档 | 列出选项，支持逐个处理 |
 | 目标版本文件已存在 | 重新 ls 取最新版本号 +1，不覆盖 |
-| CLAUDE.md 不存在 | 创建并初始化 9 个类型 header |
+| CLAUDE.md 不存在 | 创建 `## Know` → `### 文档索引` + `#### v1` 和 `#### Requirements` |
 | 预览后要求修改 | 调整内容重新预览，不计版本号 |
-| 多项目仓库 | 检查 docs/ 子目录，多个时让用户确认 |
+| 需求文档已存在 | 原地覆写（无版本递增），用 git 追溯 |
 | 直接修改 v1 而非新建 v2 | 用户明确要求时直接 Edit，不走版本递增 |

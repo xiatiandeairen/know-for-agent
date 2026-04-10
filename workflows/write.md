@@ -56,7 +56,7 @@ Roadmap references requirements. Requirements and features are always current (n
 
 ```
 /know write          # AI infers everything from conversation
-/know write <hint>   # With hint (e.g. "产品需求", "tech design", feature name)
+/know write <hint>   # With hint (e.g. "product requirements", "tech design", feature name)
 ```
 
 ---
@@ -108,12 +108,12 @@ If type is `tech` or `ui` → look for related `prd` doc.
 ### Parent Document Missing
 
 If the expected parent document does not exist:
-- prd without roadmap → proceed, note in output: "关联 roadmap 尚未创建"
+- prd without roadmap → proceed, note in output: "Related roadmap not yet created"
 - tech/ui without prd → warn user and ask:
   ```
-  > [write] 未找到关联的 PRD 文档 ({expected path})
-  > A) 继续写入，跳过关联
-  > B) 先创建 PRD，再写当前文档
+  > [write] Related PRD not found ({expected path})
+  > A) Continue without parent link
+  > B) Create PRD first, then write current document
   ```
 
 ---
@@ -135,51 +135,51 @@ ls -d .know/docs/v*/ 2>/dev/null | sort -V | tail -1
 | Latest is `v{n}/` | Default to v{n+1}, let user confirm or change |
 
 ```
-> [write] 从对话中检测到以下内容，请确认:
+> [write] Inferred from conversation, please confirm:
 >
-> 类型: arch
-> 版本: v2 (当前最新 v1，新建 v2)
-> 关联: 无
+> Type: arch
+> Version: v2 (current latest v1, creating v2)
+> Parent: none
 >
-> 是否正确? [确认 / 修改]
+> Correct? [confirm / modify]
 ```
 
 **Requirement docs**:
 
 ```
-> [write] 从对话中检测到以下内容，请确认:
+> [write] Inferred from conversation, please confirm:
 >
-> 类型: prd
-> 需求: know-write
-> 关联: roadmap (v1/roadmap.md)
+> Type: prd
+> Requirement: know-write
+> Parent: roadmap (v1/roadmap.md)
 >
-> 是否正确? [确认 / 修改]
+> Correct? [confirm / modify]
 ```
 
 **Feature docs**:
 
 ```
-> [write] 从对话中检测到以下内容，请确认:
+> [write] Inferred from conversation, please confirm:
 >
-> 类型: tech
-> 需求: know-write
-> 功能: write-workflow
-> 关联: prd (requirements/know-write/prd.md)
+> Type: tech
+> Requirement: know-write
+> Feature: write-workflow
+> Parent: prd (requirements/know-write/prd.md)
 >
-> 是否正确? [确认 / 修改]
+> Correct? [confirm / modify]
 ```
 
 If multiple interpretations exist (e.g. conversation covers both PRD and tech design), present choices:
 
 ```
-> [write] 对话中包含多种文档内容:
+> [write] Conversation contains multiple document types:
 > 1. requirements/know-write — prd
 > 2. requirements/know-write/write-workflow — tech
 >
-> 写哪个? [1 / 2 / 两个都写]
+> Which to write? [1 / 2 / both]
 ```
 
-两个都写 → process sequentially, each following full pipeline from Step 4.
+Both → process sequentially, each following full pipeline from Step 4.
 
 ---
 
@@ -195,11 +195,11 @@ If template file missing → use minimal default structure:
 ```markdown
 # {Title}
 
-## 概述
+## Overview
 
-## 详细内容
+## Details
 
-## 开放问题
+## Open Questions
 ```
 
 ---
@@ -211,15 +211,16 @@ Using the loaded template as structure guide:
 1. Scan full conversation for content relevant to this document type
 2. Organize extracted content into template sections
 3. Write complete, structured prose — not conversation fragments
-4. Ensure all template sections are addressed (mark as "待定" if no conversation content covers it)
+4. Ensure all template sections are addressed (mark as "TBD" if no conversation content covers it)
 5. Do NOT include frontmatter — metadata lives in CLAUDE.md index
 
 Content quality rules:
-- Each template section must contain at least 2-3 complete sentences; if conversation lacks content for a section, keep the section header and write "待定 — {缺失原因}" as content
+- **Follow each section's INCLUDE/EXCLUDE guide** in template comments (`<!-- -->`). Only extract conversation content that falls within the section's INCLUDE scope; actively filter out content matching EXCLUDE criteria, even if discussed in conversation
+- Each template section must contain at least 2-3 complete sentences; if conversation lacks content for a section, keep the section header and write "TBD — {reason}" as content
 - Do NOT paste conversation fragments as-is; rewrite all content as standalone, readable prose
 - Code examples and tables from conversation may be quoted directly
 - Technical accuracy preserved from conversation; do not infer or fabricate details not discussed
-- Ambiguities or open questions called out explicitly with "开放问题:" prefix
+- Ambiguities or open questions called out explicitly with "Open question:" prefix
 - Cross-references to related docs where applicable (use relative paths)
 - Match user's language for document content (Chinese conversation → Chinese document)
 
@@ -230,20 +231,20 @@ Content quality rules:
 Wait for user confirmation before proceeding. Display complete document for review:
 
 ```
-> [write] 预览: .know/docs/v{n}/arch.md
+> [write] Preview: .know/docs/v{n}/arch.md
 >
-> --- 文档内容 ---
+> --- document content ---
 > # {Title}
-> ...完整文档内容...
-> --- 结束 ---
+> ...full document content...
+> --- end ---
 >
-> 确认写入? [确认 / 修改]
+> Write? [confirm / modify]
 ```
 
 For requirement/feature docs:
 
 ```
-> [write] 预览: .know/docs/requirements/{requirement}/prd.md
+> [write] Preview: .know/docs/requirements/{requirement}/prd.md
 ```
 
 User confirms → Step 7.
@@ -293,9 +294,9 @@ The document index lives in project CLAUDE.md under `## Know` → `### 文档索
 
 #### v1
 - [Roadmap](.know/docs/v1/roadmap.md)
-- [架构设计](.know/docs/v1/arch.md)
+- [Architecture](.know/docs/v1/arch.md)
 - [JSONL Schema](.know/docs/v1/schema/jsonl-index.md)
-- [存储方案选择](.know/docs/v1/decision/storage-choice.md)
+- [Storage Choice](.know/docs/v1/decision/storage-choice.md)
 
 #### Requirements
 - [know-write](.know/docs/requirements/know-write/prd.md)
@@ -348,7 +349,7 @@ Entry formats:
 ```
 
 ```
-> [index] CLAUDE.md 文档索引已更新
+> [index] CLAUDE.md document index updated
 ```
 
 ---
@@ -356,17 +357,17 @@ Entry formats:
 ## Step 9: Confirmation
 
 ```
-> [write] 完成
-> 文档: .know/docs/v{n}/arch.md
-> 索引: CLAUDE.md 已更新
+> [write] Done
+> Document: .know/docs/v{n}/arch.md
+> Index: CLAUDE.md updated
 ```
 
 For requirement/feature docs:
 
 ```
-> [write] 完成
-> 文档: .know/docs/requirements/{requirement}/prd.md
-> 索引: CLAUDE.md 已更新
+> [write] Done
+> Document: .know/docs/requirements/{requirement}/prd.md
+> Index: CLAUDE.md updated
 ```
 
 ---
@@ -378,11 +379,11 @@ For requirement/feature docs:
 If conversation does not contain enough material to fill more than 30% of template sections:
 
 ```
-> [write] 对话中关于 {type}/{name} 的内容不足，以下部分缺失:
+> [write] Insufficient content for {type}/{name}, missing sections:
 > - {missing section 1}
 > - {missing section 2}
 >
-> 继续写入 (缺失部分标记为"待定")? [确认 / 跳过]
+> Continue (missing sections marked "TBD")? [confirm / skip]
 ```
 
 ### CLAUDE.md does not exist
@@ -394,10 +395,10 @@ Create CLAUDE.md with `## Know` section containing `### 文档索引` with `####
 Process each document through the full pipeline (Step 4-9) sequentially. Share the confirmation at the end:
 
 ```
-> [write] 批量完成:
+> [write] Batch complete:
 > 1. .know/docs/requirements/know-write/prd.md
 > 2. .know/docs/requirements/know-write/write-workflow/tech.md
-> 索引: CLAUDE.md 已更新
+> Index: CLAUDE.md updated
 ```
 
 ### Version conflict

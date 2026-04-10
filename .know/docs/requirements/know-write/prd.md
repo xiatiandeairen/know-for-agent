@@ -17,12 +17,12 @@
 
 ## 方案
 
-单一命令 `/know write`，AI 从对话推断文档类型，按模板生成结构完整的文档，全量写入 `docs/{project}/{type}/[name]/v{n}.md`，CLAUDE.md 维护索引。
+单一命令 `/know write`，AI 从对话推断文档类型，按模板生成结构完整的文档，写入 `.know/docs/`，CLAUDE.md 维护索引。
 
-- 9 种模板：roadmap / prd / tech / ui / arch / api / decision / ops / marketing
-- 版本递增，旧版本保留，文档永远是最新状态
-- 层级关系：roadmap → prd → tech / ui / api，arch 和 decision 独立，ops 和 marketing 独立
-- 目录含 project 维度，支持多项目；name 可选（如 roadmap 无需 name）
+- 9 种模板：roadmap / prd / tech / ui / arch / schema / decision / ops / marketing
+- 3 层目录结构：项目版本级（`v{n}/`）、需求级（`requirements/{name}/`）、功能级（`requirements/{name}/{feature}/`）
+- 项目版本级文档支持版本递增，需求/功能级文档原地覆写（单一事实源）
+- 层级关系：roadmap → prd → tech / ui / schema，arch 和 decision 独立，ops 和 marketing 独立
 
 ## 怎么做
 
@@ -38,4 +38,6 @@
 ## 怎么验证
 
 - 实际跑一遍：讨论完一个特性 → `/know write` → 生成的文档人工 review 内容完整
-- 版本：同一文档写两次，v1 和 v2 都在，索引指向 v2
+- 项目版本级文档：同一文档写两次，v1 和 v2 目录都在，CLAUDE.md 索引按 `#### v1` `#### v2` 分组
+- 需求/功能级文档：原地覆写，用 git diff 确认变更
+- CLAUDE.md 索引正确维护层级关系（`← roadmap`、`← prd`）和日期标注

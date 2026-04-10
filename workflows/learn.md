@@ -37,10 +37,10 @@ Signals without any matching keyword are silently dropped. Do not propose ambigu
 Implicit signals are batched and proposed after task completion. User selects which to persist, then each claim is processed sequentially through Step 2-8 (one at a time, confirm each before next):
 
 ```
-> [suggest-learn] 检测到 2 条高价值知识:
-> 1. [constraint] 阈值只在 PressureLevel 定义，禁止硬编码数字
-> 2. [pitfall] DataEngine 单例在测试 target 间泄漏状态
-> 持久化? [全部 / 选择 / 跳过]
+> [suggest-learn] Detected 2 high-value knowledge items:
+> 1. [constraint] Thresholds defined only in PressureLevel, no hardcoded numbers
+> 2. [pitfall] DataEngine singleton leaks state across test targets
+> Persist? [all / select / skip]
 ```
 
 ---
@@ -60,10 +60,10 @@ Rules:
 
 | Conversation content | Split? | Reason |
 |---------------------|--------|--------|
-| "用 Combine 不用 AsyncStream — 没有堆栈信息，背压弱" | 不拆 | 结论+原因是整体，原因脱离结论无意义 |
-| "DataEngine 是单例 / DataEngine 在测试间泄漏状态" | 拆 | 两个独立事实，知道其一不需要知道其二 |
-| "API 返回 200 时 payload 是 {user, token}" | 不拆 | 数据结构描述是一个完整单元 |
-| "选了 JSONL 不用 SQLite；JSONL 的换行符需要转义" | 拆 | 技术选型和使用注意事项可独立检索 |
+| "Use Combine not AsyncStream — no stack traces, weak backpressure" | no | conclusion + reason is a unit, reason alone is meaningless |
+| "DataEngine is a singleton / DataEngine leaks state across tests" | yes | two independent facts, knowing one doesn't require the other |
+| "API returns 200 with payload {user, token}" | no | data structure description is one complete unit |
+| "Chose JSONL over SQLite; JSONL newlines need escaping" | yes | tech choice and usage caveat are independently retrievable |
 
 **Rule**: prefer not splitting over over-splitting. A claim with context is more useful than a fragment without.
 
@@ -85,10 +85,10 @@ One-time information?              → DROP
 
 | Example | Derivable? | Why |
 |---------|-----------|-----|
-| "PressureLevel enum has values 35/55/75" | ✓ YES | grep can find it |
-| "选 PressureLevel enum 是因为 v1 散落的魔法数字导致评分不一致" | ✗ NO | code shows the enum, not *why* it was chosen |
-| "DataEngine is a singleton" | ✓ YES | code structure reveals it |
-| "DataEngine singleton leaks state across test targets" | ✗ NO | requires having encountered the bug |
+| "PressureLevel enum has values 35/55/75" | YES | grep can find it |
+| "Chose PressureLevel enum because v1 had scattered magic numbers causing inconsistent scoring" | NO | code shows the enum, not *why* it was chosen |
+| "DataEngine is a singleton" | YES | code structure reveals it |
+| "DataEngine singleton leaks state across test targets" | NO | requires having encountered the bug |
 
 ---
 
@@ -97,28 +97,28 @@ One-time information?              → DROP
 ```
 Q1: What happens if a future session lacks this knowledge?
     Negligible impact         → DROP
-    Likely to waste time      → 备忘 (tier 2)
-    Likely to cause errors    → 重要 (tier 1)
+    Likely to waste time      → memo (tier 2)
+    Likely to cause errors    → critical (tier 1)
 
 Q2: Will this be needed again?
-    Unlikely   → demote one level (重要→备忘, 备忘→DROP)
+    Unlikely   → demote one level (critical→memo, memo→DROP)
     Likely     → keep
-    Frequently → promote one level (备忘→重要)
+    Frequently → promote one level (memo→critical)
 ```
 
-重要 (tier 1) additionally requires confirmed knowledge (verified via test, reproduction, or multi-source agreement). If impact is high but knowledge is unconfirmed, assign 备忘 — if the knowledge is valuable, it will surface again in future conversations and can be promoted then.
+critical (tier 1) additionally requires confirmed knowledge (verified via test, reproduction, or multi-source agreement). If impact is high but knowledge is unconfirmed, assign memo — if the knowledge is valuable, it will surface again in future conversations and can be promoted then.
 
 ### Calibration Examples
 
-**重要 (tier 1)**:
-- "阈值只在 PressureLevel 定义，禁止硬编码" — 违反导致多模块评分不一致 (broad error)
-- "必须用 Combine 而非 AsyncStream" — 错误选择导致调试困难，无堆栈 (repeated error)
-- "index.jsonl 每行一条，禁止格式化 JSON" — 违反导致解析失败 (data corruption)
+**critical (tier 1)**:
+- "Thresholds defined only in PressureLevel, no hardcoding" — violation causes multi-module scoring inconsistency (broad error)
+- "Must use Combine, not AsyncStream" — wrong choice causes debugging difficulty, no stack traces (repeated error)
+- "index.jsonl one entry per line, no formatted JSON" — violation causes parse failure (data corruption)
 
-**备忘 (tier 2)**:
-- "Panel 动画用 Canvas 实时绘制，非帧动画" — 不知道只是多花时间探索 (time waste)
-- "decay 命令每月跑一次即可" — 忘了不影响功能 (operational note)
-- "score 算法参考了论文 X 的公式" — 有用背景但不影响实现 (context)
+**memo (tier 2)**:
+- "Panel animation uses Canvas real-time drawing, not frame animation" — not knowing just wastes exploration time (time waste)
+- "decay command runs monthly" — forgetting doesn't break functionality (operational note)
+- "Score algorithm referenced formula from paper X" — useful background but doesn't affect implementation (context)
 
 See SKILL.md → Tier Rules for tier definitions and decay policy.
 
@@ -188,17 +188,17 @@ If summary exceeds 80 characters after initial compression:
 2. Shorten to core conclusion only
 3. If still over 80 chars, split into two entries with narrower scope each
 
-### Detail File (重要 tier 1 only)
+### Detail File (critical tier 1 only)
 
 Body format varies by tag:
 
 | Tag | Sections |
 |-----|----------|
-| rationale | `# 标题` → 为什么 → 被拒绝的方案 → 约束 |
-| constraint | `# 标题` → 规则 → 为什么 → 检查方式 |
-| pitfall | `# 标题` → 症状 → 根因 → 教训 |
-| concept | `# 标题` → 概述 → 关键步骤 → 边界 |
-| reference | `# 标题` → 是什么 → 用法 → 注意事项 |
+| rationale | `# Title` → Why → Rejected alternatives → Constraints |
+| constraint | `# Title` → Rule → Why → How to check |
+| pitfall | `# Title` → Symptoms → Root cause → Lesson |
+| concept | `# Title` → Overview → Key steps → Boundaries |
+| reference | `# Title` → What it is → Usage → Caveats |
 
 No frontmatter in .md files — all metadata lives in index.jsonl.
 
@@ -242,16 +242,16 @@ Present candidate summaries alongside new claim summary. Classify:
 Conflict block format:
 
 ```
-> [conflict] 发现相似条目:
+> [conflict] Similar entry found:
 >
-> 已有: {existing summary}
-> 新增: {new summary}
+> Existing: {existing summary}
+> New: {new summary}
 >
-> 请选择:
-> A) 更新已有条目
-> B) 保留两条
-> C) 合并为一条
-> D) 跳过新条目
+> Choose:
+> A) Update existing entry
+> B) Keep both
+> C) Merge into one
+> D) Skip new entry
 ```
 
 ---
@@ -263,19 +263,19 @@ Wait for user confirmation before proceeding.
 Present complete entry:
 
 ```
-> [learn] 待确认条目:
+> [learn] Entry pending confirmation:
 >
-> 标签: constraint | 层级: 1 | 范围: LoppyMetrics
-> 触发: active:defensive
-> 摘要: 阈值只在 PressureLevel 定义，禁止硬编码数字
+> Tag: constraint | Tier: 1 | Scope: LoppyMetrics
+> Trigger: active:defensive
+> Summary: Thresholds defined only in PressureLevel, no hardcoded numbers
 >
 > --- entries/constraint/pressure-thresholds.md ---
-> # 阈值只在 PressureLevel 定义
-> 所有压力阈值 (35/55/75) 在 PressureLevel 枚举中定义。
-> ## 为什么
-> 分散的魔法数字导致 v1 评分不一致。
-> ## 检查方式
-> grep 检查 PressureLevel 外是否有硬编码的 35/55/75。
+> # Thresholds defined only in PressureLevel
+> All pressure thresholds (35/55/75) are defined in the PressureLevel enum.
+> ## Why
+> Scattered magic numbers caused inconsistent scoring in v1.
+> ## How to check
+> grep for hardcoded 35/55/75 outside PressureLevel.
 ```
 
 User confirms → Step 8.
@@ -301,7 +301,7 @@ bash "$KNOW_CTL" append '{"tag":"constraint","tier":1,"scope":"LoppyMetrics","tm
 **Effect**: appends one line to index.jsonl
 **Validation**: script validates required fields (tag, tier, scope, summary, created, updated)
 
-For 重要 (tier 1): write detail file to `$ENTRIES_DIR/{tag}/{slug}.md`.
+For critical (tier 1): write detail file to `$ENTRIES_DIR/{tag}/{slug}.md`.
 
 **Slug generation**:
 1. Take summary text
@@ -310,8 +310,8 @@ For 重要 (tier 1): write detail file to `$ENTRIES_DIR/{tag}/{slug}.md`.
 4. Max 50 characters; truncate at last complete word
 5. Must be filesystem-safe: `[a-z0-9-]` only
 
-For 备忘 (tier 2): index entry only, `path: null`.
+For memo (tier 2): index entry only, `path: null`.
 
 ```
-> [persisted] entries/constraint/pressure-thresholds.md (层级 1)
+> [persisted] entries/constraint/pressure-thresholds.md (tier 1)
 ```

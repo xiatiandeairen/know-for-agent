@@ -29,35 +29,35 @@ Output blocks are user-facing formatted displays. Use `> [marker]` prefix:
 
 | Marker | Semantics | When |
 |--------|-----------|------|
-| `> [suggest-learn]` | 检测到高价值知识，提议持久化 | learn implicit signal |
-| `> [learn]` | 待确认的知识条目 | learn Step 7 |
-| `> [persisted]` | 写入完成确认 | learn Step 8 |
-| `> [conflict]` | 存在相似条目，需要用户决策 | learn Step 6 冲突 |
-| `> [skipped]` | 路由拦截，不持久化 | learn Step 3 DROP |
-| `> [write]` | 文档写入流程中的状态展示 | write 各步骤 |
-| `> [written]` | 文档写入完成确认 | write Step 8 |
-| `> [index]` | 索引更新确认 | write Step 9 |
+| `> [suggest-learn]` | High-value knowledge detected, propose persistence | learn implicit signal |
+| `> [learn]` | Entry pending confirmation | learn Step 7 |
+| `> [persisted]` | Write complete confirmation | learn Step 8 |
+| `> [conflict]` | Similar entry exists, user decision needed | learn Step 6 conflict |
+| `> [skipped]` | Route interception, not persisted | learn Step 3 DROP |
+| `> [write]` | Document write pipeline status | write steps |
+| `> [written]` | Document write complete | write Step 8 |
+| `> [index]` | Index update confirmation | write Step 9 |
 
-**Conflict block 完整格式**:
+**Conflict block format**:
 
 ```
-> [conflict] 发现相似条目:
+> [conflict] Similar entry found:
 >
-> 已有: {existing summary}
-> 新增: {new summary}
+> Existing: {existing summary}
+> New: {new summary}
 >
-> 请选择:
-> A) 更新已有条目
-> B) 保留两条
-> C) 合并为一条
-> D) 跳过新条目
+> Choose:
+> A) Update existing entry
+> B) Keep both
+> C) Merge into one
+> D) Skip new entry
 ```
 
-**Skipped block 格式**:
+**Skipped block format**:
 
 ```
 > [skipped] {claim summary}
-> 原因: {drop reason — e.g. 可从代码推导 / 属于 CLAUDE.md / 无明确结论}
+> Reason: {drop reason — e.g. derivable from code / belongs in CLAUDE.md / no conclusion}
 ```
 
 ### Path Constants
@@ -148,12 +148,12 @@ LoppyMetrics.DataEngine.refresh  → exact match
 
 | Tier | Name | Token Budget | Detail File |
 |------|------|-------------|-------------|
-| 1 | 重要 | ≤ 220 tokens | required |
-| 2 | 备忘 | — | none (summary only) |
+| 1 | critical | ≤ 220 tokens | required |
+| 2 | memo | — | none (summary only) |
 
 **Tier assignment criteria** (learn workflow):
-- 重要 (tier 1): confirmed knowledge (verified via test, reproduction, or multi-source agreement); missing it would cause errors
-- 备忘 (tier 2): worth noting; missing it wastes time but unlikely to cause errors
+- critical (tier 1): confirmed knowledge (verified via test, reproduction, or multi-source agreement); missing it would cause errors
+- memo (tier 2): worth noting; missing it wastes time but unlikely to cause errors
 
 **Summary rules**:
 - ≤ 80 characters; if exceeds, compress to fit — never truncate mid-word
@@ -163,9 +163,9 @@ LoppyMetrics.DataEngine.refresh  → exact match
 ### Decay Policy
 
 ```
-备忘 (tier 2) + hits=0 + created > 30d   → delete
-重要 (tier 1) + hits=0 + created > 180d  → demote to 备忘
-revs > 3 + 重要 (tier 1)                 → demote to 备忘 (unstable)
+memo (tier 2) + hits=0 + created > 30d      → delete
+critical (tier 1) + hits=0 + created > 180d → demote to memo
+revs > 3 + critical (tier 1)                → demote to memo (unstable)
 ```
 
 ---

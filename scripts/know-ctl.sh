@@ -108,28 +108,22 @@ cmd_decay() {
         created_ts=$(date -j -f "%Y-%m-%d" "$created" +%s 2>/dev/null || date -d "$created" +%s 2>/dev/null || echo 0)
         age_days=$(( (today_ts - created_ts) / 86400 ))
 
-        # tier 3 + hits=0 + >30d → delete
-        if [ "$tier" -eq 3 ] && [ "$hits" -eq 0 ] && [ "$age_days" -gt 30 ]; then
+        # 备忘 (tier 2) + hits=0 + >30d → delete
+        if [ "$tier" -eq 2 ] && [ "$hits" -eq 0 ] && [ "$age_days" -gt 30 ]; then
+            local path
+            path=$(echo "$line" | jq -r '.path // empty')
+            [ -n "$path" ] && [ -f "$KNOWLEDGE_DIR/$path" ] && rm "$KNOWLEDGE_DIR/$path"
             deleted=$((deleted + 1))
             continue
         fi
 
-        # tier 2 + hits=0 + >90d → demote to tier 3, remove detail file
-        if [ "$tier" -eq 2 ] && [ "$hits" -eq 0 ] && [ "$age_days" -gt 90 ]; then
-            local path
-            path=$(echo "$line" | jq -r '.path // empty')
-            [ -n "$path" ] && [ -f "$KNOWLEDGE_DIR/$path" ] && rm "$KNOWLEDGE_DIR/$path"
-            line=$(echo "$line" | jq -c '.tier = 3 | .path = null')
-            demoted=$((demoted + 1))
-        fi
-
-        # tier 1 + hits=0 + >180d → demote to tier 2
+        # 重要 (tier 1) + hits=0 + >180d → demote to 备忘
         if [ "$tier" -eq 1 ] && [ "$hits" -eq 0 ] && [ "$age_days" -gt 180 ]; then
             line=$(echo "$line" | jq -c '.tier = 2')
             demoted=$((demoted + 1))
         fi
 
-        # revs > 3 + tier 1 → demote to tier 2 (unstable)
+        # revs > 3 + 重要 (tier 1) → demote to 备忘 (unstable)
         if [ "$tier" -eq 1 ] && [ "$revs" -gt 3 ]; then
             line=$(echo "$line" | jq -c '.tier = 2')
             demoted=$((demoted + 1))
