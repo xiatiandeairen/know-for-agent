@@ -34,12 +34,12 @@ Only propose signals that contain at least one detection pattern keyword from th
 
 Signals without any matching keyword are silently dropped. Do not propose ambiguous or incidental mentions.
 
-Implicit signals are batched and proposed after task completion:
+Implicit signals are batched and proposed after task completion. User selects which to persist, then each claim is processed sequentially through Step 2-8 (one at a time, confirm each before next):
 
 ```
 > [suggest-learn] 检测到 2 条高价值知识:
-> 1. [constraint|T1] 阈值只在 PressureLevel 定义，禁止硬编码数字
-> 2. [pitfall|T2] DataEngine 单例在测试 target 间泄漏状态
+> 1. [constraint] 阈值只在 PressureLevel 定义，禁止硬编码数字
+> 2. [pitfall] DataEngine 单例在测试 target 间泄漏状态
 > 持久化? [全部 / 选择 / 跳过]
 ```
 
@@ -106,7 +106,7 @@ Q2: Will this be needed again?
     Frequently → promote one level (备忘→重要)
 ```
 
-重要 (tier 1) additionally requires confirmed knowledge (verified via test, reproduction, or multi-source agreement). If impact is high but knowledge is unconfirmed, assign 备忘 and note for future promotion.
+重要 (tier 1) additionally requires confirmed knowledge (verified via test, reproduction, or multi-source agreement). If impact is high but knowledge is unconfirmed, assign 备忘 — if the knowledge is valuable, it will surface again in future conversations and can be promoted then.
 
 ### Calibration Examples
 
@@ -188,7 +188,7 @@ If summary exceeds 80 characters after initial compression:
 2. Shorten to core conclusion only
 3. If still over 80 chars, split into two entries with narrower scope each
 
-### Detail File (tier 1/2 only)
+### Detail File (重要 tier 1 only)
 
 Body format varies by tag:
 
