@@ -1,0 +1,28 @@
+{
+  "name": "know",
+  "owner": {
+    "name": "taoxia"
+  },
+  "metadata": {
+    "description": "Knowledge compiler for AI agents — scoped retrieval and mental model correction"
+  },
+  "plugins": [
+    {
+      "name": "know",
+      "source": "./",
+      "description": "Project knowledge compiler — retrieve scoped context, persist tacit knowledge, reduce AI exploration errors",
+      "version": "1.0.0",
+      "author": {
+        "name": "taoxia"
+      },
+      "category": "knowledge",
+      "tags": [
+        "knowledge",
+        "context",
+        "retrieval",
+        "mental-model",
+        "compiler"
+      ]
+    }
+  ]
+}
