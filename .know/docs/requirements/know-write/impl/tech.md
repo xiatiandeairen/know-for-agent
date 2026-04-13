@@ -1,10 +1,10 @@
 # /know write 技术方案
 
-## 背景
+## 1. 背景
 
 know 插件有 learn 管线，面向知识条目（短摘要 ≤220 tokens）。用户在对话中讨论的完整设计文档无处沉淀。需要新增 write 能力，将对话结果按模板写入 `.know/docs/` 目录。
 
-## 方案
+## 2. 方案
 
 ### 整体结构
 
@@ -139,7 +139,7 @@ Changelog 格式：`- YYYY-MM-DD: {变更摘要}`，追加在文档末尾 `## Ch
 
 索引不存在时创建 `## Know` → `### 文档索引` + `#### v1` 和 `#### Requirements` header。
 
-## 关键决策
+## 3. 关键决策
 
 | 决策 | 选择 | 为什么 |
 |------|------|--------|
@@ -154,7 +154,7 @@ Changelog 格式：`- YYYY-MM-DD: {变更摘要}`，追加在文档末尾 `## Ch
 | 目录结构 | `.know/docs/` 下按 `v{n}/` 和 `requirements/` 分层 | 项目版本和需求文档职责清晰 |
 | 交互风格 | 自然语言确认，参考 sprint skill | 用户友好，不暴露内部标记 |
 
-## 边界情况
+## 4. 边界情况
 
 | 场景 | 处理 |
 |------|------|
@@ -166,3 +166,14 @@ Changelog 格式：`- YYYY-MM-DD: {变更摘要}`，追加在文档末尾 `## Ch
 | 需求文档已存在 | 进入 update mode，定点更新涉及章节 + 追加 changelog |
 | 直接修改 v1 而非新建 v2 | 用户明确要求时直接 Edit，不走版本递增 |
 | 父文档更新后子文档状态 | 索引标记 `⚠ needs update`，子文档更新后自动清除 |
+
+## 5. 测试用例
+
+| 场景 | 输入 | 预期输出 |
+|------|------|---------|
+| 新建文档 | `/know write` + 对话含需求讨论 | 推断 prd 类型，生成完整文档 + 索引更新 |
+| 版本递增 | `/know write` + v1/roadmap.md 已存在 | 创建 v2/roadmap.md，索引新增 v2 section |
+| Update mode | `/know write` + prd.md 已存在 + 对话讨论了方案变更 | 只修改方案章节，其余不动，追加 changelog |
+| 级联标记 | 写入 roadmap v2 + 索引中有 prd ← roadmap | prd 索引行追加 `⚠ needs update` |
+| 标记清除 | 更新已有 `⚠ needs update` 的 prd | 索引行 `⚠ needs update` 被移除 |
+| 父文档缺失 | `/know write` 推断 tech + 无对应 prd | 展示选项：继续 / 先创建 prd |
