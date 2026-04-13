@@ -98,6 +98,7 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 | `[written]` | write | Document write complete |
 | `[index]` | write | CLAUDE.md index updated |
 | `[cascade]` | write | Downstream docs marked for update after parent write |
+| `[recall]` | recall | Knowledge entry applied to current operation |
 | `[error]` | both | Unrecoverable error |
 
 **Conflict block**:
@@ -188,6 +189,58 @@ memo     + hits=0 + age > 30d  → delete
 critical + hits=0 + age > 180d → demote to memo
 critical + revs > 3            → demote to memo (unstable)
 ```
+
+## Recall
+
+Agent applies persisted knowledge to prevent repeated errors.
+
+### When to Load
+
+Before operating on code (Read, Edit, Write, Bash with code changes), query for matching entries:
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" query "{scope}"
+```
+
+**Scope inference** — derive from current operation, first match wins:
+
+| Priority | Source | Method |
+|----------|--------|--------|
+| P1 | File being operated on | `src/{module}/` → `{module}`, nested → dot notation |
+| P2 | Recent tool calls | Last 10 Read/Edit paths; module with ≥2 occurrences wins |
+| P3 | Fallback | `"project"` |
+
+**Skip conditions** — do not query when:
+- No `.knowledge/index.jsonl` exists
+- Same scope was already queried in this conversation
+- Operation is read-only exploration (no code change intent)
+
+### How to Apply
+
+| tm | Behavior |
+|----|----------|
+| `active:defensive` | Check before acting. If current operation would violate the entry → block, show `[recall]`, suggest correct approach |
+| `active:directive` | Check before acting. If entry is applicable to current operation → suggest, show `[recall]` |
+| `passive` | Do not proactively check. Only show `[recall]` if about to make the same error described in the entry |
+
+### On Hit
+
+When an entry influences agent behavior:
+
+1. Show: `[recall] {summary}`
+2. Record:
+```bash
+# [RUN]
+bash "$KNOW_CTL" hit "{summary keyword}"
+```
+
+### Rules
+
+- Never show `[recall]` for entries that did not influence the current operation
+- Max 3 `[recall]` per operation — if more match, show highest tier first, then `active:defensive` before others
+- Do not re-show the same entry within a conversation unless context changed
+- `[recall]` is informational — user does not need to confirm or respond
 
 ## Execution Pipelines
 
