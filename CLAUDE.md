@@ -13,3 +13,4 @@
   - [tech](.know/docs/requirements/know-learn/impl/tech.md) | 2026-04-10
 - [know-write](.know/docs/requirements/know-write/prd.md) | 2026-04-10
   - [tech](.know/docs/requirements/know-write/impl/tech.md) | 2026-04-09
+- [know-metrics](.know/docs/requirements/know-metrics/prd.md) | 2026-04-13
