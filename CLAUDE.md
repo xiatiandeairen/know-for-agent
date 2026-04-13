@@ -15,3 +15,4 @@
   - [tech](.know/docs/requirements/know-write/impl/tech.md) | 2026-04-09
 - [know-metrics](.know/docs/requirements/know-metrics/prd.md) | 2026-04-13
   - [tech](.know/docs/requirements/know-metrics/impl/tech.md) | 2026-04-13
+- [know-lifecycle](.know/docs/requirements/know-lifecycle/prd.md) | 2026-04-13
