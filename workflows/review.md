@@ -14,8 +14,8 @@ Shared definitions (schema, tiers, decay, output blocks, paths) → SKILL.md.
 Model: sonnet
 
 ```
-/know review          → query all (scope = "project")
-/know review <scope>  → query matching scope
+/know review          → scope = "project"
+/know review <scope>  → scope = argument
 ```
 
 ```bash
@@ -33,7 +33,7 @@ Parse each result line, compute age in days from `created` field.
 
 Model: sonnet
 
-Sort entries: tier descending (critical first), then age descending (oldest first).
+Sort: tier desc (critical first), then age desc (oldest first).
 
 ```
 [review] {N} entries found:
@@ -41,14 +41,13 @@ Sort entries: tier descending (critical first), then age descending (oldest firs
 | # | tag | tier | scope | hits | age | summary |
 |---|-----|------|-------|------|-----|---------|
 | 1 | constraint | critical | LoppyMetrics | 5 | 30d | Thresholds defined only in PressureLevel |
-| 2 | pitfall | memo | DataEngine | 0 | 45d | Singleton leaks state across test targets |
 
 All ok? Or enter numbers to process (e.g. "2" or "1,3"):
 ```
 
 | User Response | Action |
 |--------------|--------|
-| all ok / 没问题 / ok | → exit, no changes |
+| all ok / ok / 没问题 | exit |
 | Number(s) | → Step 3 with selected entries |
 
 ---
@@ -57,7 +56,7 @@ All ok? Or enter numbers to process (e.g. "2" or "1,3"):
 
 Model: sonnet
 
-For each selected entry, present:
+For each selected entry:
 
 ```
 [review] #{N}: {summary}
@@ -72,54 +71,37 @@ Action? A) Delete  B) Update  C) Keep
 bash "$KNOW_CTL" delete "{summary_keyword}"
 ```
 
-```
-[review] Deleted: {summary}
-```
+Output: `[review] Deleted: {summary}`
 
 ### B) Update
 
-User describes what changed in conversation. Then:
-
-1. Re-generate summary from user's description
-2. If critical: re-generate detail file content
-3. Show updated entry for confirmation [STOP:confirm]
-4. On confirm:
+User describes change → re-generate summary (+ detail file if critical) → show updated entry [STOP:confirm] → on confirm:
 
 ```bash
 # [RUN]
 bash "$KNOW_CTL" update "{old_summary_keyword}" '{"summary":"{new_summary}"}'
 ```
 
-5. If critical: overwrite detail file with new content
+If critical: overwrite detail file with new content.
 
-```
-[review] Updated: {new_summary}
-```
+Output: `[review] Updated: {new_summary}`
 
 ### C) Keep
 
-```
-[review] Kept: {summary}
-```
+Output: `[review] Kept: {summary}`
 
-Proceed to next selected entry. After all processed:
-
-```
-[review] Done: {deleted} deleted, {updated} updated, {kept} kept
-```
+After all processed: `[review] Done: {deleted} deleted, {updated} updated, {kept} kept`
 
 ---
 
 ## Completion
 
-- All selected entries processed
-- User saw `[review]` confirmation for each action
+- All selected entries processed with `[review]` confirmation each
 - Index and detail files consistent with actions taken
 
 ## Recovery
 
 | Error | Recovery |
 |-------|----------|
-| `know-ctl delete` fails | Show error, skip entry, continue with next |
-| `know-ctl update` fails | Show error, skip entry, continue with next |
-| User cancels mid-process | Already-processed entries kept. Remaining skipped. |
+| `know-ctl delete/update` fails | Show error, skip entry, continue next |
+| User cancels mid-process | Already-processed entries kept, remaining skipped |

@@ -35,7 +35,7 @@ Shared definitions (output blocks, paths) → SKILL.md.
 | tech | `tech.md` |
 | ui | `ui.md` |
 
-**Hierarchy**: roadmap → prd → tech / ui. Others (arch, decision, ops, marketing, schema) are independent.
+**Hierarchy**: roadmap → prd → tech / ui. Others are independent.
 
 **Versioning**: project-level versions by directory (v1→v2). Requirement/feature overwrite in place.
 
@@ -60,8 +60,8 @@ Model: opus
 
 ### 2a: Type
 
-| Conversation Signal | Type |
-|-------------------|------|
+| Signal | Type |
+|--------|------|
 | Priorities, milestones, timeline | roadmap |
 | Module decomposition, infrastructure | arch |
 | Release, feedback loop, iteration | ops |
@@ -72,9 +72,9 @@ Model: opus
 | Data model, sequence diagram, implementation | tech |
 | Wireframe, interaction flow, component spec | ui |
 
-Hint provided → match against type names and descriptions first.
+Hint provided → match against type names first.
 
-**Default**: matches ≥2 types equally → list matched types, ask user to choose. Matches 0 → ask user to specify type.
+**Default**: ≥2 types tied → list, ask user. 0 matches → ask user.
 
 ### 2b: Name/Topic
 
@@ -83,16 +83,14 @@ Hint provided → match against type names and descriptions first.
 | Project single (roadmap, arch, ops, marketing) | No name needed |
 | Project directory (schema, decision) | Extract topic → kebab-case slug |
 | Requirement (prd) | Extract requirement name → kebab-case slug |
-| Feature (tech, ui) | Extract requirement + feature names → kebab-case slugs |
+| Feature (tech, ui) | Extract requirement + feature → kebab-case slugs |
 
-**Default**: name unextractable → ask user to provide.
+**Default**: name unextractable → ask user.
 
 ### 2c: New or Update
 
 - **Project-level**: file exists in any `v*/` → new version (v{n+1}). No `v*/` → v1.
-- **Requirement/feature**: file exists → **update mode**. File absent → create mode.
-
-**Update mode flag**: set `mode=update` for downstream steps. Create mode is default (`mode=create`).
+- **Requirement/feature**: file exists → `mode=update`. File absent → `mode=create` (default).
 
 ### 2d: Parent
 
@@ -102,9 +100,7 @@ Hint provided → match against type names and descriptions first.
 | tech, ui | prd |
 | others | none |
 
-**Missing parent**:
-- prd without roadmap → proceed, note "Related roadmap not yet created"
-- tech/ui without prd → [STOP:choose] `A) Continue without parent  B) Create PRD first`
+**Missing parent**: prd without roadmap → proceed, note absence. tech/ui without prd → [STOP:choose] `A) Continue without parent  B) Create PRD first`
 
 ---
 
@@ -112,16 +108,16 @@ Hint provided → match against type names and descriptions first.
 
 Model: sonnet
 
-For project-level docs, check version first:
+For project-level docs, detect latest version:
 
 ```bash
 # [RUN]
 ls -d .know/docs/v*/ 2>/dev/null | sort -V | tail -1
 ```
 
-No `v*/` → default v1. Latest `v{n}/` → default v{n+1}.
+No `v*/` → v1. Latest `v{n}/` → v{n+1}.
 
-Show all params in one block:
+Show all params:
 
 ```
 [write] Inferred from conversation:
@@ -129,7 +125,7 @@ Type: arch | Version: v2 (latest: v1) | Parent: none
 Correct?
 ```
 
-Multiple types detected → [STOP:choose] list with `[1 / 2 / both]`. Both → sequential processing from Step 4.
+Multiple types → [STOP:choose] list with `[1 / 2 / both]`. Both → sequential from Step 4.
 
 ---
 
@@ -150,30 +146,34 @@ cat workflows/templates/{type}.md
 
 Model: opus
 
+### Create mode
+
 1. Scan full conversation for content matching this document type
-2. Organize into template sections as structured prose — not conversation fragments
-3. Follow each section's `<!-- INCLUDE/EXCLUDE -->` guide in template
-4. Each section: ≥3 sentences of original prose; if insufficient → `TBD — {what's missing}`
-5. Preserve technical accuracy from conversation; do not fabricate or infer unstated details
+2. Organize into template sections as structured prose
+3. Follow each section's `<!-- INCLUDE/EXCLUDE -->` guide
+4. Each section: ≥3 sentences; if insufficient → `TBD — {what's missing}`
+5. Preserve technical accuracy; do not fabricate unstated details
 6. Ambiguities → prefix with `Open question:`
-7. Code examples and tables from conversation: quote directly
+7. Code examples and tables: quote directly from conversation
 8. Cross-references: relative paths. Match user's language for content.
 
-**Update mode** (`mode=update`) — targeted section update, not full rewrite:
+### Update mode (`mode=update`)
+
+Targeted section update, not full rewrite:
 
 1. Read existing document in full
-2. Identify which sections the current conversation discusses (output section list)
-3. Only regenerate content for those sections; untouched sections remain exactly as-is
-4. For each affected section, follow the same quality rules as create mode (≥3 sentences, no fabrication)
-5. Generate changelog entry: `- YYYY-MM-DD: {one-line summary of what changed}`
+2. Identify which sections the conversation discusses (output section list)
+3. Only regenerate affected sections; untouched sections remain verbatim
+4. Same quality rules as create mode per section
+5. Generate changelog entry: `- YYYY-MM-DD: {one-line summary}`
 
 | Check | Action |
 |-------|--------|
-| Conversation discusses a section | Regenerate that section from conversation content |
-| Section not discussed | **Do not touch** — preserve existing content verbatim |
-| New section from template not in existing doc | Add with content from conversation or `TBD` |
-| Broken relative paths in touched sections | Fix to valid paths or remove |
-| H1 title | Must follow naming convention (→ Step 8 Title Convention) |
+| Section discussed in conversation | Regenerate from conversation content |
+| Section not discussed | Preserve verbatim |
+| New template section not in existing doc | Add with conversation content or `TBD` |
+| Broken relative paths in touched sections | Fix or remove |
+| H1 title | Must follow Title Convention (→ Step 8) |
 
 ---
 
@@ -201,7 +201,7 @@ Continue with missing sections marked TBD?
 Write?
 ```
 
-**Update mode** — show only changed sections as diff:
+**Update mode** — changed sections as diff:
 ```
 [write] Update preview: .know/docs/{path}
 
@@ -218,7 +218,7 @@ Changelog: - YYYY-MM-DD: {summary}
 Write?
 ```
 
-Confirms → Step 7. Requests edits → adjust content, re-display preview.
+Confirms → Step 7. Requests edits → adjust, re-display.
 
 ---
 
@@ -241,14 +241,14 @@ Write file using Write tool to target path.
 
 **Update mode**:
 
-Use Edit tool to replace each changed section individually. Then append changelog entry at document end:
+Use Edit tool to replace each changed section individually. Append changelog entry:
 
 ```markdown
 ## Changelog
 - YYYY-MM-DD: {one-line summary}
 ```
 
-If `## Changelog` section already exists, append new entry to it (most recent last).
+If `## Changelog` exists, append new entry (most recent last).
 
 ```
 [written] .know/docs/{path} (updated {N} sections)
@@ -271,7 +271,7 @@ Index location: CLAUDE.md → `## Know` → `### 文档索引`.
 | Requirement | `- [{req}](.know/docs/requirements/{req}/prd.md) \| YYYY-MM-DD ← roadmap` |
 | Feature | `  - [{type}](.know/docs/requirements/{req}/{feature}/{type}.md) \| YYYY-MM-DD ← prd` |
 
-### Title Convention (H1)
+### Title Convention
 
 | Level | Pattern | Example |
 |-------|---------|---------|
@@ -280,7 +280,7 @@ Index location: CLAUDE.md → `## Know` → `### 文档索引`.
 | Requirement | `{用户入口}` | `/know learn` |
 | Feature | `{需求名} {文档类型}` | `/know learn 技术方案` |
 
-### Display Title (link text)
+### Display Title
 
 | Level | Rule |
 |-------|------|
@@ -291,7 +291,7 @@ Index location: CLAUDE.md → `## Know` → `### 文档索引`.
 ### Index Rules
 
 - Version sections: chronological (`#### v1` before `#### v2`)
-- Duplicate path → update in place (Edit tool), do not add new line
+- Duplicate path → update in place, do not add new line
 - Features → append after existing entries under same requirement
 - Date → today (`YYYY-MM-DD`)
 - Parent → ` ← {parent type}` suffix
@@ -303,23 +303,23 @@ Index location: CLAUDE.md → `## Know` → `### 文档索引`.
 
 ### Cascade Marking
 
-After index update, check if the written document type has child relationships:
+After index update, check if written type has child relationships:
 
 | Parent type | Child types |
 |-------------|-------------|
 | roadmap | prd |
 | prd | tech, ui |
 
-If children exist in the index, append `⚠ needs update` marker to each direct child entry:
+If children exist in index, append `⚠ needs update` to each direct child entry:
 
 ```
 - [know-learn](.know/docs/requirements/know-learn/prd.md) | 2026-04-10 ← roadmap ⚠ needs update
 ```
 
 Rules:
-- Only mark **direct** children, do not recurse (roadmap marks prd, not tech)
-- Skip entries that already have the `⚠ needs update` marker
-- Use Edit tool to append marker to each affected index line
+- Only mark direct children, do not recurse
+- Skip entries already marked `⚠ needs update`
+- Use Edit tool to append marker
 
 ```
 [cascade] {N} downstream docs marked for update
@@ -327,7 +327,7 @@ Rules:
 
 ### Marker Clearing
 
-When writing a document in **update mode**, remove `⚠ needs update` from its index entry (if present).
+When writing in update mode, remove `⚠ needs update` from its index entry (if present).
 
 ```
 [index] CLAUDE.md updated (⚠ cleared)
