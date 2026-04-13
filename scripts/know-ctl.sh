@@ -8,6 +8,33 @@ PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
 KNOW_DIR="$PROJECT_DIR/.know"
 INDEX_FILE="$KNOW_DIR/index.jsonl"
 ENTRIES_DIR="$KNOW_DIR/entries"
+METRICS_FILE="$KNOW_DIR/metrics.json"
+CLAUDE_MD="$PROJECT_DIR/CLAUDE.md"
+
+# Ensure metrics.json exists, initialize if needed
+ensure_metrics() {
+    if [ ! -f "$METRICS_FILE" ]; then
+        local initial_created=0
+        [ -f "$INDEX_FILE" ] && initial_created=$(wc -l < "$INDEX_FILE" | tr -d ' ')
+        echo "{\"total_created\":$initial_created,\"total_decayed\":0,\"queried_scopes\":[]}" | jq '.' > "$METRICS_FILE"
+    fi
+}
+
+# Increment a numeric field in metrics.json
+metrics_inc() {
+    local field="$1" amount="${2:-1}"
+    ensure_metrics
+    local tmp="$METRICS_FILE.tmp"
+    jq ".$field += $amount" "$METRICS_FILE" > "$tmp" && mv "$tmp" "$METRICS_FILE"
+}
+
+# Add scope to queried_scopes (deduplicated)
+metrics_add_scope() {
+    local scope="$1"
+    ensure_metrics
+    local tmp="$METRICS_FILE.tmp"
+    jq --arg s "$scope" 'if (.queried_scopes | index($s)) then . else .queried_scopes += [$s] end' "$METRICS_FILE" > "$tmp" && mv "$tmp" "$METRICS_FILE"
+}
 
 # Ensure .know/ structure exists
 ensure_dirs() {
@@ -49,6 +76,7 @@ cmd_query() {
     [ -n "$tm" ]   && filter="$filter and .tm == \"$tm\""
 
     jq -c "select($filter)" "$INDEX_FILE" 2>/dev/null || true
+    metrics_add_scope "$scope" 2>/dev/null || true
 }
 
 cmd_search() {
@@ -67,6 +95,7 @@ cmd_append() {
         || { echo "Error: missing required fields (tag, tier, scope, summary, updated)"; exit 1; }
 
     echo "$json" >> "$INDEX_FILE"
+    metrics_inc total_created
     local summary
     summary=$(echo "$json" | jq -r '.summary')
     echo "Appended: $summary"
@@ -189,6 +218,8 @@ cmd_decay() {
     done < "$INDEX_FILE"
 
     mv "$tmpfile" "$INDEX_FILE"
+    local total_decayed=$((deleted + demoted))
+    [ "$total_decayed" -gt 0 ] && metrics_inc total_decayed "$total_decayed"
     echo "Decay complete: $deleted deleted, $demoted demoted"
 }
 
@@ -207,6 +238,73 @@ cmd_stats() {
     echo ""
     echo "By scope:"
     jq -r 'if .scope | type == "array" then .scope[] else .scope end' "$INDEX_FILE" | sort | uniq -c | sort -rn
+}
+
+cmd_metrics() {
+    # metrics — show 6 quality indicators across learn/recall/write
+    ensure_metrics
+
+    # --- Learn ---
+    local total=0 hit_count=0
+    if [ -f "$INDEX_FILE" ] && [ -s "$INDEX_FILE" ]; then
+        total=$(wc -l < "$INDEX_FILE" | tr -d ' ')
+        hit_count=$(jq -s '[.[] | select(.hits > 0)] | length' "$INDEX_FILE")
+    fi
+    local hit_pct=0
+    [ "$total" -gt 0 ] && hit_pct=$((hit_count * 100 / total))
+
+    local total_created total_decayed
+    total_created=$(jq -r '.total_created' "$METRICS_FILE")
+    total_decayed=$(jq -r '.total_decayed' "$METRICS_FILE")
+    local decay_pct=0
+    [ "$total_created" -gt 0 ] && decay_pct=$((total_decayed * 100 / total_created))
+
+    # --- Recall ---
+    local defensive_hits=0
+    if [ -f "$INDEX_FILE" ] && [ -s "$INDEX_FILE" ]; then
+        defensive_hits=$(jq -s '[.[] | select(.tm == "active:defensive") | .hits] | add // 0' "$INDEX_FILE")
+    fi
+
+    local queried_count total_scopes scope_pct=0
+    queried_count=$(jq -r '.queried_scopes | length' "$METRICS_FILE")
+    if [ -f "$INDEX_FILE" ] && [ -s "$INDEX_FILE" ]; then
+        total_scopes=$(jq -sr '[.[].scope] | flatten | unique | length' "$INDEX_FILE")
+    else
+        total_scopes=0
+    fi
+    [ "$total_scopes" -gt 0 ] && scope_pct=$((queried_count * 100 / total_scopes))
+
+    # --- Write ---
+    local stale_count=0
+    if [ -f "$CLAUDE_MD" ]; then
+        stale_count=$(grep -c "⚠ needs update" "$CLAUDE_MD" 2>/dev/null) || stale_count=0
+    fi
+
+    local prd_count=0 milestone_count=0 doc_pct=0
+    prd_count=$(find "$KNOW_DIR/docs/requirements" -name "prd.md" 2>/dev/null | wc -l | tr -d ' ')
+    local latest_roadmap
+    latest_roadmap=$(ls -d "$KNOW_DIR/docs/v"*/ 2>/dev/null | sort -V | tail -1)
+    if [ -n "$latest_roadmap" ] && [ -f "${latest_roadmap}roadmap.md" ]; then
+        milestone_count=$(grep -cE '^\| M[0-9]' "${latest_roadmap}roadmap.md" 2>/dev/null) || milestone_count=0
+    fi
+    [ "$milestone_count" -gt 0 ] && doc_pct=$((prd_count * 100 / milestone_count))
+
+    # --- Output ---
+    cat <<EOF
+=== know metrics ===
+
+Learn — 存的有用吗？
+  命中率:    $hit_count/$total ($hit_pct%)
+  衰减率:    $total_decayed/$total_created ($decay_pct%)
+
+Recall — 帮我避错了吗？
+  防御次数:  $defensive_hits
+  覆盖率:    $queried_count/$total_scopes ($scope_pct%)
+
+Write — 文档跟上了吗？
+  过期文档:  $stale_count
+  文档覆盖:  $prd_count/$milestone_count ($doc_pct%)
+EOF
 }
 
 cmd_init() {
@@ -231,6 +329,7 @@ case "$CMD" in
     update)  cmd_update "$@" ;;
     decay)   cmd_decay ;;
     stats)   cmd_stats ;;
+    metrics) cmd_metrics ;;
     init)    cmd_init ;;
     help|*)
         cat <<'EOF'
@@ -247,6 +346,7 @@ Commands:
   update <keyword> '<json-patch>'   Update matching entry fields, increment revs
   decay                             Apply decay policy (delete/demote expired entries)
   stats                             Show index summary (by tier, tag, scope)
+  metrics                           Show 6 quality indicators (learn/recall/write)
 EOF
         ;;
 esac

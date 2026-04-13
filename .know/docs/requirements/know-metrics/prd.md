@@ -63,7 +63,7 @@ know 的三条管线（learn/recall/write）已跑通，但没有质量度量。
 
 | 任务 | 文档 | 进度 |
 |------|------|------|
-| metrics-impl | [tech](impl/tech.md) | 0/0 |
+| metrics-impl | [tech](impl/tech.md) | 1/1 |
 
 
 ## 5. 验收标准

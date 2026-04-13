@@ -33,14 +33,28 @@ Parse each result line, compute age in days from `created` field.
 
 Model: sonnet
 
+Pre-display: show review summary from metrics (衰减率 + 覆盖率):
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" metrics 2>/dev/null | grep -E "衰减率|覆盖率"
+```
+
+```
+[review] 衰减率 {衰减率} | 覆盖率 {覆盖率}
+```
+
 Sort: tier desc (critical first), then age desc (oldest first).
+
+⚠ column: `hits=0` + age > 7d → mark `hits=0` (cleanup candidate). Otherwise empty.
 
 ```
 [review] {N} entries found:
 
-| # | tag | tier | scope | hits | age | summary |
-|---|-----|------|-------|------|-----|---------|
-| 1 | constraint | critical | LoppyMetrics | 5 | 30d | Thresholds defined only in PressureLevel |
+| # | tag | tier | scope | hits | age | summary | ⚠ |
+|---|-----|------|-------|------|-----|---------|---|
+| 1 | constraint | critical | LoppyMetrics | 5 | 30d | Thresholds defined only in PressureLevel | |
+| 2 | rationale | memo | Auth | 0 | 15d | ... | hits=0 |
 
 All ok? Or enter numbers to process (e.g. "2" or "1,3"):
 ```
