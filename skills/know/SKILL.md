@@ -5,7 +5,7 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 # Know
 
-`/know learn` persists knowledge. `/know write` generates structured documents.
+`/know learn` persists knowledge. `/know write` generates structured documents. `/know review` audits existing entries.
 
 ## Overview
 
@@ -13,6 +13,7 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 |----------|---------|--------|
 | **Learn** | Persist tacit knowledge that code/git cannot express | `.knowledge/` entries |
 | **Write** | Turn discussion results into versioned documents | `.know/docs/` documents |
+| **Review** | Audit and maintain knowledge entries | Delete / Update / Keep |
 
 ## Core Principles
 
@@ -41,7 +42,7 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 | User Input | Normalized To |
 |------------|---------------|
-| `/know` | Show help: available commands (learn, write) |
+| `/know` | Show help: available commands (learn, write, review) |
 | `/know learn` | Learn pipeline — scan full conversation |
 | `/know learn "quoted text"` | Learn pipeline — treat quoted text as explicit claim |
 | `/know write` | Write pipeline — infer all params from conversation |
@@ -49,6 +50,9 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 | `/know write prd` or `/know write 需求` | Write pipeline — hint = "prd" |
 | "记住这个" / "save this" / "这个要记下来" | Treat as `/know learn` |
 | "写个文档" / "write a doc" / "整理一下" | Treat as `/know write` |
+| `/know review` | Review pipeline — audit all entries |
+| `/know review <scope>` | Review pipeline — audit entries matching scope |
+| "清理知识" / "review knowledge" / "检查经验" | Treat as `/know review` |
 | `/know` + unrecognized argument | Show help with closest match suggestion |
 
 ## Default Behaviors
@@ -99,6 +103,7 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 | `[index]` | write | CLAUDE.md index updated |
 | `[cascade]` | write | Downstream docs marked for update after parent write |
 | `[recall]` | recall | Knowledge entry applied to current operation |
+| `[review]` | review | Entry audit status / action result |
 | `[error]` | both | Unrecoverable error |
 
 **Conflict block**:
@@ -265,6 +270,8 @@ bash "$KNOW_CTL" hit "{summary keyword}"
 | AI detects signal | → `workflows/learn.md` (requires user consent) |
 | `/know write` | → `workflows/write.md` |
 | `/know write <hint>` | → `workflows/write.md` (hint assists inference) |
+| `/know review` | → `workflows/review.md` |
+| `/know review <scope>` | → `workflows/review.md` (scope filter) |
 
 ### Learn
 

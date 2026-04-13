@@ -89,6 +89,34 @@ cmd_hit() {
     mv "$tmpfile" "$INDEX_FILE"
 }
 
+cmd_delete() {
+    # delete <keyword> — remove entry matching keyword from index + detail file
+    local keyword="${1:?Usage: delete <keyword>}"
+    local tmpfile="$INDEX_FILE.tmp"
+    local deleted=0
+
+    while IFS= read -r line; do
+        if echo "$line" | jq -e "select(.summary | test(\"$keyword\"; \"i\"))" > /dev/null 2>&1; then
+            # Remove detail file if exists
+            local path
+            path=$(echo "$line" | jq -r '.path // empty')
+            [ -n "$path" ] && [ -f "$KNOWLEDGE_DIR/$path" ] && rm "$KNOWLEDGE_DIR/$path"
+            deleted=$((deleted + 1))
+        else
+            echo "$line" >> "$tmpfile"
+        fi
+    done < "$INDEX_FILE"
+
+    if [ "$deleted" -eq 0 ]; then
+        rm -f "$tmpfile"
+        echo "Error: no entry matching '$keyword'"
+        exit 1
+    fi
+
+    mv "$tmpfile" "$INDEX_FILE"
+    echo "Deleted $deleted entry"
+}
+
 cmd_update() {
     # update <keyword> <json-patch> — update entry matching keyword, increment revs
     local keyword="${1:?Usage: update <keyword> '<json-patch>'}"
@@ -199,6 +227,7 @@ case "$CMD" in
     search)  cmd_search "$@" ;;
     append)  cmd_append "$@" ;;
     hit)     cmd_hit "$@" ;;
+    delete)  cmd_delete "$@" ;;
     update)  cmd_update "$@" ;;
     decay)   cmd_decay ;;
     stats)   cmd_stats ;;
@@ -214,6 +243,7 @@ Commands:
   search <pattern>                  Regex search against summary field
   append '<json>'                   Append entry to index.jsonl
   hit <path-or-keyword>             Increment hits counter, update timestamp
+  delete <keyword>                  Delete matching entry + detail file
   update <keyword> '<json-patch>'   Update matching entry fields, increment revs
   decay                             Apply decay policy (delete/demote expired entries)
   stats                             Show index summary (by tier, tag, scope)
