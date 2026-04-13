@@ -1,266 +1,244 @@
-# learn — Mental Model Correction
+# learn — Knowledge Persistence
 
-Persist tacit high-value knowledge that code and git cannot express. Reduce future exploration errors by recording rationale, constraints, pitfalls, concepts, and references.
+## Progress
+
+Steps: 8
+Names: Detect, Extract, Filter, Assess, Generate, Conflict, Confirm, Write
+
+Shared definitions (schema, tiers, decay, output blocks, paths) → SKILL.md.
 
 ---
 
-## Step 1: Trigger
+## Step 1: Detect
 
-Two modes:
+Model: opus
 
-**Explicit** — User invokes `/know learn`. Process current conversation immediately.
+**Pre-step**: run decay if index exists (→ SKILL.md Decay Trigger).
 
-**Implicit** — AI detects one of 6 signal types during conversation:
+**Explicit**: `/know learn` → scan full conversation.
 
-| Signal | Detection Pattern | Likely Tag |
-|--------|------------------|------------|
-| User correction | "don't do X", "we use Y here", "change to Z" | constraint / rationale |
-| Technical choice | "chose X", "X over Y", "compared A and B" | rationale |
-| Root cause found | "turns out", "root cause is", "the issue was" | pitfall |
-| Business logic explained | "the flow is", "algorithm works by", "rule is" | concept |
-| Constraint declared | "must not", "always", "forbidden", "never" | constraint |
-| External integration | "integrated X", "API endpoint", "configured via" | reference |
+**Implicit**: AI detects signals during conversation, batches after current task completes:
 
-### Signal Filtering Rule
+| Signal | Keywords (≥1 must match) | Likely Tag |
+|--------|-------------------------|------------|
+| User correction | don't, not X use Y, change to, wrong, should be | constraint / rationale |
+| Technical choice | chose, picked, decided, over, instead of, compared | rationale |
+| Root cause | turns out, root cause, the issue was, because of | pitfall |
+| Business logic | the flow is, algorithm, works by, rule is | concept |
+| Constraint declared | must not, always, forbidden, never | constraint |
+| External integration | API, endpoint, SDK, configured via | reference |
 
-Only propose signals that contain at least one detection pattern keyword from the table above. Specifically:
+**Gate**: signal must contain ≥1 keyword from its row. No keyword match → silently drop. Ambiguous mention without clear keyword → drop.
 
-- User correction: contains correction verbs ("don't", "not X use Y", "change to", "wrong", "should be")
-- Technical choice: contains choice verbs ("chose", "picked", "decided", "over", "instead of", "compared")
-- Root cause found: contains discovery phrases ("turns out", "root cause", "the issue was", "because of", "caused by")
-- Business logic explained: contains explanation phrases ("the flow is", "algorithm", "works by", "rule is", "the logic")
-- Constraint declared: contains constraint words ("must not", "always", "forbidden", "never", "required")
-- External integration: contains integration terms ("API", "endpoint", "SDK", "configured via", "integrated")
-
-Signals without any matching keyword are silently dropped. Do not propose ambiguous or incidental mentions.
-
-Implicit signals are batched and proposed after task completion. User selects which to persist, then each claim is processed sequentially through Step 2-8 (one at a time, confirm each before next):
+**Default**: no signals found → "No persistable knowledge detected in this conversation."
 
 ```
-[suggest-learn] Detected 2 high-value knowledge items:
-1. [constraint] Thresholds defined only in PressureLevel, no hardcoded numbers
-2. [pitfall] DataEngine singleton leaks state across test targets
+[suggest-learn] Detected 2 high-value claims:
+1. [constraint] Thresholds defined only in PressureLevel
+2. [pitfall] DataEngine singleton leaks state across tests
 Persist? [all / select / skip]
 ```
 
----
-
-## Step 2: Claim Extraction
-
-Extract minimal knowledge units from conversation context.
-
-Rules:
-- One claim = one fact / rule / decision / pattern
-- Multiple claims → split, process each independently
-- Strip conversation noise, keep only the actionable conclusion
-
-**Claim boundary**: one claim = one independently retrievable knowledge unit. If knowing A does not require knowing B, they are separate claims.
-
-**Examples**:
-
-| Conversation content | Split? | Reason |
-|---------------------|--------|--------|
-| "Use Combine not AsyncStream — no stack traces, weak backpressure" | no | conclusion + reason is a unit, reason alone is meaningless |
-| "DataEngine is a singleton / DataEngine leaks state across tests" | yes | two independent facts, knowing one doesn't require the other |
-| "API returns 200 with payload {user, token}" | no | data structure description is one complete unit |
-| "Chose JSONL over SQLite; JSONL newlines need escaping" | yes | tech choice and usage caveat are independently retrievable |
-
-**Rule**: prefer not splitting over over-splitting. A claim with context is more useful than a fragment without.
+[STOP:choose] User selects → each claim processed through Steps 2–8 sequentially (one at a time, confirm each before next).
 
 ---
 
-## Step 3: Route Interception (fast DROP)
+## Step 2: Extract
 
-Sequential check. First match terminates.
+Model: opus
 
-```
-Readily derivable from code/git?  → DROP
-Needed every session?              → Belongs in CLAUDE.md
-Personal preference?               → Belongs in auto memory
-No clear conclusion yet?           → DROP (persist after confirmation)
-One-time information?              → DROP
-```
+One claim = one independently retrievable knowledge unit.
 
-**"Readily derivable"** = an AI unfamiliar with this codebase can reach the same conclusion via grep, git log, or code reading within 2 minutes.
+**Rules**:
+1. Knowing A doesn't require knowing B → separate claims
+2. Conclusion + its direct reason = one unit (do not split)
+3. Strip conversation noise, keep only actionable conclusion
+4. When uncertain whether to split → do not split
 
-| Example | Derivable? | Why |
-|---------|-----------|-----|
-| "PressureLevel enum has values 35/55/75" | YES | grep can find it |
-| "Chose PressureLevel enum because v1 had scattered magic numbers causing inconsistent scoring" | NO | code shows the enum, not *why* it was chosen |
-| "DataEngine is a singleton" | YES | code structure reveals it |
-| "DataEngine singleton leaks state across test targets" | NO | requires having encountered the bug |
+| Conversation | Split? | Why |
+|-------------|:------:|-----|
+| "Use Combine not AsyncStream — no stack traces, weak backpressure" | no | conclusion + reason is one unit |
+| "DataEngine is a singleton / DataEngine leaks state across tests" | yes | two independent facts |
+| "Chose JSONL over SQLite; JSONL newlines need escaping" | yes | choice and caveat are independently retrievable |
 
 ---
 
-## Step 4: 2-Question Tier Assessment
+## Step 3: Filter
 
-```
-Q1: What happens if a future session lacks this knowledge?
-    Negligible impact         → DROP
-    Likely to waste time      → memo (tier 2)
-    Likely to cause errors    → critical (tier 1)
+Model: sonnet
 
-Q2: Will this be needed again?
-    Unlikely   → demote one level (critical→memo, memo→DROP)
-    Likely     → keep
-    Frequently → promote one level (memo→critical)
-```
+Sequential check. First match → `[skipped]` block → DROP. Remaining claims continue to Step 4.
 
-critical (tier 1) additionally requires confirmed knowledge (verified via test, reproduction, or multi-source agreement). If impact is high but knowledge is unconfirmed, assign memo — if the knowledge is valuable, it will surface again in future conversations and can be promoted then.
+| # | Rule | Test | Example DROP |
+|---|------|------|-------------|
+| 1 | Code-derivable | AI reaches same conclusion via grep/git log in <2 min | "PressureLevel enum has 35/55/75" |
+| 2 | CLAUDE.md material | Needed every session as project rule | coding conventions |
+| 3 | Auto memory material | Personal preference, not project knowledge | "I prefer vim" |
+| 4 | No conclusion | Discussion hasn't converged to a decision | "still deciding between A and B" |
+| 5 | One-time | Will not recur | "used temp flag for this deploy" |
 
-### Calibration Examples
+**Derivable boundary** — code shows *what*, not *why*:
 
-**critical (tier 1)**:
-- "Thresholds defined only in PressureLevel, no hardcoding" — violation causes multi-module scoring inconsistency (broad error)
-- "Must use Combine, not AsyncStream" — wrong choice causes debugging difficulty, no stack traces (repeated error)
-- "index.jsonl one entry per line, no formatted JSON" — violation causes parse failure (data corruption)
-
-**memo (tier 2)**:
-- "Panel animation uses Canvas real-time drawing, not frame animation" — not knowing just wastes exploration time (time waste)
-- "decay command runs monthly" — forgetting doesn't break functionality (operational note)
-- "Score algorithm referenced formula from paper X" — useful background but doesn't affect implementation (context)
-
-See SKILL.md → Tier Rules for tier definitions and decay policy.
+| Claim | Derivable? |
+|-------|:----------:|
+| "PressureLevel enum has values 35/55/75" | yes |
+| "Chose PressureLevel enum because v1 had scattered magic numbers" | no |
+| "DataEngine singleton leaks state across test targets" | no |
 
 ---
 
-## Step 5: Entry Generation
+## Step 4: Assess
 
-### Tag Classification
+Model: opus
+
+```
+Q1: Impact if a future session lacks this knowledge?
+    Negligible       → DROP
+    Wastes time      → memo
+    Causes errors    → critical
+
+Q2: Will this situation recur?
+    Unlikely         → demote one level (critical→memo, memo→DROP)
+    Likely           → keep current level
+    Frequently       → promote one level (memo→critical)
+```
+
+**Constraint**: critical requires confirmed knowledge (verified via test, reproduction, or multi-source agreement). High impact + unconfirmed → assign memo. Promote when confirmed in a future session.
+
+**Calibration**:
+
+| Claim | Tier | Why |
+|-------|------|-----|
+| Thresholds defined only in PressureLevel, no hardcoding | critical | violation → multi-module inconsistency |
+| Must use Combine, not AsyncStream | critical | wrong choice → no stack traces, repeated |
+| Panel animation uses Canvas, not frame animation | memo | not knowing → wasted exploration time only |
+| decay command runs monthly | memo | forgetting → no breakage |
+
+---
+
+## Step 5: Generate
+
+Model: opus
+
+### 5a: Tag
 
 | Pattern | Tag |
 |---------|-----|
-| Choice/comparison verbs, "chose X over Y" | rationale |
-| "must not", "forbidden", "always", "never" | constraint |
-| Bug/error/root-cause/lesson | pitfall |
+| Choice/comparison ("chose X over Y") | rationale |
+| Prohibition ("must not", "forbidden", "always", "never") | constraint |
+| Bug/error/root-cause discovery | pitfall |
 | Flow/algorithm/architecture/business-rule | concept |
-| Integration/API/SDK/tool-name/config | reference |
+| Integration/API/SDK/config | reference |
 
-Ambiguous → present all 5 tags and ask user to choose.
+**Default**: claim matches ≥2 tags equally → show all 5, ask user.
 
-### Scope Inference
+### 5b: Scope
 
-Priority order, first match wins:
+First match wins:
 
-```
-P1: Explicit file paths in conversation
-    Extract module from path using industry-standard directory conventions:
-    src/{module}/          → {module}
-    lib/{module}/          → {module}
-    packages/{module}/     → {module}
-    apps/{module}/         → {module}
-    services/{module}/     → {module}
-    components/{module}/   → {module}
-    plugins/{module}/      → {module}
-    Nested paths use dot notation: src/auth/middleware/ → auth.middleware
+| Priority | Source | Method |
+|----------|--------|--------|
+| P1 | Explicit file paths in conversation | `src/{module}/` → `{module}`, nested → dot notation |
+| P2 | Recent tool calls | Last 10 Read/Edit paths; module with ≥2 occurrences wins |
+| P3 | Keywords | Exact module name mentioned in conversation |
+| P4 | Fallback | `"project"` |
 
-P2: Recent tool calls
-    Last 10 Read/Edit file_path → extract module using P1 rules
-    Module appearing ≥2 times → scope
+Cross-module: JSON array `["A","B"]`.
 
-P3: Keywords
-    Exact module name match in conversation text
+### 5c: Trigger Mode
 
-P4: Fallback
-    scope ≥3 modules → "project"
-    scope empty → "project"
-```
+| Claim contains | tm |
+|---------------|----|
+| must not / forbidden / never / always | active:defensive |
+| recommended / prefer / should | active:directive |
+| none of the above | passive |
 
-For cross-module scope, use JSON array format: `["ModuleA", "ModuleB"]`. See SKILL.md → JSONL Schema for serialization details.
+### 5d: Summary
 
-### Trigger Mode Inference
+→ SKILL.md Summary Rules.
 
-```
-Contains "must not / forbidden / never / always" → active:defensive
-Contains "recommended / prefer / should"         → active:directive
-Otherwise                                        → passive
-```
+Overflow (>80 chars): remove qualifiers → core conclusion only → still over 80 → split into two entries with narrower scope.
 
-### Summary Compression
-
-- ≤ 80 characters
-- Must contain retrieval anchor terms (module names, API names, error patterns)
-- Structure: conclusion + key reason
-- Example: "Use Combine not AsyncStream — no stack traces, weak backpressure"
-
-If summary exceeds 80 characters after initial compression:
-1. Remove secondary qualifiers (adjectives, parenthetical notes)
-2. Shorten to core conclusion only
-3. If still over 80 chars, split into two entries with narrower scope each
-
-### Detail File (critical tier 1 only)
-
-Body format varies by tag:
+### 5e: Detail File (critical only)
 
 | Tag | Sections |
 |-----|----------|
-| rationale | `# Title` → Why → Rejected alternatives → Constraints |
-| constraint | `# Title` → Rule → Why → How to check |
-| pitfall | `# Title` → Symptoms → Root cause → Lesson |
-| concept | `# Title` → Overview → Key steps → Boundaries |
-| reference | `# Title` → What it is → Usage → Caveats |
+| rationale | Why → Rejected alternatives → Constraints |
+| constraint | Rule → Why → How to check |
+| pitfall | Symptoms → Root cause → Lesson |
+| concept | Overview → Key steps → Boundaries |
+| reference | What it is → Usage → Caveats |
 
-No frontmatter in .md files — all metadata lives in index.jsonl.
+No frontmatter — all metadata in index.jsonl.
 
 ---
 
-## Step 6: Conflict Detection (2-phase)
+## Step 6: Conflict
+
+Model: sonnet
 
 ### Phase 1: Keyword Pre-filter
 
-Extract keywords from new summary. Count scales with summary length:
+Extract N keywords from summary:
 
-```
-summary ≤ 30 chars → 2 keywords
-summary 30-60 chars → 3 keywords
-summary > 60 chars → 4 keywords
-```
+| Summary length | Keywords |
+|---------------|----------|
+| ≤30 chars | 2 |
+| 31–60 chars | 3 |
+| >60 chars | 4 |
 
 ```bash
 # [RUN]
-bash "$KNOW_CTL" search "<keyword1>|<keyword2>"
+bash "$KNOW_CTL" search "<kw1>|<kw2>"
 ```
 
-**Input**: pipe-separated keywords as regex alternation pattern
-**Output**: matching JSONL entries, one per line (full JSON objects)
-**Returns**: 0-N lines; empty output means no matches
-**Matching**: searches `summary` field by regex
+0 results → skip Phase 2, proceed to Step 7.
 
-→ Candidate set (typically 0-5 entries)
+### Phase 2: LLM Similarity
 
-### Phase 2: LLM Similarity Assessment
-
-Present candidate summaries alongside new claim summary. Classify:
+Compare each candidate summary against new claim summary:
 
 | Verdict | Action |
 |---------|--------|
-| Unrelated | Proceed to Step 7 (new entry) |
-| Supplementary (same topic, different angle) | Proceed to Step 7, optionally note relation |
-| Duplicate (same conclusion) | Display conflict block, ask user to choose |
-| Contradictory (opposite conclusion) | Display conflict block, ask user to choose |
+| Unrelated | → Step 7 |
+| Supplementary (same topic, different angle) | → Step 7 |
+| Duplicate (same conclusion) | → `[conflict]` block [STOP:choose] |
+| Contradictory (opposite conclusion) | → `[conflict]` block [STOP:choose] |
 
-Conflict block format:
+→ SKILL.md Output Constraints for conflict block format.
 
+### Conflict Resolution
+
+| Choice | Action |
+|--------|--------|
+| A) Update existing | → Update flow (below) |
+| B) Keep both | → Step 7 with new entry (both coexist) |
+| C) Merge | → Combine summaries into one entry, proceed to Step 7 |
+| D) Skip new | → Discard new claim, return to conversation |
+
+### Update Flow
+
+When user chooses "Update existing":
+
+1. Replace existing entry's summary with new claim's summary
+2. Re-generate detail file content using new claim (→ Step 5e template)
+3. Show updated entry for confirmation (→ Step 7)
+4. On confirm, execute:
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" update "{existing_summary_keyword}" '{"summary":"{new_summary}"}'
 ```
-[conflict] Similar entry found:
 
-Existing: {existing summary}
-New: {new summary}
+5. If critical: overwrite detail file at existing path with new content
 
-Choose:
-A) Update existing entry
-B) Keep both
-C) Merge into one
-D) Skip new entry
-```
+`know-ctl update` automatically increments `revs` and updates `updated` timestamp.
 
 ---
 
-## Step 7: Display and Confirm
+## Step 7: Confirm [STOP:confirm]
 
-Wait for user confirmation before proceeding.
-
-Present complete entry:
+Display complete entry for review:
 
 ```
 [learn] Entry pending confirmation:
@@ -275,42 +253,52 @@ All pressure thresholds (35/55/75) are defined in the PressureLevel enum.
 Scattered magic numbers caused inconsistent scoring in v1.
 ## How to check
 grep for hardcoded 35/55/75 outside PressureLevel.
+
+Confirm?
 ```
 
-User confirms → Step 8.
-
-User edits → apply changes, then:
-- If summary was modified → re-run Step 6 (conflict detection) with new summary
-- If other fields changed (tag, scope, tier, detail content) → re-display for confirmation without re-running conflict detection
-- If user changes tag → adjust detail file section structure to match new tag format
-
-User cancels → discard entry, return to conversation.
+| User Response | Action |
+|--------------|--------|
+| Confirms (ok/好/confirm/继续) | → Step 8 |
+| Edits summary | Re-run Step 6 with new summary |
+| Edits tag | Adjust detail file sections to match new tag template |
+| Edits other fields (scope, tier) | Re-display for confirmation |
+| Cancels (取消/cancel/skip) | Discard entry, return to conversation |
 
 ---
 
 ## Step 8: Write
 
+Model: sonnet
+
 ```bash
-# [RUN] Append to index
-bash "$KNOW_CTL" append '{"tag":"constraint","tier":1,"scope":"LoppyMetrics","tm":"active:defensive","summary":"Thresholds defined only in PressureLevel, no hardcoded numbers","path":"entries/constraint/pressure-thresholds.md","hits":0,"revs":0,"created":"2026-04-08","updated":"2026-04-08"}'
+# [RUN]
+bash "$KNOW_CTL" append '{"tag":"...","tier":...,"scope":"...","tm":"...","summary":"...","path":"...","hits":0,"revs":0,"created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}'
 ```
 
-**Input**: single-line JSON string matching JSONL schema (10 fields)
-**Output**: none on success; error message on failure (invalid JSON, missing fields)
-**Effect**: appends one line to index.jsonl
-**Validation**: script validates required fields (tag, tier, scope, summary, created, updated)
+**Slug**: summary → extract 2–4 English keywords (module names, API names, key terms) → hyphenated lowercase → `[a-z0-9-]` only → max 50 chars → truncate at last complete word.
 
-For critical (tier 1): write detail file to `$ENTRIES_DIR/{tag}/{slug}.md`.
-
-**Slug generation**:
-1. Take summary text
-2. Extract 2-4 English keywords (module names, API names, key terms)
-3. Join with hyphens, lowercase: `pressure-thresholds`, `combine-over-asyncstream`
-4. Max 50 characters; truncate at last complete word
-5. Must be filesystem-safe: `[a-z0-9-]` only
-
-For memo (tier 2): index entry only, `path: null`.
+| Tier | Write |
+|------|-------|
+| critical | Index entry + `$ENTRIES_DIR/{tag}/{slug}.md` |
+| memo | Index entry only (`path: null`) |
 
 ```
-[persisted] entries/constraint/pressure-thresholds.md (tier 1)
+[persisted] entries/constraint/pressure-thresholds.md (critical)
 ```
+
+---
+
+## Completion
+
+- All selected claims processed through Steps 2–8
+- Each persisted entry has: valid index line + detail file (if critical)
+- User saw `[persisted]` or `[skipped]` for every claim
+
+## Recovery
+
+| Error | Recovery |
+|-------|----------|
+| `know-ctl.sh` fails on append | Show error message. Do not retry silently. |
+| User cancels mid-batch | Remaining claims discarded. Already-persisted entries kept. |
+| Detail file write fails | Remove corresponding index entry. Report error. |

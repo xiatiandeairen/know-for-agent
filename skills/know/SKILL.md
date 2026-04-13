@@ -190,6 +190,19 @@ critical + hits=0 + age > 180d → demote to memo
 critical + revs > 3            → demote to memo (unstable)
 ```
 
+### Decay Trigger
+
+Run decay at `/know learn` Step 1 entry, before signal detection:
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" decay
+```
+
+- Output `[decay] {N} deleted, {M} demoted` if any action taken
+- Silent if no entries affected
+- Skip if `.knowledge/index.jsonl` does not exist
+
 ## Recall
 
 Agent applies persisted knowledge to prevent repeated errors.

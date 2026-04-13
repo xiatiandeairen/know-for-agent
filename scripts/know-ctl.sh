@@ -89,6 +89,34 @@ cmd_hit() {
     mv "$tmpfile" "$INDEX_FILE"
 }
 
+cmd_update() {
+    # update <keyword> <json-patch> — update entry matching keyword, increment revs
+    local keyword="${1:?Usage: update <keyword> '<json-patch>'}"
+    local patch="${2:?Usage: update <keyword> '<json-patch>'}"
+    local today
+    today=$(date +%Y-%m-%d)
+    local tmpfile="$INDEX_FILE.tmp"
+    local matched=0
+
+    while IFS= read -r line; do
+        if echo "$line" | jq -e "select(.summary | test(\"$keyword\"; \"i\"))" > /dev/null 2>&1; then
+            # Apply patch, increment revs, update timestamp
+            line=$(echo "$line" | jq -c ". * $patch | .revs = (.revs // 0) + 1 | .updated = \"$today\"")
+            matched=$((matched + 1))
+        fi
+        echo "$line" >> "$tmpfile"
+    done < "$INDEX_FILE"
+
+    if [ "$matched" -eq 0 ]; then
+        rm -f "$tmpfile"
+        echo "Error: no entry matching '$keyword'"
+        exit 1
+    fi
+
+    mv "$tmpfile" "$INDEX_FILE"
+    echo "Updated $matched entry (revs incremented)"
+}
+
 cmd_decay() {
     # decay — apply decay policy, output actions taken
     local today_ts
@@ -171,6 +199,7 @@ case "$CMD" in
     search)  cmd_search "$@" ;;
     append)  cmd_append "$@" ;;
     hit)     cmd_hit "$@" ;;
+    update)  cmd_update "$@" ;;
     decay)   cmd_decay ;;
     stats)   cmd_stats ;;
     init)    cmd_init ;;
@@ -185,6 +214,7 @@ Commands:
   search <pattern>                  Regex search against summary field
   append '<json>'                   Append entry to index.jsonl
   hit <path-or-keyword>             Increment hits counter, update timestamp
+  update <keyword> '<json-patch>'   Update matching entry fields, increment revs
   decay                             Apply decay policy (delete/demote expired entries)
   stats                             Show index summary (by tier, tag, scope)
 EOF
