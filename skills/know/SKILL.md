@@ -89,20 +89,6 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 | `[review]` | review | Entry audit status / action result |
 | `[error]` | all | Unrecoverable error |
 
-**Conflict block format**:
-```
-[conflict] Similar entry found:
-Existing: {summary}
-New: {summary}
-Choose: A) Update existing  B) Keep both  C) Merge  D) Skip new
-```
-
-**Skipped block format**:
-```
-[skipped] {summary}
-Reason: {drop reason}
-```
-
 ### Path Constants
 
 ```
@@ -169,25 +155,6 @@ KNOW_CTL       = scripts/know-ctl.sh
 - ≤80 characters; compress to fit, never truncate mid-word.
 - Must contain retrieval anchors (module names, API names, error patterns).
 - Structure: `{conclusion} — {key reason}`.
-
-### Decay
-
-```
-memo     + hits=0 + age > 30d  → delete
-critical + hits=0 + age > 180d → demote to memo
-critical + revs > 3            → demote to memo (unstable)
-```
-
-Run at `/know learn` Step 1 entry, before signal detection:
-
-```bash
-# [RUN]
-bash "$KNOW_CTL" decay
-```
-
-- Output `[decay] {N} deleted, {M} demoted` if any action taken.
-- Silent if no entries affected.
-- Skip if `.knowledge/index.jsonl` does not exist.
 
 ## Recall
 
@@ -288,40 +255,3 @@ Full spec: `workflows/write.md`
 
 Full spec: `workflows/review.md`
 
-## Examples
-
-### Learn — signal batch
-
-```
-[suggest-learn] Detected 2 high-value claims:
-1. [constraint] Thresholds defined only in PressureLevel, no hardcoded numbers
-2. [pitfall] DataEngine singleton leaks state across test targets
-Persist? [all / select / skip]
-```
-
-### Learn — entry confirmation
-
-```
-[learn] Entry pending confirmation:
-
-Tag: constraint | Tier: 1 | Scope: LoppyMetrics
-Summary: Thresholds defined only in PressureLevel, no hardcoded numbers
-
---- entries/constraint/pressure-thresholds.md ---
-# Thresholds defined only in PressureLevel
-All pressure thresholds (35/55/75) are defined in the PressureLevel enum.
-## Why
-Scattered magic numbers caused inconsistent scoring in v1.
-## How to check
-grep for hardcoded 35/55/75 outside PressureLevel.
-
-Confirm?
-```
-
-### Write — parameter confirmation
-
-```
-[write] Inferred from conversation:
-Type: prd | Requirement: know-write | Parent: roadmap (v1/roadmap.md)
-Correct?
-```

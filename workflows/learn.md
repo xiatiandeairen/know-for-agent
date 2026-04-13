@@ -5,7 +5,27 @@
 Steps: 8
 Names: Detect, Extract, Filter, Assess, Generate, Conflict, Confirm, Write
 
-Shared definitions (schema, tiers, decay, output blocks, paths) → SKILL.md.
+Shared definitions (schema, tiers, output blocks, paths) → SKILL.md.
+
+---
+
+## Decay
+
+Run at Step 1 entry, before signal detection. Skip if `.knowledge/index.jsonl` does not exist.
+
+```
+memo     + hits=0 + age > 30d  → delete
+critical + hits=0 + age > 180d → demote to memo
+critical + revs > 3            → demote to memo (unstable)
+```
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" decay
+```
+
+- Output `[decay] {N} deleted, {M} demoted` if any action taken.
+- Silent if no entries affected.
 
 ---
 
@@ -13,7 +33,7 @@ Shared definitions (schema, tiers, decay, output blocks, paths) → SKILL.md.
 
 Model: opus
 
-**Pre-step**: run decay if index exists (→ SKILL.md Decay Trigger).
+**Pre-step**: run decay (→ Decay section above).
 
 **Explicit**: `/know learn` → scan full conversation.
 
@@ -62,6 +82,12 @@ One claim = one independently retrievable knowledge unit.
 Model: sonnet
 
 Sequential check. First match → `[skipped]` block → DROP.
+
+**Skipped block format**:
+```
+[skipped] {summary}
+Reason: {drop reason}
+```
 
 | # | Rule | Test | Example DROP |
 |---|------|------|-------------|
@@ -197,7 +223,13 @@ Compare each candidate against new claim:
 | Duplicate (same conclusion) | → `[conflict]` block [STOP:choose] |
 | Contradictory (opposite conclusion) | → `[conflict]` block [STOP:choose] |
 
-→ SKILL.md Output Constraints for conflict block format.
+**Conflict block format**:
+```
+[conflict] Similar entry found:
+Existing: {summary}
+New: {summary}
+Choose: A) Update existing  B) Keep both  C) Merge  D) Skip new
+```
 
 ### Conflict Resolution
 
@@ -275,3 +307,33 @@ bash "$KNOW_CTL" append '{"tag":"...","tier":...,"scope":"...","tm":"...","summa
 | `know-ctl.sh` fails on append | Show error message. Do not retry silently. |
 | User cancels mid-batch | Remaining claims discarded. Already-persisted entries kept. |
 | Detail file write fails | Remove corresponding index entry. Report error. |
+
+## Examples
+
+### Signal batch
+
+```
+[suggest-learn] Detected 2 high-value claims:
+1. [constraint] Thresholds defined only in PressureLevel, no hardcoded numbers
+2. [pitfall] DataEngine singleton leaks state across test targets
+Persist? [all / select / skip]
+```
+
+### Entry confirmation
+
+```
+[learn] Entry pending confirmation:
+
+Tag: constraint | Tier: 1 | Scope: LoppyMetrics
+Summary: Thresholds defined only in PressureLevel, no hardcoded numbers
+
+--- entries/constraint/pressure-thresholds.md ---
+# Thresholds defined only in PressureLevel
+All pressure thresholds (35/55/75) are defined in the PressureLevel enum.
+## Why
+Scattered magic numbers caused inconsistent scoring in v1.
+## How to check
+grep for hardcoded 35/55/75 outside PressureLevel.
+
+Confirm?
+```
