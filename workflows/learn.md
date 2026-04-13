@@ -11,7 +11,7 @@ Shared definitions (schema, tiers, output blocks, paths) → SKILL.md.
 
 ## Decay
 
-Run at Step 1 entry, before signal detection. Skip if `.knowledge/index.jsonl` does not exist.
+Run at Step 1 entry, before signal detection. Skip if `.know/index.jsonl` does not exist.
 
 ```
 memo     + hits=0 + age > 30d  → delete

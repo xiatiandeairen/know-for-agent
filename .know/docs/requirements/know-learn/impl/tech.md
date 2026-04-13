@@ -14,8 +14,8 @@ know 插件需要将对话中产生的隐性知识持久化为结构化条目，
 skills/know/SKILL.md                     ← 意图路由，/know learn 入口
 workflows/learn.md                       ← 8 步工作流
 scripts/know-ctl.sh                      ← append/search 命令
-.knowledge/index.jsonl                   ← JSONL 索引
-.knowledge/entries/{tag}/{slug}.md       ← 详情文件（tier 1）
+.know/index.jsonl                   ← JSONL 索引
+.know/entries/{tag}/{slug}.md       ← 详情文件（tier 1）
 ```
 
 ### 工作流（8 步）

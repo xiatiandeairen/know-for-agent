@@ -1,15 +1,15 @@
 #!/bin/bash
-# know-ctl.sh — CLI for .knowledge/ index operations
+# know-ctl.sh — CLI for .know/ index operations
 # Usage: bash know-ctl.sh <command> [args]
 set -euo pipefail
 
 # Resolve paths relative to project root
 PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
-KNOWLEDGE_DIR="$PROJECT_DIR/.knowledge"
-INDEX_FILE="$KNOWLEDGE_DIR/index.jsonl"
-ENTRIES_DIR="$KNOWLEDGE_DIR/entries"
+KNOW_DIR="$PROJECT_DIR/.know"
+INDEX_FILE="$KNOW_DIR/index.jsonl"
+ENTRIES_DIR="$KNOW_DIR/entries"
 
-# Ensure .knowledge/ structure exists
+# Ensure .know/ structure exists
 ensure_dirs() {
     mkdir -p "$ENTRIES_DIR"/{rationale,constraint,pitfall,concept,reference}
     [ -f "$INDEX_FILE" ] || touch "$INDEX_FILE"
@@ -100,7 +100,7 @@ cmd_delete() {
             # Remove detail file if exists
             local path
             path=$(echo "$line" | jq -r '.path // empty')
-            [ -n "$path" ] && [ -f "$KNOWLEDGE_DIR/$path" ] && rm "$KNOWLEDGE_DIR/$path"
+            [ -n "$path" ] && [ -f "$KNOW_DIR/$path" ] && rm "$KNOW_DIR/$path"
             deleted=$((deleted + 1))
         else
             echo "$line" >> "$tmpfile"
@@ -168,7 +168,7 @@ cmd_decay() {
         if [ "$tier" -eq 2 ] && [ "$hits" -eq 0 ] && [ "$age_days" -gt 30 ]; then
             local path
             path=$(echo "$line" | jq -r '.path // empty')
-            [ -n "$path" ] && [ -f "$KNOWLEDGE_DIR/$path" ] && rm "$KNOWLEDGE_DIR/$path"
+            [ -n "$path" ] && [ -f "$KNOW_DIR/$path" ] && rm "$KNOW_DIR/$path"
             deleted=$((deleted + 1))
             continue
         fi
@@ -210,9 +210,9 @@ cmd_stats() {
 }
 
 cmd_init() {
-    # init — create .knowledge/ directory structure
+    # init — create .know/ directory structure
     ensure_dirs
-    echo "Initialized: $KNOWLEDGE_DIR"
+    echo "Initialized: $KNOW_DIR"
     echo "  index:   $INDEX_FILE"
     echo "  entries: $ENTRIES_DIR/{rationale,constraint,pitfall,concept,reference}"
 }
@@ -234,10 +234,10 @@ case "$CMD" in
     init)    cmd_init ;;
     help|*)
         cat <<'EOF'
-know-ctl.sh — CLI for .knowledge/ index operations
+know-ctl.sh — CLI for .know/ index operations
 
 Commands:
-  init                              Create .knowledge/ directory structure
+  init                              Create .know/ directory structure
   query <scope> [--tag t] [--tier n] [--tm m]
                                     Filter index by scope prefix + optional filters
   search <pattern>                  Regex search against summary field

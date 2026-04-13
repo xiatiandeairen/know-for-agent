@@ -11,7 +11,7 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 | Pipeline | Purpose | Output |
 |----------|---------|--------|
-| **Learn** | Persist tacit knowledge that code/git cannot express | `.knowledge/` entries |
+| **Learn** | Persist tacit knowledge that code/git cannot express | `.know/` entries |
 | **Write** | Turn discussion results into versioned documents | `.know/docs/` documents |
 | **Review** | Audit and maintain knowledge entries | Delete / Update / Keep |
 
@@ -49,7 +49,7 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 | Situation | Default |
 |-----------|---------|
-| No `.knowledge/` directory | Create on first write. No error. |
+| No `.know/` directory | Create on first write. No error. |
 | No `index.jsonl` | Create on first append. Skip recall/review silently. |
 | Conversation has <3 substantive messages when `/know write` | Warn insufficient context, ask user to point to specific content |
 | `/know learn` finds 0 signals | Output `[learn] No high-value knowledge detected in this conversation.` |
@@ -99,9 +99,9 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 ### Path Constants
 
 ```
-KNOWLEDGE_DIR  = .knowledge
-INDEX_FILE     = .knowledge/index.jsonl
-ENTRIES_DIR    = .knowledge/entries
+KNOW_DIR       = .know
+INDEX_FILE     = .know/index.jsonl
+ENTRIES_DIR    = .know/entries
 DOCS_DIR       = .know/docs/
 TEMPLATES_DIR  = workflows/templates/
 KNOW_CTL       = scripts/know-ctl.sh
@@ -112,14 +112,17 @@ KNOW_CTL       = scripts/know-ctl.sh
 ### Layout
 
 ```
-.knowledge/
+.know/
 ├── index.jsonl              # One entry per line, filter via jq
-└── entries/                 # Detail files (critical only)
-    ├── rationale/
-    ├── constraint/
-    ├── pitfall/
-    ├── concept/
-    └── reference/
+├── entries/                 # Detail files (critical only)
+│   ├── rationale/
+│   ├── constraint/
+│   ├── pitfall/
+│   ├── concept/
+│   └── reference/
+└── docs/                    # Structured documents
+    ├── v{n}/                # Project-level versioned
+    └── requirements/        # Requirement/feature level
 ```
 
 ### JSONL Schema (10 fields)
@@ -145,7 +148,7 @@ KNOW_CTL       = scripts/know-ctl.sh
 | hits, revs, created, updated | | ✓ |
 
 - Scope: string for single module, JSON array for cross-module (`["A","B"]`).
-- Path: relative to `KNOWLEDGE_DIR`.
+- Path: relative to `KNOW_DIR`.
 
 ### Tier Rules
 
@@ -183,7 +186,7 @@ bash "$KNOW_CTL" query "{scope}"
 | P3 | Fallback | `"project"` |
 
 **Skip when**:
-- No `.knowledge/index.jsonl`
+- No `.know/index.jsonl`
 - Same scope already queried in this conversation
 - Operation is read-only exploration (no code change intent)
 
