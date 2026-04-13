@@ -15,15 +15,6 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 | **Write** | Turn discussion results into versioned documents | `.know/docs/` documents |
 | **Review** | Audit and maintain knowledge entries | Delete / Update / Keep |
 
-## Core Principles
-
-1. **Human gate** — all persistence requires user confirmation. No silent writes.
-2. **Code-irreducible only** — if grep/git log answers it in 2 min, reject.
-3. **Token economy** — critical = detail file (≤220 tokens); memo = summary only.
-4. **Single definition** — defined once in SKILL.md, referenced via `→ SKILL.md {section}`.
-5. **Explicit pause** — every user-input point marked `[STOP:confirm]` or `[STOP:choose]`. Unmarked pauses are bugs.
-6. **Language mirroring** — output matches user's language. Internal docs stay English.
-
 ## Definitions
 
 | Term | Meaning |
@@ -39,20 +30,35 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 ## Input Normalization
 
-| User Input | Normalized To |
-|------------|---------------|
-| `/know` | Show help: available commands (learn, write, review) |
+| User Input | Action |
+|------------|--------|
+| `/know` | Show help: list learn, write, review with one-line descriptions |
 | `/know learn` | Learn pipeline — scan full conversation |
 | `/know learn "quoted text"` | Learn pipeline — treat quoted text as explicit claim |
 | `/know write` | Write pipeline — infer all params from conversation |
 | `/know write <hint>` | Write pipeline — hint assists type/name inference |
 | `/know write prd` or `/know write 需求` | Write pipeline — hint = "prd" |
-| "记住这个" / "save this" / "这个要记下来" | Treat as `/know learn` |
-| "写个文档" / "write a doc" / "整理一下" | Treat as `/know write` |
 | `/know review` | Review pipeline — audit all entries |
 | `/know review <scope>` | Review pipeline — audit entries matching scope |
-| "清理知识" / "review knowledge" / "检查经验" | Treat as `/know review` |
+| "记住这个" / "save this" / "这个要记下来" | → `/know learn` |
+| "写个文档" / "write a doc" / "整理一下" | → `/know write` |
+| "清理知识" / "review knowledge" / "检查经验" | → `/know review` |
 | `/know` + unrecognized argument | Show help with closest match suggestion |
+
+## Default Behaviors
+
+| Situation | Default |
+|-----------|---------|
+| No `.knowledge/` directory | Create on first write. No error. |
+| No `index.jsonl` | Create on first append. Skip recall/review silently. |
+| Conversation has <3 substantive messages when `/know write` | Warn insufficient context, ask user to point to specific content |
+| `/know learn` finds 0 signals | Output `[learn] No high-value knowledge detected in this conversation.` |
+| `/know review` with empty index | Output `[review] No entries to review.` |
+| Implicit signal detected during task | Batch signals, propose after current task completes. Never interrupt mid-task. |
+| User gives skip intent (继续/ok/go/好/可以) | Accept current output, proceed to next step |
+| User gives discussion intent (question/objection/edit) | Stay at current step, address feedback |
+| Scope inference fails | Fallback to `"project"` |
+| `know-ctl.sh` command fails | Show error verbatim (command + output), ask user to retry or skip |
 
 ## Rules
 
@@ -60,17 +66,17 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 - `# [RUN]` → execute with Bash tool. Never describe the command instead of running it.
 - `[STOP:confirm]` → pause until user confirms. `[STOP:choose]` → pause until user picks option.
-- Confirm blocks must show content being confirmed. Choice blocks must list explicit options (A/B/C).
+- Confirm blocks show content being confirmed. Choice blocks list explicit options (A/B/C).
 - Flow markers (`[STOP:*]`, step numbers) never appear in user output.
-- Skip intent (继续/ok/go/好/可以) → accept current output, proceed. Discussion intent (question, objection, edit request) → stay at current step.
 
 ### Output Constraints
 
-- Every user-facing output starts with exactly one marker from the marker table.
+- Every user-facing output starts with exactly one marker from the Output Markers table.
 - Confirmation prompts end with exactly one of: `Confirm?` / `Correct?` / `Write?` / explicit option list.
 - `[skipped]` blocks: max 2 lines (summary + reason).
 - `[conflict]` blocks: max 6 lines (existing + new + 4 options).
 - All field values use canonical names from Definitions.
+- Match user's language. Internal docs stay English.
 
 ### Output Markers
 
@@ -85,6 +91,7 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 | `[written]` | write | Document write complete |
 | `[index]` | write | CLAUDE.md index updated |
 | `[cascade]` | write | Downstream docs marked for update |
+| `[progress]` | write | Parent doc progress updated |
 | `[recall]` | recall | Knowledge entry applied to current operation |
 | `[review]` | review | Entry audit status / action result |
 | `[error]` | all | Unrecoverable error |
@@ -158,18 +165,16 @@ KNOW_CTL       = scripts/know-ctl.sh
 
 ## Recall
 
-Agent applies persisted knowledge to prevent repeated errors.
+Before operating on code (Read, Edit, Write, Bash with code changes), query for matching entries.
 
-### When to Load
-
-Before operating on code (Read, Edit, Write, Bash with code changes), query for matching entries:
+### Execution
 
 ```bash
 # [RUN]
 bash "$KNOW_CTL" query "{scope}"
 ```
 
-**Scope inference** — derive from **current file operation** (not conversation context — that is Learn's scope, → learn.md Step 5b). First match wins:
+**Scope inference** — derive from **current file operation** (not conversation context). First match wins:
 
 | Priority | Source | Method |
 |----------|--------|--------|
@@ -177,81 +182,72 @@ bash "$KNOW_CTL" query "{scope}"
 | P2 | Recent tool calls | Last 10 Read/Edit paths; module with ≥2 occurrences wins |
 | P3 | Fallback | `"project"` |
 
-**Skip conditions**:
-- No `.knowledge/index.jsonl` exists
+**Skip when**:
+- No `.knowledge/index.jsonl`
 - Same scope already queried in this conversation
 - Operation is read-only exploration (no code change intent)
 
-### How to Apply
+### Application
 
 | tm | Behavior |
 |----|----------|
-| `active:defensive` | Check before acting. If current operation would violate → block, show `[recall]`, suggest correct approach |
+| `active:defensive` | Check before acting. If operation would violate → block, show `[recall]`, suggest correct approach |
 | `active:directive` | Check before acting. If entry applies → suggest, show `[recall]` |
 | `passive` | No proactive check. Show `[recall]` only if about to repeat the described error |
 
 ### On Hit
 
-When an entry influences agent behavior:
-
 1. Show: `[recall] {summary}`
-2. Record:
-```bash
-# [RUN]
-bash "$KNOW_CTL" hit "{summary keyword}"
-```
+2. Record: `bash "$KNOW_CTL" hit "{summary keyword}"`
 
-### Recall Rules
+### Recall Limits
 
-- Never show `[recall]` for entries that did not influence the current operation.
 - Max 3 `[recall]` per operation — highest tier first, then `active:defensive` before others.
+- Never show `[recall]` for entries that did not influence the current operation.
 - Do not re-show the same entry within a conversation unless context changed.
 - `[recall]` is informational — no user confirmation needed.
 
-## Pipelines
+## Execution Pipeline
 
-### Intent Routing
+```
+User input
+  │
+  ▼
+[Input Normalization] → match against table, resolve to pipeline
+  │
+  ├─ /know learn ──→ Read workflows/learn.md → execute 8-step pipeline
+  ├─ /know write ──→ Read workflows/write.md → execute 8-step pipeline
+  ├─ /know review ─→ Read workflows/review.md → execute 3-step pipeline
+  ├─ /know ────────→ Show help
+  └─ implicit signal → Batch, propose after current task, on consent → learn pipeline
+```
 
-| Input | Dispatch |
-|-------|----------|
-| `/know learn` | → `workflows/learn.md` |
-| AI detects signal | → `workflows/learn.md` (requires user consent) |
-| `/know write` | → `workflows/write.md` |
-| `/know write <hint>` | → `workflows/write.md` (hint assists inference) |
-| `/know review` | → `workflows/review.md` |
-| `/know review <scope>` | → `workflows/review.md` (scope filter) |
-
-### Learn
+### Learn Pipeline
 
 ```
 1.Detect → 2.Extract → 3.Filter → 4.Assess → 5.Generate → 6.Conflict → 7.Confirm → 8.Write
-                         ↓DROP      ↓DROP                    ↓conflict   ↓cancel
-                         [skipped]  exit                     user decides exit
+                        ↓DROP      ↓DROP                    ↓conflict   ↓cancel
+                        [skipped]  exit                     user decides exit
 ```
 
-Full spec: `workflows/learn.md`
+Full spec: `workflows/learn.md` (load on trigger)
 
-### Write
+### Write Pipeline
 
 ```
 1.Trigger → 2.Infer → 3.Confirm → 4.Template → 5.Fill → 6.Preview → 7.Write → 8.Index
-                       ↓edit       ↓missing      ↓<30%    ↓edit        ↓cascade
-                       re-infer    fallback       warn     re-fill      [cascade] mark downstream
-
-Step 2c: file exists → update mode (sections-only edit + changelog)
-Step 8:  parent doc written → cascade mark direct children ⚠
-         update mode → clear ⚠ from own index entry
+                       ↓edit       ↓missing      ↓<30%    ↓edit        ↓cascade+progress
+                       re-infer    fallback       warn     re-fill      update parent docs
 ```
 
-Full spec: `workflows/write.md`
+Full spec: `workflows/write.md` (load on trigger)
 
-### Review
+### Review Pipeline
 
 ```
 1.Load → 2.Display → 3.Process
-          ↓all ok     ↓per entry
+          ↓empty      ↓per entry
           exit        A) Delete  B) Update  C) Keep
 ```
 
-Full spec: `workflows/review.md`
-
+Full spec: `workflows/review.md` (load on trigger)
