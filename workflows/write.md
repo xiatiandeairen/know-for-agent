@@ -91,8 +91,17 @@ Hint provided → match against type names first.
 
 ### 2c: New or Update
 
-- **Project-level**: file exists in any `v*/` → new version (v{n+1}). No `v*/` → v1.
+- **Project-level (non-roadmap)**: file exists in any `v*/` → new version (v{n+1}). No `v*/` → v1.
 - **Requirement/feature**: file exists → `mode=update`. File absent → `mode=create` (default).
+
+**Roadmap version rule** — roadmap has special versioning based on change type:
+
+| Change type | Signal | Action |
+|-------------|--------|--------|
+| 新增产品版本规划 | 对话包含新版本的毕业标准或里程碑 | 新建 `v{n+1}/roadmap.md`，只包含新版本内容，不夹带历史版本 |
+| 当前版本内变更 | 修改里程碑进度、调整排除项、更新风险 | 原地更新当前 `v{n}/roadmap.md`（`mode=update`） |
+
+判定后在 Step 3 展示供用户确认：`新建 v{n+1}` 或 `更新 v{n}`。
 
 ### 2d: Parent
 

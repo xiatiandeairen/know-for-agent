@@ -2,6 +2,9 @@
 
 ### 文档索引
 
+#### v2
+- [know 产品路线图](.know/docs/v2/roadmap.md) | 2026-04-13
+
 #### v1
 - [know 产品路线图](.know/docs/v1/roadmap.md) | 2026-04-10
 
