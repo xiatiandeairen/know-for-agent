@@ -221,7 +221,7 @@ Before operating on code (Read, Edit, Write, Bash with code changes), query for 
 bash "$KNOW_CTL" query "{scope}"
 ```
 
-**Scope inference** — derive from current operation, first match wins:
+**Scope inference** — derive from **current file operation** (not conversation context — that is Learn's scope, → learn.md Step 5b). First match wins:
 
 | Priority | Source | Method |
 |----------|--------|--------|

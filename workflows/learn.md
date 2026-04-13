@@ -134,7 +134,7 @@ Model: opus
 
 ### 5b: Scope
 
-First match wins:
+Infer scope for the new claim from **conversation context** (not current file operation — that is Recall's scope, → SKILL.md Recall). First match wins:
 
 | Priority | Source | Method |
 |----------|--------|--------|
