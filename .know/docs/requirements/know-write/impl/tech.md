@@ -17,7 +17,7 @@ workflows/templates/{type}.md            ← 9 种文档模板
 CLAUDE.md ## 文档索引                     ← 索引 + 层级关系
 ```
 
-### 工作流（9 步）
+### 工作流（8 步）
 
 ```
 /know write [hint]
@@ -26,15 +26,14 @@ CLAUDE.md ## 文档索引                     ← 索引 + 层级关系
   ├─ 2. Infer            推断 type / name / version / parent
   │     ├─ 2a: type      对话内容特征匹配 9 种类型
   │     ├─ 2b: name      对话主题 → kebab-case slug（项目版本级单文件无需 name）
-  │     ├─ 2c: version   项目版本级检查 v*/ 目录递增；需求/功能级无版本
+  │     ├─ 2c: version   项目版本级检查 v*/ 目录递增；需求/功能级 update mode
   │     └─ 2d: parent    prd←roadmap, tech/ui←prd, 其余独立
   ├─ 3. Confirm          展示推断结果，歧义时让用户选择
   ├─ 4. Template         加载 workflows/templates/{type}.md
-  ├─ 5. Fill             从对话提取内容，按模板结构组织完整散文
-  ├─ 6. Preview          展示全文，用户确认
-  ├─ 7. Write            mkdir -p + 写入文件
-  ├─ 8. Index            更新 CLAUDE.md 文档索引
-  └─ 9. Done             输出路径
+  ├─ 5. Fill             create: 全文生成 / update: 定点章节更新
+  ├─ 6. Preview          create: 全文预览 / update: 变更 diff
+  ├─ 7. Write            create: Write tool / update: Edit tool + changelog
+  └─ 8. Index            更新索引 + 级联标记 + 标记清除
 ```
 
 ### 文档类型（9 种，3 层）
@@ -77,7 +76,34 @@ prd ← roadmap，tech/ui ← prd，其余类型独立。父文档缺失时：pr
 ### 版本机制
 
 - 项目版本级文档：`v{n}/` 目录递增，旧版本保留，CLAUDE.md 索引按版本分组
-- 需求/功能级文档：原地覆写，无版本控制（单一事实源，用 git 追溯历史）
+- 需求/功能级文档：定点更新（update mode），用 git 追溯历史
+
+### 更新机制
+
+#### Update Mode（需求/功能级）
+
+文件已存在时进入 update mode，与 create mode 的区别：
+
+| 步骤 | Create Mode | Update Mode |
+|------|-------------|-------------|
+| Step 5 Fill | 全文生成 | 只重新生成对话涉及的章节，其余不动 |
+| Step 6 Preview | 展示全文 | 只展示变更章节的 diff |
+| Step 7 Write | Write tool 全量写入 | Edit tool 逐章节替换 + 追加 changelog |
+
+Changelog 格式：`- YYYY-MM-DD: {变更摘要}`，追加在文档末尾 `## Changelog` section。
+
+#### 级联标记（Cascade Marking）
+
+父文档写入后，自动在 CLAUDE.md 索引中标记直接子文档：
+
+```
+- [know-learn](.know/docs/requirements/know-learn/prd.md) | 2026-04-10 ← roadmap ⚠ needs update
+```
+
+规则：
+- 只标记直接子文档（roadmap→prd，不穿透到 tech）
+- 子文档更新后自动清除标记
+- 已有标记的不重复标记
 
 ### 目录结构
 
@@ -118,7 +144,9 @@ prd ← roadmap，tech/ui ← prd，其余类型独立。父文档缺失时：pr
 | 决策 | 选择 | 为什么 |
 |------|------|--------|
 | 元数据存储 | CLAUDE.md，无独立 meta 文件 | agent 天然读 CLAUDE.md，少一个文件 |
-| 写入模式 | 项目版本级全量覆写+版本递增，需求级原地覆写 | 版本级保留历史，需求级用 git 追溯 |
+| 写入模式 | 项目版本级全量覆写+版本递增，需求级定点更新 | 版本级保留历史，需求级用 git 追溯 |
+| 更新策略 | 定点章节更新 + changelog，不全量重写 | 降低重写代价，保留未变更内容 |
+| 级联标记 | 父文档写入后标记直接子文档 `⚠ needs update` | 提醒用户下游文档可能过时 |
 | 模板位置 | workflows/templates/ | 跟插件走，不污染用户项目 |
 | 层级标注 | `← parent` 文本标记 | 人可读、agent 可解析、零依赖 |
 | 文档格式 | 纯 Markdown，无 frontmatter | 元数据全在索引里，文档保持干净 |
@@ -135,5 +163,6 @@ prd ← roadmap，tech/ui ← prd，其余类型独立。父文档缺失时：pr
 | 目标版本文件已存在 | 重新 ls 取最新版本号 +1，不覆盖 |
 | CLAUDE.md 不存在 | 创建 `## Know` → `### 文档索引` + `#### v1` 和 `#### Requirements` |
 | 预览后要求修改 | 调整内容重新预览，不计版本号 |
-| 需求文档已存在 | 原地覆写（无版本递增），用 git 追溯 |
+| 需求文档已存在 | 进入 update mode，定点更新涉及章节 + 追加 changelog |
 | 直接修改 v1 而非新建 v2 | 用户明确要求时直接 Edit，不走版本递增 |
+| 父文档更新后子文档状态 | 索引标记 `⚠ needs update`，子文档更新后自动清除 |

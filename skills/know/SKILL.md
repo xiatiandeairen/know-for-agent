@@ -1,193 +1,270 @@
 ---
 name: know
-description: Project knowledge compiler for AI agents — persist high-value tacit knowledge and write structured documents to reduce exploration errors.
+description: Project knowledge compiler for AI agents — persist tacit knowledge and write structured documents.
 ---
 
 # Know
 
-`/know learn` → persist knowledge. `/know write` → write structured documents.
+`/know learn` persists knowledge. `/know write` generates structured documents.
 
-Two capabilities, one entry point:
-- **Learn**: correct the AI's mental model by recording tacit knowledge
-- **Write**: turn conversation discussion results into structured documents in `docs/`
+## Overview
 
----
+| Pipeline | Purpose | Output |
+|----------|---------|--------|
+| **Learn** | Persist tacit knowledge that code/git cannot express | `.knowledge/` entries |
+| **Write** | Turn discussion results into versioned documents | `.know/docs/` documents |
+
+## Core Principles
+
+1. **Human gate** — all persistence requires user confirmation. No silent writes.
+2. **Code-irreducible only** — if grep/git log answers it in 2 min, reject it.
+3. **Token economy** — critical = detail file (≤220 tokens); memo = summary only.
+4. **Single definition** — defined once in SKILL.md, referenced via `→ SKILL.md {section}`.
+5. **Term anchoring** — one canonical name per concept (→ Definitions). Lifecycle: signal → claim → entry. No aliases.
+6. **Explicit pause** — every user-input point marked `[STOP:confirm]` or `[STOP:choose]`. Unmarked pauses are bugs.
+7. **Language mirroring** — output matches user's language. Internal docs stay English.
+
+## Definitions
+
+| Term | Meaning |
+|------|---------|
+| signal | Conversation pattern matching ≥1 keyword in signal table → triggers learn |
+| claim | Knowledge unit extracted from conversation (Steps 2–4, pre-validation) |
+| entry | Validated knowledge record written to `index.jsonl` (Step 5+) |
+| tag | `rationale` \| `constraint` \| `pitfall` \| `concept` \| `reference` |
+| tier | `critical` (tier 1, detail file) \| `memo` (tier 2, summary only) |
+| scope | Dot-separated module keypath, prefix-matchable (e.g. `Auth.middleware`) |
+| tm | Trigger mode: `passive` \| `active:defensive` \| `active:directive` |
+| slug | File name identifier: `[a-z0-9-]`, max 50 chars, kebab-case |
+
+## Input Normalization
+
+| User Input | Normalized To |
+|------------|---------------|
+| `/know` | Show help: available commands (learn, write) |
+| `/know learn` | Learn pipeline — scan full conversation |
+| `/know learn "quoted text"` | Learn pipeline — treat quoted text as explicit claim |
+| `/know write` | Write pipeline — infer all params from conversation |
+| `/know write <hint>` | Write pipeline — hint assists type/name inference |
+| `/know write prd` or `/know write 需求` | Write pipeline — hint = "prd" |
+| "记住这个" / "save this" / "这个要记下来" | Treat as `/know learn` |
+| "写个文档" / "write a doc" / "整理一下" | Treat as `/know write` |
+| `/know` + unrecognized argument | Show help with closest match suggestion |
+
+## Default Behaviors
+
+| Condition | Action |
+|-----------|--------|
+| No signals detected in conversation | Report: "No persistable knowledge detected in this conversation." |
+| Conversation has <3 substantive messages | Warn insufficient context. Ask user to point to specific content. |
+| Tag matches ≥2 tags equally | Show all 5 tags, ask user to choose |
+| Scope unresolvable | Default to `"project"` |
+| tm pattern matches none | Default to `passive` |
+| Conflict detection returns 0 candidates | Skip Phase 2, proceed to confirm |
+| `know-ctl.sh` missing or fails | Abort: `[error] know-ctl.sh not found or failed. Run setup first.` |
+| Template file missing | Fallback: `# {Title}` / `## Overview` / `## Details` / `## Open Questions` |
+| CLAUDE.md missing | Create with `## Know` → `### 文档索引` structure |
+| Write type matches ≥2 equally | List matched types, ask user to choose |
+| Write name unextractable | Ask user to provide name explicitly |
 
 ## Rules
 
-- Bash commands marked `# [RUN]` must be executed with Bash tool, not described verbally.
-- Wait for user at `[STOP:confirm]` (proceed only when user expresses confirmation intent) and `[STOP:choose]` (user picks one option).
-- Questions that ask user to choose must always list explicit options (A/B/C). Never ask a choice question without options.
-- Questions that ask user to confirm must always show the content being confirmed. Never ask "confirm?" without showing what to confirm.
-- All internal markers (`[STOP:confirm]`, `[STOP:choose]`, step numbers, tier/tag/tm labels) must NEVER appear in user-facing output. Use natural language prompts instead.
-- Match user's language. Chinese input → Chinese response. English input → English response. Internal docs (SKILL.md, workflows) stay in English.
-- Users can skip confirmation points by expressing skip intent (go, ok, continue, 继续, 好, 可以, etc.). AI judges by intent, no specific keywords required. Skip intent → accept current output, move to next step. Discussion intent (question, objection, modification) → continue discussing.
+### Execution Control
 
-### Output Blocks
+- `# [RUN]` → execute with Bash tool. Never describe the command instead of running it.
+- `[STOP:confirm]` → pause until user confirms. `[STOP:choose]` → pause until user picks option.
+- Confirm blocks must show content being confirmed. Choice blocks must list explicit options (A/B/C).
+- Flow markers (`[STOP:*]`, step numbers) never appear in user output. Tag/tier/scope in `[learn]` confirmation blocks are user-reviewable content.
+- Skip intent (继续/ok/go/好/可以 or equivalent) → accept current output, proceed. Discussion intent (question, objection, edit request) → stay at current step.
 
-Output blocks are user-facing formatted displays. Use `[marker]` prefix:
+### Output Constraints
 
-| Marker | Semantics | When |
-|--------|-----------|------|
-| `[suggest-learn]` | High-value knowledge detected, propose persistence | learn implicit signal |
-| `[learn]` | Entry pending confirmation | learn Step 7 |
-| `[persisted]` | Write complete confirmation | learn Step 8 |
-| `[conflict]` | Similar entry exists, user decision needed | learn Step 6 conflict |
-| `[skipped]` | Route interception, not persisted | learn Step 3 DROP |
-| `[write]` | Document write pipeline status | write steps |
-| `[written]` | Document write complete | write Step 8 |
-| `[index]` | Index update confirmation | write Step 9 |
+- Every user-facing output starts with exactly one `[marker]` from the marker table.
+- Confirmation prompts end with exactly one of: `Confirm?` / `Correct?` / `Write?` / explicit option list.
+- `[skipped]` blocks: max 2 lines (summary + reason).
+- `[conflict]` blocks: max 6 lines (existing + new + 4 options).
+- All field values in output use canonical names from Definitions.
 
-**Conflict block format**:
+### Output Markers
 
+| Marker | Pipeline | When |
+|--------|----------|------|
+| `[suggest-learn]` | learn | Implicit signal batch proposal |
+| `[learn]` | learn | Entry pending confirmation |
+| `[persisted]` | learn | Write complete |
+| `[conflict]` | learn | Duplicate/contradictory entry found |
+| `[skipped]` | learn | Route interception DROP |
+| `[write]` | write | Status / parameter confirmation / preview |
+| `[written]` | write | Document write complete |
+| `[index]` | write | CLAUDE.md index updated |
+| `[cascade]` | write | Downstream docs marked for update after parent write |
+| `[error]` | both | Unrecoverable error |
+
+**Conflict block**:
 ```
 [conflict] Similar entry found:
-
-Existing: {existing summary}
-New: {new summary}
-
-Choose:
-A) Update existing entry
-B) Keep both
-C) Merge into one
-D) Skip new entry
+Existing: {summary}
+New: {summary}
+Choose: A) Update existing  B) Keep both  C) Merge  D) Skip new
 ```
 
-**Skipped block format**:
-
+**Skipped block**:
 ```
-[skipped] {claim summary}
-Reason: {drop reason — e.g. derivable from code / belongs in CLAUDE.md / no conclusion}
+[skipped] {summary}
+Reason: {drop reason}
 ```
 
 ### Path Constants
 
 ```
-KNOWLEDGE_DIR=".knowledge"
-INDEX_FILE=".knowledge/index.jsonl"
-ENTRIES_DIR=".knowledge/entries"
-DOCS_DIR=".know/docs/"
-TEMPLATES_DIR="workflows/templates/"
-KNOW_CTL="scripts/know-ctl.sh"
+KNOWLEDGE_DIR  = .knowledge
+INDEX_FILE     = .knowledge/index.jsonl
+ENTRIES_DIR    = .knowledge/entries
+DOCS_DIR       = .know/docs/
+TEMPLATES_DIR  = workflows/templates/
+KNOW_CTL       = scripts/know-ctl.sh
 ```
 
----
+## Storage
 
-## Intent Routing [BRANCH]
-
-| Input | Intent | Dispatch |
-|-------|--------|----------|
-| `/know learn` | Persist knowledge from conversation | → `workflows/learn.md` |
-| AI detects signal | Propose persistence | → `workflows/learn.md` (requires user consent) |
-| `/know write` | Write discussion result as structured document | → `workflows/write.md` |
-| `/know write <hint>` | Write document with type/name hint | → `workflows/write.md` (hint assists inference) |
-
-<HARD-GATE>
-All writes must display content and receive user confirmation before persisting.
-</HARD-GATE>
-
----
-
-## Storage Architecture
+### Architecture
 
 ```
 .knowledge/
-├── index.jsonl              # JSONL index — one entry per line, filter via jq
-└── entries/                 # Markdown detail files
-    ├── rationale/           #   Why this, not that
-    ├── constraint/          #   What must not be done
-    ├── pitfall/             #   Known traps with root cause
-    ├── concept/             #   Core logic, algorithms, flows
-    └── reference/           #   External tool integration guides
+├── index.jsonl              # One entry per line, filter via jq
+└── entries/                 # Detail files (critical only)
+    ├── rationale/
+    ├── constraint/
+    ├── pitfall/
+    ├── concept/
+    └── reference/
 ```
 
 ### JSONL Schema (10 fields)
 
 ```json
 {
-  "tag":      "rationale|constraint|pitfall|concept|reference",
-  "tier":     1|2,
-  "scope":    "Module.Class.method",
-  "tm":       "passive|active:defensive|active:directive",
-  "summary":  "≤80 chars, must contain retrieval anchor terms",
-  "path":     "entries/{tag}/{slug}.md|null",
-  "hits":     0,
-  "revs":     0,
-  "created":  "YYYY-MM-DD",
-  "updated":  "YYYY-MM-DD"
+  "tag": "rationale|constraint|pitfall|concept|reference",
+  "tier": 1,
+  "scope": "Module.Class.method",
+  "tm": "passive|active:defensive|active:directive",
+  "summary": "≤80 chars with retrieval anchors",
+  "path": "entries/{tag}/{slug}.md|null",
+  "hits": 0,
+  "revs": 0,
+  "created": "YYYY-MM-DD",
+  "updated": "YYYY-MM-DD"
 }
 ```
 
-**Scope field**: string for single scope, JSON array for cross-module (e.g. `["LoppyMetrics", "LoppyScoring"]`). In JSONL, arrays are serialized inline: `"scope":["A","B"]`.
+| Field | Filterable | Lifecycle |
+|-------|:----------:|:---------:|
+| tag, tier, scope, tm, summary | ✓ | |
+| hits, revs, created, updated | | ✓ |
 
-| Field | Filter | Lifecycle |
-|-------|--------|-----------|
-| tag | ✓ | |
-| tier | ✓ | |
-| scope | ✓ | |
-| tm | ✓ | |
-| summary | ✓ (text match) | |
-| path | | |
-| hits | | ✓ |
-| revs | | ✓ |
-| created | | ✓ |
-| updated | | ✓ |
-
-### Scope Keypath
-
-Dot-separated path supporting prefix match:
-
-```
-project                          → matches everything
-LoppyMetrics                     → matches LoppyMetrics.*
-LoppyMetrics.DataEngine          → matches LoppyMetrics.DataEngine.*
-LoppyMetrics.DataEngine.refresh  → exact match
-```
+- Scope: string for single module, JSON array for cross-module (`["A","B"]`).
+- Path: relative to `KNOWLEDGE_DIR`.
 
 ### Tier Rules
 
-| Tier | Name | Token Budget | Detail File |
-|------|------|-------------|-------------|
-| 1 | critical | ≤ 220 tokens | required |
-| 2 | memo | — | none (summary only) |
+| Tier | Name | Detail File | Budget |
+|------|------|:-----------:|--------|
+| 1 | critical | required | ≤220 tokens |
+| 2 | memo | none | summary only |
 
-**Tier assignment criteria** (learn workflow):
-- critical (tier 1): confirmed knowledge (verified via test, reproduction, or multi-source agreement); missing it would cause errors
-- memo (tier 2): worth noting; missing it wastes time but unlikely to cause errors
+- **critical**: confirmed knowledge (test/reproduction/multi-source); missing it causes errors.
+- **memo**: worth noting; missing it wastes time but won't cause errors.
 
-**Summary rules**:
-- ≤ 80 characters; if exceeds, compress to fit — never truncate mid-word
-- Must contain retrieval anchor terms (module names, API names, error patterns)
-- Structure: conclusion + key reason
+### Summary Rules
 
-### Decay Policy
+- ≤80 characters; compress to fit, never truncate mid-word
+- Must contain retrieval anchors (module names, API names, error patterns)
+- Structure: `{conclusion} — {key reason}`
 
-```
-memo (tier 2) + hits=0 + created > 30d      → delete
-critical (tier 1) + hits=0 + created > 180d → demote to memo
-revs > 3 + critical (tier 1)                → demote to memo (unstable)
-```
-
----
-
-## Pipelines
-
-### Learn (mental model correction)
-
-Record tacit high-value knowledge that code and git cannot express. Full spec: `workflows/learn.md`
+### Decay
 
 ```
-Signal detection → Claim extraction → Route interception → 2-question tier assessment
-→ Entry generation → Conflict detection (keyword pre-filter + LLM similarity)
-→ Display and confirm → Write index.jsonl + entries/
+memo     + hits=0 + age > 30d  → delete
+critical + hits=0 + age > 180d → demote to memo
+critical + revs > 3            → demote to memo (unstable)
 ```
 
-### Write (document authoring)
+## Execution Pipelines
 
-Turn conversation results into structured, versioned documents. Full spec: `workflows/write.md`
+### Intent Routing
+
+| Input | Dispatch |
+|-------|----------|
+| `/know learn` | → `workflows/learn.md` |
+| AI detects signal | → `workflows/learn.md` (requires user consent) |
+| `/know write` | → `workflows/write.md` |
+| `/know write <hint>` | → `workflows/write.md` (hint assists inference) |
+
+### Learn
 
 ```
-Trigger → Infer parameters → Confirm parameters → Load template
-→ Extract and fill → Preview and confirm → Write file
-→ Update CLAUDE.md index → Done
+1.Detect → 2.Extract → 3.Filter → 4.Assess → 5.Generate → 6.Conflict → 7.Confirm → 8.Write
+                         ↓DROP      ↓DROP                    ↓conflict   ↓cancel
+                         [skipped]  exit                     user decides exit
+```
+
+Full spec: `workflows/learn.md`
+
+### Write
+
+```
+1.Trigger → 2.Infer → 3.Confirm → 4.Template → 5.Fill → 6.Preview → 7.Write → 8.Index
+                       ↓edit       ↓missing      ↓<30%    ↓edit        ↓cascade
+                       re-infer    fallback       warn     re-fill      [cascade] mark downstream
+
+Step 2c: file exists → update mode (sections-only edit + changelog)
+Step 8:  parent doc written → cascade mark direct children ⚠
+         update mode → clear ⚠ from own index entry
+```
+
+Full spec: `workflows/write.md`
+
+## Examples
+
+### Learn — signal batch
+
+```
+[suggest-learn] Detected 2 high-value claims:
+1. [constraint] Thresholds defined only in PressureLevel, no hardcoded numbers
+2. [pitfall] DataEngine singleton leaks state across test targets
+Persist? [all / select / skip]
+```
+
+### Learn — entry confirmation
+
+```
+[learn] Entry pending confirmation:
+
+Tag: constraint | Tier: 1 | Scope: LoppyMetrics
+Summary: Thresholds defined only in PressureLevel, no hardcoded numbers
+
+--- entries/constraint/pressure-thresholds.md ---
+# Thresholds defined only in PressureLevel
+All pressure thresholds (35/55/75) are defined in the PressureLevel enum.
+## Why
+Scattered magic numbers caused inconsistent scoring in v1.
+## How to check
+grep for hardcoded 35/55/75 outside PressureLevel.
+
+Confirm?
+```
+
+### Write — parameter confirmation
+
+```
+[write] Inferred from conversation:
+Type: prd | Requirement: know-write | Parent: roadmap (v1/roadmap.md)
+Correct?
+```
+
+### Write — index entry
+
+```
+- [know-write](.know/docs/requirements/know-write/prd.md) | 2026-04-10 ← roadmap
+  - [tech](.know/docs/requirements/know-write/impl/tech.md) | 2026-04-10 ← prd
 ```

@@ -1,423 +1,351 @@
 # write — Document Authoring
 
-Take conversation discussion results and write them as structured, versioned documents to the project `.know/docs/` directory.
+## Progress
+
+Steps: 8
+Names: Trigger, Infer, Confirm, Template, Fill, Preview, Write, Index
+
+Shared definitions (output blocks, paths) → SKILL.md.
 
 ---
 
-## Path Constants
-
-```
-DOCS_DIR        = .know/docs/
-TEMPLATES_DIR   = workflows/templates/
-CLAUDE_MD       = CLAUDE.md          # project root
-```
-
 ## Document Types
 
-9 types across 3 levels:
+### Project-level (`v{n}/`)
 
-### Project version level (under `.know/docs/v{n}/`)
+| Type | Path | Multi-file |
+|------|------|:----------:|
+| roadmap | `v{n}/roadmap.md` | |
+| arch | `v{n}/arch.md` | |
+| ops | `v{n}/ops.md` | |
+| marketing | `v{n}/marketing.md` | |
+| schema | `v{n}/schema/{topic}.md` | ✓ |
+| decision | `v{n}/decision/{topic}.md` | ✓ |
 
-| Type | Path | Description |
-|------|------|-------------|
-| roadmap | `v{n}/roadmap.md` | Product roadmap — single file |
-| arch | `v{n}/arch.md` | Architecture — single file |
-| ops | `v{n}/ops.md` | Operations — release, feedback, iteration — single file |
-| marketing | `v{n}/marketing.md` | Marketing — promotion, content strategy, launch plan — single file |
-| schema | `v{n}/schema/{topic}.md` | All API/interface specs — directory, multiple files by topic |
-| decision | `v{n}/decision/{topic}.md` | ADR records — directory, multiple files by topic |
+### Requirement-level (`requirements/{req}/`)
 
-### Requirement level (under `.know/docs/requirements/{requirement}/`)
+| Type | Path |
+|------|------|
+| prd | `prd.md` |
 
-| Type | Path | Description |
-|------|------|-------------|
-| prd | `prd.md` | Product requirements — single file |
+### Feature-level (`requirements/{req}/{feature}/`)
 
-### Feature level (under `.know/docs/requirements/{requirement}/{feature}/`)
+| Type | Path |
+|------|------|
+| tech | `tech.md` |
+| ui | `ui.md` |
 
-| Type | Path | Description |
-|------|------|-------------|
-| tech | `tech.md` | Technical design — single file |
-| ui | `ui.md` | UI/interaction design — single file |
+**Hierarchy**: roadmap → prd → tech / ui. Others (arch, decision, ops, marketing, schema) are independent.
 
-### Hierarchy
-
-```
-project version: roadmap / arch / schema / ops / marketing / decision
-requirement:     requirements/{name}/prd.md
-feature:         requirements/{name}/{feature}/tech.md / ui.md
-```
-
-Roadmap references requirements. Requirements and features are always current (no versioning).
+**Versioning**: project-level versions by directory (v1→v2). Requirement/feature overwrite in place.
 
 ---
 
 ## Step 1: Trigger
 
+Model: sonnet
+
 ```
-/know write          # AI infers everything from conversation
-/know write <hint>   # With hint (e.g. "product requirements", "tech design", feature name)
+/know write          → infer all params from conversation
+/know write <hint>   → hint assists type/name inference
 ```
+
+**Gate**: conversation has <3 substantive messages → warn insufficient context, ask user to point to specific content.
 
 ---
 
-## Step 2: Infer Document Parameters
+## Step 2: Infer
 
-Extract parameters from conversation context + hint:
+Model: opus
 
-### 2a: Document Type
+### 2a: Type
 
-| Signal in Conversation | Inferred Type |
-|----------------------|---------------|
-| Feature list, priorities, timeline, milestones | roadmap |
-| System boundary, module decomposition, infrastructure | arch |
-| Release plan, feedback loop, iteration | ops |
-| Promotion, content strategy, launch plan, marketing copy | marketing |
-| Endpoint, request/response, protocol, schema, interface spec | schema |
-| "Decided to", trade-off analysis, option comparison | decision |
-| User stories, acceptance criteria, requirements, scope | prd |
-| System design, data model, sequence diagram, implementation plan | tech |
-| Wireframe, layout, interaction flow, component spec | ui |
+| Conversation Signal | Type |
+|-------------------|------|
+| Priorities, milestones, timeline | roadmap |
+| Module decomposition, infrastructure | arch |
+| Release, feedback loop, iteration | ops |
+| Promotion, content strategy, launch | marketing |
+| Endpoint, request/response, protocol | schema |
+| Trade-off analysis, option comparison | decision |
+| User stories, acceptance criteria, scope | prd |
+| Data model, sequence diagram, implementation | tech |
+| Wireframe, interaction flow, component spec | ui |
 
-If hint is provided, match hint against type names and descriptions first.
+Hint provided → match against type names and descriptions first.
 
-### 2b: Name / Topic
+**Default**: matches ≥2 types equally → list matched types, ask user to choose. Matches 0 → ask user to specify type.
 
-**Project-level single files** (roadmap, arch, ops, marketing): no name needed — path is determined by type alone.
+### 2b: Name/Topic
 
-**Project-level directory types** (schema, decision): extract topic from conversation. Normalize to lowercase kebab-case slug (e.g. `jsonl-index`, `storage-choice`).
+| Level | Rule |
+|-------|------|
+| Project single (roadmap, arch, ops, marketing) | No name needed |
+| Project directory (schema, decision) | Extract topic → kebab-case slug |
+| Requirement (prd) | Extract requirement name → kebab-case slug |
+| Feature (tech, ui) | Extract requirement + feature names → kebab-case slugs |
 
-**Requirement level** (prd): extract requirement name. Normalize to lowercase kebab-case slug (e.g. `know-write`).
-
-**Feature level** (tech, ui): extract requirement name + feature name. Both normalized to lowercase kebab-case slug (e.g. requirement `know-write`, feature `write-workflow`).
+**Default**: name unextractable → ask user to provide.
 
 ### 2c: New or Update
 
-**Project-level docs**: check if the target file exists inside any `v*/` directory.
-- File exists → update (new version of the project)
-- File missing → new document (v1 if no `v*/` directory exists yet)
+- **Project-level**: file exists in any `v*/` → new version (v{n+1}). No `v*/` → v1.
+- **Requirement/feature**: file exists → **update mode**. File absent → create mode.
 
-**Requirement/feature docs**: these live outside version directories and are always overwritten in place (single source of truth, no versioning).
+**Update mode flag**: set `mode=update` for downstream steps. Create mode is default (`mode=create`).
 
-### 2d: Parent Relationship
+### 2d: Parent
 
-If type is `prd` → look for related `roadmap` doc.
-If type is `tech` or `ui` → look for related `prd` doc.
-`arch`, `decision`, `ops`, `marketing`, and `schema` have no required parent.
+| Type | Parent |
+|------|--------|
+| prd | roadmap |
+| tech, ui | prd |
+| others | none |
 
-### Parent Document Missing
-
-If the expected parent document does not exist:
-- prd without roadmap → proceed, note in output: "Related roadmap not yet created"
-- tech/ui without prd → warn user and ask:
-  ```
-  [write] Related PRD not found ({expected path})
-  A) Continue without parent link
-  B) Create PRD first, then write current document
-  ```
+**Missing parent**:
+- prd without roadmap → proceed, note "Related roadmap not yet created"
+- tech/ui without prd → [STOP:choose] `A) Continue without parent  B) Create PRD first`
 
 ---
 
-## Step 3: Confirm Parameters
+## Step 3: Confirm [STOP:confirm]
 
-Show all inferred parameters in one confirmation block and wait for user confirmation.
+Model: sonnet
 
-**Project-level docs** — include version. Run version check first:
+For project-level docs, check version first:
 
 ```bash
-# [RUN] Check existing version directories
+# [RUN]
 ls -d .know/docs/v*/ 2>/dev/null | sort -V | tail -1
 ```
 
-| Result | Action |
-|--------|--------|
-| No `v*/` directories | Default to v1 |
-| Latest is `v{n}/` | Default to v{n+1}, let user confirm or change |
+No `v*/` → default v1. Latest `v{n}/` → default v{n+1}.
+
+Show all params in one block:
 
 ```
-[write] Inferred from conversation, please confirm:
-
-Type: arch
-Version: v2 (current latest v1, creating v2)
-Parent: none
-
+[write] Inferred from conversation:
+Type: arch | Version: v2 (latest: v1) | Parent: none
 Correct?
 ```
 
-**Requirement docs**:
-
-```
-[write] Inferred from conversation, please confirm:
-
-Type: prd
-Requirement: know-write
-Parent: roadmap (v1/roadmap.md)
-
-Correct?
-```
-
-**Feature docs**:
-
-```
-[write] Inferred from conversation, please confirm:
-
-Type: tech
-Requirement: know-write
-Feature: write-workflow
-Parent: prd (requirements/know-write/prd.md)
-
-Correct?
-```
-
-If multiple interpretations exist (e.g. conversation covers both PRD and tech design), present choices:
-
-```
-[write] Conversation contains multiple document types:
-1. requirements/know-write — prd
-2. requirements/know-write/write-workflow — tech
-
-Which to write? [1 / 2 / both]
-```
-
-Both → process sequentially, each following full pipeline from Step 4.
+Multiple types detected → [STOP:choose] list with `[1 / 2 / both]`. Both → sequential processing from Step 4.
 
 ---
 
-## Step 4: Load Template
+## Step 4: Template
+
+Model: sonnet
 
 ```bash
-# [RUN] Load document template
+# [RUN]
 cat workflows/templates/{type}.md
 ```
 
-If template file missing → use minimal default structure:
-
-```markdown
-# {Title}
-
-## Overview
-
-## Details
-
-## Open Questions
-```
+**Default**: template missing → fallback: `# {Title}` / `## Overview` / `## Details` / `## Open Questions`.
 
 ---
 
-## Step 5: Extract and Fill Content
+## Step 5: Fill
 
-Using the loaded template as structure guide:
+Model: opus
 
-1. Scan full conversation for content relevant to this document type
-2. Organize extracted content into template sections
-3. Write complete, structured prose — not conversation fragments
-4. Ensure all template sections are addressed (mark as "TBD" if no conversation content covers it)
-5. Do NOT include frontmatter — metadata lives in CLAUDE.md index
+1. Scan full conversation for content matching this document type
+2. Organize into template sections as structured prose — not conversation fragments
+3. Follow each section's `<!-- INCLUDE/EXCLUDE -->` guide in template
+4. Each section: ≥3 sentences of original prose; if insufficient → `TBD — {what's missing}`
+5. Preserve technical accuracy from conversation; do not fabricate or infer unstated details
+6. Ambiguities → prefix with `Open question:`
+7. Code examples and tables from conversation: quote directly
+8. Cross-references: relative paths. Match user's language for content.
 
-Content quality rules:
-- **Follow each section's INCLUDE/EXCLUDE guide** in template comments (`<!-- -->`). Only extract conversation content that falls within the section's INCLUDE scope; actively filter out content matching EXCLUDE criteria, even if discussed in conversation
-- Each template section must contain at least 2-3 complete sentences; if conversation lacks content for a section, keep the section header and write "TBD — {reason}" as content
-- Do NOT paste conversation fragments as-is; rewrite all content as standalone, readable prose
-- Code examples and tables from conversation may be quoted directly
-- Technical accuracy preserved from conversation; do not infer or fabricate details not discussed
-- Ambiguities or open questions called out explicitly with "Open question:" prefix
-- Cross-references to related docs where applicable (use relative paths)
-- Match user's language for document content (Chinese conversation → Chinese document)
+**Update mode** (`mode=update`) — targeted section update, not full rewrite:
 
-**Update mode** (when overwriting an existing document):
+1. Read existing document in full
+2. Identify which sections the current conversation discusses (output section list)
+3. Only regenerate content for those sections; untouched sections remain exactly as-is
+4. For each affected section, follow the same quality rules as create mode (≥3 sentences, no fabrication)
+5. Generate changelog entry: `- YYYY-MM-DD: {one-line summary of what changed}`
 
-Before generating content, read the existing document and the corresponding template, then check:
-
-1. **Structure compliance** — existing sections must match template structure. Missing sections → add. Extra sections not in template → evaluate whether to keep or remove
-2. **Content accuracy** — facts, numbers, descriptions must match current implementation. Outdated content → update based on conversation context and current code state
-3. **Reference integrity** — all relative paths (`requirements/...`, `v1/...`) and cross-references must point to existing files. Broken references → fix or remove
-4. **Title convention** — H1 title must follow the template naming rule for its document level
-
-Fix all issues found; do not carry forward known errors from the existing document.
+| Check | Action |
+|-------|--------|
+| Conversation discusses a section | Regenerate that section from conversation content |
+| Section not discussed | **Do not touch** — preserve existing content verbatim |
+| New section from template not in existing doc | Add with content from conversation or `TBD` |
+| Broken relative paths in touched sections | Fix to valid paths or remove |
+| H1 title | Must follow naming convention (→ Step 8 Title Convention) |
 
 ---
 
-## Step 6: Preview
+## Step 6: Preview [STOP:confirm]
 
-Wait for user confirmation before proceeding. Display complete document for review:
+Model: sonnet
+
+**Gate**: filled content covers <30% of template sections →
 
 ```
-[write] Preview: .know/docs/v{n}/arch.md
+[write] Insufficient content for {type}, missing:
+- {section 1}
+- {section 2}
+Continue with missing sections marked TBD?
+```
 
-{full document content in markdown}
+[STOP:confirm] User confirms → show preview. User cancels → abort.
+
+**Create mode**:
+```
+[write] Preview: .know/docs/{path}
+
+{full document content}
 
 Write?
 ```
 
-For requirement/feature docs:
-
+**Update mode** — show only changed sections as diff:
 ```
-[write] Preview: .know/docs/requirements/{requirement}/prd.md
+[write] Update preview: .know/docs/{path}
+
+## {Section A}
+- {old content summary}
++ {new content summary}
+
+## {Section B}
+- {old content summary}
++ {new content summary}
+
+Changelog: - YYYY-MM-DD: {summary}
+
+Write?
 ```
 
-User confirms → Step 7.
-User requests edits → adjust content, re-display preview.
+Confirms → Step 7. Requests edits → adjust content, re-display preview.
 
 ---
 
-## Step 7: Write Document
+## Step 7: Write
+
+Model: sonnet
+
+**Create mode**:
 
 ```bash
-# [RUN] Create directory if needed and write document
-
-# Project-level single file:
-mkdir -p .know/docs/v{n}
-# Write tool: .know/docs/v{n}/roadmap.md   (or arch.md / ops.md / marketing.md)
-
-# Project-level directory type:
-mkdir -p .know/docs/v{n}/schema
-# Write tool: .know/docs/v{n}/schema/{topic}.md
-
-# Requirement:
-mkdir -p .know/docs/requirements/{requirement}
-# Write tool: .know/docs/requirements/{requirement}/prd.md
-
-# Feature:
-mkdir -p .know/docs/requirements/{requirement}/{feature}
-# Write tool: .know/docs/requirements/{requirement}/{feature}/tech.md
-#          or .know/docs/requirements/{requirement}/{feature}/ui.md
+# [RUN]
+mkdir -p .know/docs/{parent-dir}
 ```
 
+Write file using Write tool to target path.
+
 ```
-[written] .know/docs/v{n}/arch.md
+[written] .know/docs/{path}
 ```
 
----
+**Update mode**:
 
-## Step 8: Update CLAUDE.md Document Index
-
-### Index format
-
-The document index lives in project CLAUDE.md under `## Know` → `### 文档索引`:
+Use Edit tool to replace each changed section individually. Then append changelog entry at document end:
 
 ```markdown
-## Know
-
-### 文档索引
-
-#### v1
-- [know 产品路线图](.know/docs/v1/roadmap.md) | 2026-04-10
-- [know 架构设计](.know/docs/v1/arch.md) | 2026-04-10
-
-#### Requirements
-- [know-write](.know/docs/requirements/know-write/prd.md) | 2026-04-10 ← roadmap
-  - [tech](.know/docs/requirements/know-write/tech.md) | 2026-04-10 ← prd
+## Changelog
+- YYYY-MM-DD: {one-line summary}
 ```
 
-### Update procedure
-
-1. Read current CLAUDE.md
-2. If `## Know` section missing → create it with `### 文档索引`, `#### v1` and `#### Requirements` headers
-3. For project-level docs → find or create the `#### v{n}` section header, add/update entry
-4. For requirement docs → find or create `#### Requirements`, add/update entry for `{requirement}`
-5. For feature docs → find the `{requirement}` entry under `#### Requirements`, add/update indented sub-entry
-
-**Display title rule**:
-- Project-level docs: read the document's first line (`# xxx`), use `xxx` as the display title
-- Requirement docs: use the requirement slug as display title (e.g. `know-write`), not the document H1
-- Feature docs: use `{type}` as display title (e.g. `tech`, `ui`)
-
-**Title naming convention** (must match template):
-- Project-level single file: `# {项目名} {文档类型}` (e.g. `# know 产品路线图`)
-- Project-level directory type: `# {主题名} {文档类型}` (e.g. `# JSONL 索引 接口规范`)
-- Requirement: `# {用户入口}` (e.g. `# /know learn`)
-- Feature: `# {需求名} {文档类型}` (e.g. `# /know learn 技术方案`)
-
-**Version section order**: newer versions appear AFTER older versions (`#### v1` then `#### v2`).
-
-**Duplicate handling**: if an entry with the same file path already exists, update the link text and date in place using Edit tool; do not add a new line.
-
-**Feature ordering**: append new features after existing ones under the same requirement.
-
-**Date annotation**: every entry ends with ` | YYYY-MM-DD` (today's date).
-
-**Parent annotation**: requirement/feature entries that have a parent add ` ← {parent type}` after the date.
-
-Entry formats:
-
-**Project-level single file:**
-```
-- [{H1 title}](.know/docs/v{n}/roadmap.md) | YYYY-MM-DD
-```
-
-**Project-level directory type:**
-```
-- [{H1 title}](.know/docs/v{n}/schema/{topic}.md) | YYYY-MM-DD
-```
-
-**Requirement:**
-```
-- [{requirement}](.know/docs/requirements/{requirement}/prd.md) | YYYY-MM-DD ← roadmap
-```
-
-**Feature (indented under requirement):**
-```
-  - [{feature} / tech](.know/docs/requirements/{requirement}/{feature}/tech.md) | YYYY-MM-DD ← prd
-```
+If `## Changelog` section already exists, append new entry to it (most recent last).
 
 ```
-[index] CLAUDE.md document index updated
+[written] .know/docs/{path} (updated {N} sections)
 ```
 
 ---
 
-## Step 9: Confirmation
+## Step 8: Index
+
+Model: sonnet
+
+Index location: CLAUDE.md → `## Know` → `### 文档索引`.
+
+### Entry Format
+
+| Level | Format |
+|-------|--------|
+| Project single | `- [{H1}](.know/docs/v{n}/{file}) \| YYYY-MM-DD` |
+| Project directory | `- [{H1}](.know/docs/v{n}/{type}/{topic}.md) \| YYYY-MM-DD` |
+| Requirement | `- [{req}](.know/docs/requirements/{req}/prd.md) \| YYYY-MM-DD ← roadmap` |
+| Feature | `  - [{type}](.know/docs/requirements/{req}/{feature}/{type}.md) \| YYYY-MM-DD ← prd` |
+
+### Title Convention (H1)
+
+| Level | Pattern | Example |
+|-------|---------|---------|
+| Project single | `{项目名} {文档类型}` | `know 产品路线图` |
+| Project directory | `{主题名} {文档类型}` | `JSONL 索引 接口规范` |
+| Requirement | `{用户入口}` | `/know learn` |
+| Feature | `{需求名} {文档类型}` | `/know learn 技术方案` |
+
+### Display Title (link text)
+
+| Level | Rule |
+|-------|------|
+| Project-level | Read H1 from document |
+| Requirement | Use requirement slug (not H1) |
+| Feature | Use type name (e.g. `tech`, `ui`) |
+
+### Index Rules
+
+- Version sections: chronological (`#### v1` before `#### v2`)
+- Duplicate path → update in place (Edit tool), do not add new line
+- Features → append after existing entries under same requirement
+- Date → today (`YYYY-MM-DD`)
+- Parent → ` ← {parent type}` suffix
+- Missing `## Know` → create with `### 文档索引`, `#### v1`, `#### Requirements`
 
 ```
-[written] .know/docs/v{n}/arch.md
 [index] CLAUDE.md updated
 ```
 
-For requirement/feature docs:
+### Cascade Marking
+
+After index update, check if the written document type has child relationships:
+
+| Parent type | Child types |
+|-------------|-------------|
+| roadmap | prd |
+| prd | tech, ui |
+
+If children exist in the index, append `⚠ needs update` marker to each direct child entry:
 
 ```
-[written] .know/docs/requirements/{requirement}/prd.md
-[index] CLAUDE.md updated
+- [know-learn](.know/docs/requirements/know-learn/prd.md) | 2026-04-10 ← roadmap ⚠ needs update
+```
+
+Rules:
+- Only mark **direct** children, do not recurse (roadmap marks prd, not tech)
+- Skip entries that already have the `⚠ needs update` marker
+- Use Edit tool to append marker to each affected index line
+
+```
+[cascade] {N} downstream docs marked for update
+```
+
+### Marker Clearing
+
+When writing a document in **update mode**, remove `⚠ needs update` from its index entry (if present).
+
+```
+[index] CLAUDE.md updated (⚠ cleared)
 ```
 
 ---
 
-## Edge Cases
+## Completion
 
-### Conversation lacks sufficient content
+- Document written to correct path
+- CLAUDE.md index updated with correct format, date, and parent annotation
+- User saw `[written]` and `[index]` confirmations
 
-If conversation does not contain enough material to fill more than 30% of template sections:
+## Recovery
 
-```
-[write] Insufficient content for {type}/{name}, missing sections:
-- {missing section 1}
-- {missing section 2}
-
-Continue (missing sections marked "TBD")?
-```
-
-### CLAUDE.md does not exist
-
-Create CLAUDE.md with `## Know` section containing `### 文档索引` with `#### v1` and `#### Requirements` headers.
-
-### Writing multiple documents from one conversation
-
-Process each document through the full pipeline (Step 4-9) sequentially. Share the confirmation at the end:
-
-```
-[write] Batch complete:
-1. .know/docs/requirements/know-write/prd.md
-2. .know/docs/requirements/know-write/write-workflow/tech.md
-[index] CLAUDE.md updated
-```
-
-### Version conflict
-
-If `v{n}/` already contains the target file when writing (race condition or stale check):
-
-```bash
-# Re-check existing version directories
-ls -d .know/docs/v*/ 2>/dev/null | sort -V | tail -1
-```
-
-Ask user again whether to update in place or increment version. Do not overwrite without confirmation.
+| Error | Recovery |
+|-------|----------|
+| Write tool fails | Show error path and message. Do not retry silently. |
+| CLAUDE.md malformed | Find `## Know` by content, not line number. If absent, create. |
+| Index entry wrong format | Fix in place using Edit tool. |
+| Version directory conflict | Re-check `v*/`, ask user: update in place or increment. |
