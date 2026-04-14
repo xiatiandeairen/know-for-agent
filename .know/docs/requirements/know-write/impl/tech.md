@@ -40,7 +40,7 @@ CLAUDE.md ## 文档索引                     ← 索引 + 层级关系
 
 **需求级**（`requirements/{name}/`）：prd
 
-**功能级**（`requirements/{name}/{feature}/`）：tech, ui
+**实现级**（`requirements/{name}/impl/`）：tech, ui
 
 ### 父文档关系
 

@@ -13,6 +13,8 @@ Shared definitions (schema, tiers, decay, output blocks, paths) → SKILL.md.
 
 Model: sonnet
 
+Gate (always): runs on `/know review` trigger.
+
 ```
 /know review          → scope = "project"
 /know review <scope>  → scope = argument
@@ -33,6 +35,8 @@ Parse each result line, compute age in days from `created` field.
 
 Model: sonnet
 
+Gate (auto): Step 1 returned ≥1 entry → enter. 0 entries → exit.
+
 Pre-display: show review summary from metrics (衰减率 + 覆盖率):
 
 ```bash
@@ -46,27 +50,27 @@ bash "$KNOW_CTL" metrics 2>/dev/null | grep -E "衰减率|覆盖率"
 
 Sort by lifecycle stage (most actionable first), then age desc within each stage:
 
-1. ⚠ endangered (most urgent — about to be decayed)
-2. 💤 silent (cleanup candidates)
-3. 🆕 new (recently added, not yet validated)
-4. ✅ active (healthy, lowest priority for review)
+1. `[endangered]` — most urgent, about to be decayed
+2. `[silent]` — cleanup candidates
+3. `[new]` — recently added, not yet validated
+4. `[active]` — healthy, lowest priority
 
-Lifecycle stage column — compute per entry using `created`, `hits`, `last_hit`, decay rules:
+Lifecycle stage — compute per entry using `created`, `hits`, `last_hit` (null = never hit):
 
-| Stage | Condition | Icon |
-|-------|-----------|------|
-| new | created < 7d, hits = 0 | 🆕 |
-| active | last_hit < 30d | ✅ |
-| silent | last_hit > 30d or (hits=0 + created > 7d) | 💤 |
-| endangered | meets decay delete/demote criteria | ⚠ |
+| Stage | Condition | Label |
+|-------|-----------|-------|
+| new | age < 7d AND hits = 0 | `[new]` |
+| active | last_hit is not null AND last_hit < 30d ago | `[active]` |
+| silent | last_hit is null or last_hit > 30d ago, AND age ≥ 7d | `[silent]` |
+| endangered | meets decay delete/demote criteria (→ learn.md Decay) | `[endangered]` |
 
 ```
 [review] {N} entries found:
 
 | # | tag | tier | scope | hits | age | summary | stage |
 |---|-----|------|-------|------|-----|---------|-------|
-| 1 | constraint | critical | Auth | 5 | 30d | Thresholds... | ✅ |
-| 2 | rationale | memo | Auth | 0 | 15d | ... | 💤 |
+| 1 | constraint | critical | Auth | 5 | 30d | Thresholds... | [active] |
+| 2 | rationale | memo | Auth | 0 | 15d | ... | [silent] |
 
 All ok? Or enter numbers to process (e.g. "2" or "1,3"):
 ```
@@ -81,6 +85,8 @@ All ok? Or enter numbers to process (e.g. "2" or "1,3"):
 ## Step 3: Process
 
 Model: sonnet
+
+Gate (auto): user selected ≥1 entry in Step 2 → enter. User said "all ok" → exit.
 
 For each selected entry:
 

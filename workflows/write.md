@@ -11,35 +11,39 @@ Shared definitions (output blocks, paths) → SKILL.md.
 
 ## Document Types
 
-### Project-level (`v{n}/`)
+### Path Resolution (single source of truth)
 
-| Type | Path | Multi-file |
-|------|------|:----------:|
-| roadmap | `v{n}/roadmap.md` | |
-| arch | `v{n}/arch.md` | |
-| ops | `v{n}/ops.md` | |
-| marketing | `v{n}/marketing.md` | |
-| schema | `v{n}/schema/{topic}.md` | ✓ |
-| decision | `v{n}/decision/{topic}.md` | ✓ |
+All steps reference this table for path generation. `DOCS = .know/docs`.
 
-### Requirement-level (`requirements/{req}/`)
+| Type | Full Path | Example |
+|------|-----------|---------|
+| roadmap | `DOCS/v{n}/roadmap.md` | `.know/docs/v3/roadmap.md` |
+| arch | `DOCS/v{n}/arch.md` | `.know/docs/v2/arch.md` |
+| ops | `DOCS/v{n}/ops.md` | `.know/docs/v1/ops.md` |
+| marketing | `DOCS/v{n}/marketing.md` | `.know/docs/v1/marketing.md` |
+| schema | `DOCS/v{n}/schema/{topic}.md` | `.know/docs/v2/schema/jsonl-index.md` |
+| decision | `DOCS/v{n}/decision/{topic}.md` | `.know/docs/v1/decision/storage-format.md` |
+| prd | `DOCS/requirements/{req}/prd.md` | `.know/docs/requirements/know-learn/prd.md` |
+| tech | `DOCS/requirements/{req}/impl/tech.md` | `.know/docs/requirements/know-learn/impl/tech.md` |
+| ui | `DOCS/requirements/{req}/impl/ui.md` | `.know/docs/requirements/know-write/impl/ui.md` |
 
-| Type | Path |
-|------|------|
-| prd | `prd.md` |
+Variables:
+- `{n}` — version number, detected in Step 3
+- `{req}` — requirement slug, kebab-case (e.g. `know-learn`)
+- `{topic}` — topic slug, kebab-case (e.g. `jsonl-index`)
+- `impl` — **fixed directory**, not a variable. All tech/ui docs live under `impl/`.
 
-### Feature-level (`requirements/{req}/{feature}/`)
+### Hierarchy
 
-| Type | Path |
-|------|------|
-| tech | `tech.md` |
-| ui | `ui.md` |
+roadmap → prd → tech / ui. Tree-style downward indexing only, no back-references in documents.
 
-**Hierarchy**: roadmap → prd → tech / ui. Tree-style downward indexing only, no back-references in documents.
+### Progress Tracking
 
-**Progress tracking**: roadmap tracks PRD progress in milestone table. PRD tracks tech progress in task table (§4 方案). Tech tracks iterations in §4 迭代记录.
+roadmap tracks PRD progress in milestone table. PRD tracks tech progress in task table (§4 方案). Tech tracks iterations in §4 迭代记录.
 
-**Versioning**: project-level versions by directory (v1→v2). Each version directory is self-contained — do not include other versions' content. Milestone numbering restarts from M1 per version. Requirement/feature overwrite in place.
+### Versioning
+
+Project-level versions by directory (v1→v2). Each version directory is self-contained — do not include other versions' content. Milestone numbering restarts from M1 per version. Requirement/implementation docs overwrite in place.
 
 ---
 
@@ -52,13 +56,15 @@ Model: sonnet
 /know write <hint>   → hint assists type/name inference
 ```
 
-**Gate**: conversation has <3 substantive messages → warn insufficient context, ask user to point to specific content.
+Gate (auto): conversation has ≥3 substantive messages → enter. <3 → warn insufficient context, ask user to point to specific content.
 
 ---
 
 ## Step 2: Infer
 
 Model: opus
+
+Gate (always): runs after trigger.
 
 ### 2a: Type
 
@@ -83,16 +89,16 @@ Hint provided → match against type names first. Hint does not match any type n
 | Level | Rule |
 |-------|------|
 | Project single (roadmap, arch, ops, marketing) | No name needed |
-| Project directory (schema, decision) | Extract topic → kebab-case slug |
-| Requirement (prd) | Extract requirement name → kebab-case slug |
-| Feature (tech, ui) | Extract requirement + feature → kebab-case slugs |
+| Project directory (schema, decision) | Extract `{topic}` → kebab-case slug |
+| Requirement (prd) | Extract `{req}` → kebab-case slug |
+| Implementation (tech, ui) | Extract `{req}` → kebab-case slug. Directory `impl/` is fixed, not inferred. |
 
 **Default**: name unextractable → ask user.
 
 ### 2c: New or Update
 
 - **Project-level (non-roadmap)**: same roadmap version rule applies — new capability/direction → new `v{n+1}`, in-version update → `mode=update` on current `v{n}`. Default: ask user `新建 v{n+1}` or `更新 v{n}`.
-- **Requirement/feature**: file exists → `mode=update`. File absent → `mode=create` (default).
+- **Requirement/implementation**: file exists → `mode=update`. File absent → `mode=create` (default).
 
 **Roadmap version rule** — roadmap has special versioning based on change type:
 
@@ -121,6 +127,8 @@ Hint provided → match against type names first. Hint does not match any type n
 
 Model: sonnet
 
+Gate (always): user must confirm inferred params before proceeding.
+
 For project-level docs, detect latest version:
 
 ```bash
@@ -130,11 +138,11 @@ ls -d .know/docs/v*/ 2>/dev/null | sort -V | tail -1
 
 No `v*/` → v1. Latest `v{n}/` → v{n+1}.
 
-Show all params:
+Resolve full path from Path Resolution table, then show:
 
 ```
 [write] Inferred from conversation:
-Type: arch | Version: v2 (latest: v1) | Parent: none
+Type: arch | Path: .know/docs/v2/arch.md | Mode: create | Parent: none
 Correct?
 ```
 
@@ -148,9 +156,13 @@ Multiple types → [STOP:choose] list with `[1 / 2 / both]`. Both → sequential
 
 Model: sonnet
 
+Gate (always): runs after user confirms params.
+
+Load template using project root from Script Paths (→ SKILL.md):
+
 ```bash
 # [RUN]
-cat workflows/templates/{type}.md
+cat "{project_root}/workflows/templates/{type}.md"
 ```
 
 **Default**: template missing → fallback: `# {Title}` / `## Overview` / `## Details` / `## Open Questions`.
@@ -161,6 +173,8 @@ cat workflows/templates/{type}.md
 
 Model: opus
 
+Gate (always): template loaded from Step 4.
+
 ### Create mode
 
 1. Scan full conversation for content matching this document type
@@ -170,7 +184,7 @@ Model: opus
 5. Preserve technical accuracy; do not fabricate unstated details
 6. Ambiguities → prefix with `Open question:`
 7. Code examples and tables: quote directly from conversation
-8. Cross-references: relative paths. Match user's language for content.
+8. Cross-references: paths relative to project root (same base as Path Resolution table, e.g. `.know/docs/requirements/know-learn/prd.md`). Match user's language for content.
 
 #### Progress fields (create mode)
 
@@ -214,6 +228,8 @@ Tech docs are iteratively refined across multiple sprints. Update mode has speci
 
 Model: sonnet
 
+Gate (always): filled content from Step 5 must be previewed before writing.
+
 **Gate**: filled content covers <30% of template sections →
 
 ```
@@ -225,9 +241,11 @@ Continue with missing sections marked TBD?
 
 [STOP:confirm] User confirms → show preview. User cancels → abort.
 
+Use the full path resolved in Step 3 (from Path Resolution table).
+
 **Create mode**:
 ```
-[write] Preview: .know/docs/{path}
+[write] Preview: .know/docs/requirements/know-learn/impl/tech.md
 
 {full document content}
 
@@ -236,7 +254,7 @@ Write?
 
 **Update mode** — changed sections as diff:
 ```
-[write] Update preview: .know/docs/{path}
+[write] Update preview: .know/docs/v3/roadmap.md
 
 ## {Section A}
 - {old content summary}
@@ -257,19 +275,23 @@ Confirms → Step 7. Requests edits → adjust, re-display.
 
 Model: sonnet
 
+Gate (auto): user confirmed preview in Step 6 → enter. User cancelled → abort.
+
+Use the full path resolved in Step 3 (from Path Resolution table).
+
 **Create mode**:
 
 ```bash
-# [RUN]
-mkdir -p .know/docs/{parent-dir}
+# [RUN] Create parent directory from resolved path
+mkdir -p "$(dirname ".know/docs/requirements/know-learn/impl/tech.md")"
 ```
 
-Write file using Write tool to target path.
+Write file using Write tool to the resolved path.
 
 If target file already exists in create mode → switch to update mode (re-enter Step 5 with `mode=update`). Do not overwrite without user consent.
 
 ```
-[written] .know/docs/{path}
+[written] .know/docs/requirements/know-learn/impl/tech.md
 ```
 
 **Update mode**:
@@ -279,7 +301,7 @@ Use Edit tool to replace each changed section individually.
 For tech docs: prepend new entry to §4 迭代记录 (no separate changelog needed).
 
 ```
-[written] .know/docs/{path} (updated {N} sections)
+[written] .know/docs/v3/roadmap.md (updated 2 sections)
 ```
 
 ---
@@ -288,16 +310,20 @@ For tech docs: prepend new entry to §4 迭代记录 (no separate changelog need
 
 Model: sonnet
 
+Gate (auto): document written successfully in Step 7 → enter.
+
 Index location: CLAUDE.md → `## Know` → `### 文档索引`.
 
 ### Entry Format
 
-| Level | Format |
-|-------|--------|
-| Project single | `- [{H1}](.know/docs/v{n}/{file}) \| YYYY-MM-DD` |
-| Project directory | `- [{H1}](.know/docs/v{n}/{type}/{topic}.md) \| YYYY-MM-DD` |
-| Requirement | `- [{req}](.know/docs/requirements/{req}/prd.md) \| YYYY-MM-DD` |
-| Feature | `  - [{type}](.know/docs/requirements/{req}/{feature}/{type}.md) \| YYYY-MM-DD` |
+Paths must match Path Resolution table exactly.
+
+| Level | Format | Example |
+|-------|--------|---------|
+| Project single | `- [{H1}](.know/docs/v{n}/{file}) \| YYYY-MM-DD` | `- [know 产品路线图](.know/docs/v3/roadmap.md) \| 2026-04-14` |
+| Project directory | `- [{H1}](.know/docs/v{n}/{type}/{topic}.md) \| YYYY-MM-DD` | `- [JSONL 索引 接口规范](.know/docs/v2/schema/jsonl-index.md) \| 2026-04-14` |
+| Requirement | `- [{req}](.know/docs/requirements/{req}/prd.md) \| YYYY-MM-DD` | `- [know-learn](.know/docs/requirements/know-learn/prd.md) \| 2026-04-10` |
+| Implementation | `  - [{type}](.know/docs/requirements/{req}/impl/{type}.md) \| YYYY-MM-DD` | `  - [tech](.know/docs/requirements/know-learn/impl/tech.md) \| 2026-04-10` |
 
 ### Title Convention
 
@@ -306,7 +332,7 @@ Index location: CLAUDE.md → `## Know` → `### 文档索引`.
 | Project single | `{项目名} {文档类型}` | `know 产品路线图` |
 | Project directory | `{主题名} {文档类型}` | `JSONL 索引 接口规范` |
 | Requirement | `{用户入口}` | `/know learn` |
-| Feature | `{需求名} {文档类型}` | `/know learn 技术方案` |
+| Implementation | `{需求名} {文档类型}` | `/know learn 技术方案` |
 
 ### Display Title
 
@@ -314,13 +340,13 @@ Index location: CLAUDE.md → `## Know` → `### 文档索引`.
 |-------|------|
 | Project-level | Read H1 from document |
 | Requirement | Use requirement slug (not H1) |
-| Feature | Use type name (e.g. `tech`, `ui`) |
+| Implementation | Use type name (e.g. `tech`, `ui`) |
 
 ### Index Rules
 
 - Version sections: chronological (`#### v1` before `#### v2`)
 - Duplicate path → update in place, do not add new line
-- Features → append after existing entries under same requirement
+- Implementation docs (tech, ui) → append after existing entries under same requirement
 - Date → today (`YYYY-MM-DD`)
 - Missing `## Know` → create with `### 文档索引`, `#### v1`, `#### Requirements`
 - Missing version section (e.g. `#### v3`) → create it after existing version sections, before `#### Requirements`
@@ -401,6 +427,6 @@ When writing in update mode, remove `⚠ needs update` from its index entry (if 
 
 ```
 [write] Inferred from conversation:
-Type: prd | Requirement: know-write
+Type: prd | Path: .know/docs/requirements/know-write/prd.md | Mode: create | Parent: roadmap
 Correct?
 ```

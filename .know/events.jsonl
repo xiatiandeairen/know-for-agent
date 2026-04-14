@@ -7,3 +7,11 @@
 {"ts":"2026-04-14","event":"created","summary":"技术选项缺ROI量化致凭直觉选错 — 提选项时直接带成本收益数字"}
 {"ts":"2026-04-14","event":"created","summary":"指标ROI筛选框架 — \"恶化时agent应改变行为吗\"是核心过滤器"}
 {"ts":"2026-04-14","event":"created","summary":"Skill优先于MCP — Skill成本极低服务当前用户，MCP在扩展跨生态时再做"}
+{"ts":"2026-04-14","event":"created","summary":"CLI命令按心智模型分层 — 裸命令=最常用，子命令=不同模式，flag=变体"}
+{"ts":"2026-04-14","event":"created","summary":"重构CLI接口后全局搜索旧命令引用 — 编译通过不代表脚本和文档同步"}
+{"ts":"2026-04-14","event":"created","summary":"产品self-review三层分类 — 真正解决vs存疑vs未解决，区分可见性和控制力"}
+{"ts":"2026-04-14","event":"created","summary":"响应式字号用 clamp(rem+vw)，media query 只管布局切换"}
+{"ts":"2026-04-14","event":"created","summary":"文字对比度 body≥5:1 label≥4.5:1 装饰≥3:1，色值旁标注比值"}
+{"ts":"2026-04-14","event":"created","summary":"Noto Serif SC weight 400 正文太细，用 500 作 base weight"}
+{"ts":"2026-04-14","event":"created","summary":"页面区域术语表 — Masthead/Nav/Featured/Sidebar/TOC/Related 等"}
+{"ts":"2026-04-14","event":"updated","summary":"页面区域术语表 — Masthead/Nav/Featured/Sidebar/TOC/Related 等"}

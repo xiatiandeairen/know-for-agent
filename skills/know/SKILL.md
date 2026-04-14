@@ -71,12 +71,22 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 ### Output Constraints
 
-- Every user-facing output starts with exactly one marker from the Output Markers table.
+- Every user-facing output starts with exactly one marker from the Output Markers table. After every `# [RUN]` execution, the next line of user-visible output must begin with a marker.
 - Confirmation prompts end with exactly one of: `Confirm?` / `Correct?` / `Write?` / explicit option list.
 - `[skipped]` blocks: max 2 lines (summary + reason).
 - `[conflict]` blocks: max 6 lines (existing + new + 4 options).
 - All field values use canonical names from Definitions.
 - Match user's language. Internal docs stay English.
+
+### Gate Notation
+
+Every Step declares a gate using one of:
+
+| Notation | Meaning |
+|----------|---------|
+| `Gate (always)` | Step always runs, cannot be skipped |
+| `Gate (auto): {condition}` | AI evaluates condition, enters if true. Show condition + result to user |
+| `Gate (user): {question}` | User decides. Show question with hint + default |
 
 ### Output Markers
 
@@ -104,8 +114,17 @@ INDEX_FILE     = .know/index.jsonl
 ENTRIES_DIR    = .know/entries
 DOCS_DIR       = .know/docs/
 TEMPLATES_DIR  = workflows/templates/
-KNOW_CTL       = scripts/know-ctl.sh
 ```
+
+### Script Paths
+
+From "Base directory for this skill: {path}", strip `skills/know/` to get project root.
+
+```
+KNOW_CTL="{project_root}/scripts/know-ctl.sh"
+```
+
+All `# [RUN]` blocks use `bash "$KNOW_CTL"` with this resolved path. Template reads use `{project_root}/workflows/templates/{type}.md`.
 
 ## Storage
 
@@ -125,7 +144,7 @@ KNOW_CTL       = scripts/know-ctl.sh
     └── requirements/        # Requirement/feature level
 ```
 
-### JSONL Schema (10 fields)
+### JSONL Schema (11 fields)
 
 ```json
 {
@@ -137,6 +156,7 @@ KNOW_CTL       = scripts/know-ctl.sh
   "path": "entries/{tag}/{slug}.md|null",
   "hits": 0,
   "revs": 0,
+  "last_hit": "YYYY-MM-DD|null",
   "created": "YYYY-MM-DD",
   "updated": "YYYY-MM-DD"
 }
@@ -145,7 +165,7 @@ KNOW_CTL       = scripts/know-ctl.sh
 | Field | Filterable | Lifecycle |
 |-------|:----------:|:---------:|
 | tag, tier, scope, tm, summary | ✓ | |
-| hits, revs, created, updated | | ✓ |
+| hits, revs, last_hit, created, updated | | ✓ |
 
 - Scope: string for single module, JSON array for cross-module (`["A","B"]`).
 - Path: relative to `KNOW_DIR`.

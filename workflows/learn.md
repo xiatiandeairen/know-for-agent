@@ -48,9 +48,13 @@ Model: opus
 | Constraint declared | must not, always, forbidden, never | constraint |
 | External integration | API, endpoint, SDK, configured via | reference |
 
-**Gate**: signal must contain >=1 keyword from its row. No match → silently drop. Ambiguous without clear keyword → drop.
+Gate (always): this step always runs.
 
-**Default**: no signals → "No persistable knowledge detected in this conversation."
+**Signal gate**: signal must contain >=1 keyword from its row. No match → silently drop. Ambiguous without clear keyword → drop.
+
+**Signal cap**: max 5 signals. >5 detected → rank by keyword match count (more keywords matched = higher rank), take top 5. Mention `{N} more signals dropped (lower confidence)`.
+
+**Default**: no signals → `[learn] No high-value knowledge detected in this conversation.`
 
 [STOP:choose] User selects → each claim processed through Steps 2-8 sequentially (one at a time, confirm each before next).
 
@@ -59,6 +63,8 @@ Model: opus
 ## Step 2: Extract
 
 Model: opus
+
+Gate (always): runs for each user-selected signal.
 
 One claim = one independently retrievable knowledge unit.
 
@@ -81,6 +87,8 @@ One claim = one independently retrievable knowledge unit.
 
 Model: sonnet
 
+Gate (always): runs for each extracted claim.
+
 Sequential check. First match → `[skipped]` block → DROP.
 
 **Skipped block format**:
@@ -96,17 +104,21 @@ Reason: {drop reason}
 | 3 | Auto memory material | Personal preference, not project knowledge | "I prefer vim" |
 | 4 | No conclusion | Discussion hasn't converged | "still deciding between A and B" |
 | 5 | One-time | Will not recur | "used temp flag for this deploy" |
-| 6 | Low ROI | Q1: 换一个项目还有用吗？no → Q2: 当前项目6个月后还有用吗？no → DROP | "know功能三层分级：核心增强、辅助维护、可观测冻结" |
+| 6 | Low ROI | Q1→Q2 binary filter (see below) | "know功能三层分级：核心增强、辅助维护、可观测冻结" |
 
-**Rule 6 — Low ROI decision tree**:
+**Rule 6 — Low ROI filter chain**:
 ```
-Q1: 换一个项目，这条知识还有用吗？
-    yes → PASS
-    no  → Q2
+Q1: Does the claim contain project-specific names?
+    Test: mentions this project's entity names, file paths, config keys,
+          or internal module names that don't exist outside this project.
+    yes → Q2 (project-specific, check longevity)
+    no  → PASS (transferable knowledge)
 
-Q2: 在当前项目中，6个月后这条知识还有用吗？
-    yes → PASS
-    no  → DROP
+Q2: Does the claim describe a stable decision or a snapshot?
+    Test: "chose X" / "must X" / "X because Y" = stable decision.
+          "current priority is X" / "X is divided into Y" = snapshot.
+    stable → PASS
+    snapshot → DROP
 ```
 
 **Derivable boundary** — code shows *what*, not *why*:
@@ -123,38 +135,51 @@ Q2: 在当前项目中，6个月后这条知识还有用吗？
 
 Model: opus
 
+Gate (auto): claim passed Step 3 Filter → enter. Claim was DROP'd → skip.
+
+Binary filter chain — answer each question yes/no, first DROP or tier assignment wins:
+
 ```
-Q1: Impact if a future session lacks this knowledge?
-    Negligible       → DROP
-    Wastes time      → memo
-    Causes errors    → critical
+Q1: Missing this knowledge → wrong code or broken build?
+    yes signal: claim contains "must not", "always", "will break", "causes error",
+                or describes a constraint that if violated produces incorrect behavior.
+    yes → candidate = critical
+    no  → Q2
 
-Q2: Will this situation recur?
-    Unlikely         → demote one level (critical→memo, memo→DROP)
-    Likely           → keep current level
-    Frequently       → promote one level (memo→critical)
+Q2: Missing this knowledge → wasted time (>30 min debugging or rediscovery)?
+    yes signal: claim describes a non-obvious root cause, a counterintuitive choice,
+                or an integration detail that requires external lookup.
+    yes → candidate = memo
+    no  → DROP (too low impact to persist)
 
-Q3: Transferability — this knowledge applies to:
-    Project-specific (this project only)   → demote one level
-    Domain-specific (similar projects)     → keep current level
-    Universal (any project)                → promote one level
+Q3 (critical candidates only): Is this confirmed knowledge?
+    yes signal: verified via test, reproduction, multi-source agreement,
+                or user explicitly states it as fact (not speculation).
+    yes → critical
+    no  → memo (unconfirmed → demote)
 ```
 
-**Constraint**: critical requires confirmed knowledge (verified via test, reproduction, or multi-source agreement). High impact + unconfirmed → memo. Promote (including Q3 promote) cannot bypass this constraint.
+**No promotion/demotion arithmetic.** Each claim gets exactly one tier from this chain.
 
-| Claim | Q1→Tier | Q2→Tier | Q3→Tier | Final | Why |
-|-------|---------|---------|---------|-------|-----|
-| Thresholds defined only in PressureLevel, no hardcoding | critical | critical | critical (domain) | critical | violation → multi-module inconsistency |
-| Must use Combine, not AsyncStream | critical | critical | critical (domain) | critical | wrong choice → no stack traces, repeated |
-| Panel animation uses Canvas, not frame animation | memo | memo | DROP (project) | DROP | project-specific + low impact |
-| PRD量化指标未跑基线即写入 | critical | critical | critical (universal) | critical | universal pitfall, promote confirmed |
-| know功能三层分级 | memo | memo | DROP (project) | DROP | project-specific decision |
+| Claim | Q1 | Q2 | Q3 | Final | Why |
+|-------|----|----|-----|-------|-----|
+| Thresholds defined only in PressureLevel, no hardcoding | yes (violation → inconsistency) | — | yes (multi-module verified) | critical | wrong code if violated |
+| Must use Combine, not AsyncStream | yes (wrong choice → no stack traces) | — | yes (reproduced) | critical | causes errors |
+| Panel animation uses Canvas, not frame animation | no | no | — | DROP | low impact, project-specific |
+| PRD量化指标未跑基线即写入 | yes (wrong metrics) | — | yes (confirmed incident) | critical | broken output |
+| know功能三层分级 | no | no | — | DROP | snapshot, not actionable |
 
 ---
 
 ## Step 5: Generate
 
 Model: opus
+
+Gate (auto): claim has a tier from Step 4 (not DROP) → enter.
+
+**Strict order**: 5a → 5b → 5c → 5d → 5e. Each sub-step depends on prior outputs:
+- 5d (summary) needs 5a (tag) + 5b (scope) for retrieval anchors
+- 5e (detail file) needs 5a (tag) for section template + 5d (summary) for title
 
 ### 5a: Tag
 
@@ -213,9 +238,16 @@ No frontmatter — all metadata in index.jsonl.
 
 Model: sonnet
 
+Gate (auto): claim has generated fields from Step 5 → enter.
+
 ### Phase 1: Keyword Pre-filter
 
-Extract N keywords from summary:
+Extract N keywords from summary using this priority:
+
+1. **Scope module names** (from 5b) — always include as keywords
+2. **Proper nouns / technical names** in summary (API names, class names, tool names)
+3. **Action verbs** that distinguish the claim (e.g. "escape", "singleton", "leak")
+4. **Skip**: articles, prepositions, generic words (use, make, get, set, data, code)
 
 | Summary length | Keywords |
 |---------------|----------|
@@ -278,14 +310,18 @@ bash "$KNOW_CTL" update "{existing_summary_keyword}" '{"summary":"{new_summary}"
 
 ## Step 7: Confirm [STOP:confirm]
 
+Gate (always): every non-DROP claim reaches this step.
+
 Display complete entry for review. → SKILL.md Examples for format.
+
+**Max 3 edit rounds.** After 3rd edit, force: `A) Confirm current  B) Cancel entry`.
 
 | User Response | Action |
 |--------------|--------|
 | Confirms (ok/好/confirm/继续) | → Step 8 |
-| Edits summary | Re-run Step 6 with new summary |
-| Edits tag | Adjust detail file sections to match new tag template |
-| Edits other fields (scope, tier) | Re-display for confirmation |
+| Edits summary (round ≤3) | Re-run Step 6 with new summary |
+| Edits tag (round ≤3) | Adjust detail file sections to match new tag template |
+| Edits other fields (round ≤3) | Re-display for confirmation |
 | Cancels (取消/cancel/skip) | Discard entry, return to conversation |
 
 ---
@@ -294,9 +330,11 @@ Display complete entry for review. → SKILL.md Examples for format.
 
 Model: sonnet
 
+Gate (auto): user confirmed entry in Step 7 → enter. User cancelled → skip.
+
 ```bash
 # [RUN]
-bash "$KNOW_CTL" append '{"tag":"...","tier":...,"scope":"...","tm":"...","summary":"...","path":"...","hits":0,"revs":0,"created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}'
+bash "$KNOW_CTL" append '{"tag":"...","tier":...,"scope":"...","tm":"...","summary":"...","path":"...","hits":0,"revs":0,"last_hit":null,"created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}'
 ```
 
 **Slug**: summary → 2-4 English keywords (module names, API names, key terms) → hyphenated lowercase → `[a-z0-9-]` only → max 50 chars → truncate at last complete word.
@@ -325,6 +363,8 @@ bash "$KNOW_CTL" append '{"tag":"...","tier":...,"scope":"...","tm":"...","summa
 | `know-ctl.sh` fails on append | Show error message. Do not retry silently. |
 | User cancels mid-batch | Remaining claims discarded. Already-persisted entries kept. |
 | Detail file write fails | Remove corresponding index entry. Report error. |
+| Single claim fails in batch | `[error] Claim {N} failed: {reason}`. Skip to next claim. Continue processing. Report skipped count at end. |
+| Step 6 conflict check fails | Treat as no conflict (proceed to Step 7). Do not block on search failure. |
 
 ## Examples
 
