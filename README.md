@@ -19,6 +19,10 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
 </p>
 
+<p align="center">
+  <b>English</b> | <a href="README.zh-CN.md">中文</a>
+</p>
+
 ---
 
 ## What is this?
