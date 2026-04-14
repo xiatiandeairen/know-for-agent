@@ -56,7 +56,7 @@ know-ctl.sh 是 know skill 的核心 CLI，承载 12 个命令（query/append/hi
 
 | 任务 | 文档 | 进度 |
 |------|------|------|
-| selftest-impl | — | 0/0 |
+| selftest-impl | [tech](impl/tech.md) | 1/1 |
 
 ## 5. 验收标准
 

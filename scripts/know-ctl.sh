@@ -98,6 +98,7 @@ cmd_append() {
     # append <json> — add entry to index
     local json="${1:?Usage: append '<json>'}"
     ensure_dirs
+    ensure_metrics
 
     # Validate required fields
     echo "$json" | jq -e '.tag and .tier and .scope and .summary and .updated' > /dev/null 2>&1 \
@@ -137,6 +138,7 @@ cmd_delete() {
     local keyword="${1:?Usage: delete <keyword>}"
     local tmpfile="$INDEX_FILE.tmp"
     local deleted=0
+    > "$tmpfile"
 
     while IFS= read -r line; do
         if echo "$line" | jq -e "select(.summary | test(\"$keyword\"; \"i\"))" > /dev/null 2>&1; then
@@ -169,6 +171,7 @@ cmd_update() {
     today=$(date +%Y-%m-%d)
     local tmpfile="$INDEX_FILE.tmp"
     local matched=0
+    > "$tmpfile"
 
     while IFS= read -r line; do
         if echo "$line" | jq -e "select(.summary | test(\"$keyword\"; \"i\"))" > /dev/null 2>&1; then
@@ -377,6 +380,131 @@ cmd_history() {
     fi
 }
 
+cmd_self_test() {
+    # self-test — run all core command tests in temp directory
+    local ORIG_KNOW_DIR="$KNOW_DIR"
+    local ORIG_INDEX="$INDEX_FILE"
+    local ORIG_ENTRIES="$ENTRIES_DIR"
+    local ORIG_METRICS="$METRICS_FILE"
+    local ORIG_EVENTS="$EVENTS_FILE"
+    local ORIG_CLAUDE="$CLAUDE_MD"
+
+    local TMPDIR
+    TMPDIR=$(mktemp -d)
+    KNOW_DIR="$TMPDIR/.know"
+    INDEX_FILE="$KNOW_DIR/index.jsonl"
+    ENTRIES_DIR="$KNOW_DIR/entries"
+    METRICS_FILE="$KNOW_DIR/metrics.json"
+    EVENTS_FILE="$KNOW_DIR/events.jsonl"
+    CLAUDE_MD="$TMPDIR/CLAUDE.md"
+
+    local PASS=0 FAIL=0
+    _assert() {
+        local name="$1" cmd="$2"
+        if eval "$cmd" > /dev/null 2>&1; then
+            echo "  ✓ $name"; PASS=$((PASS + 1))
+        else
+            echo "  ✗ $name"; FAIL=$((FAIL + 1))
+        fi
+    }
+
+    echo "=== know-ctl self-test ==="
+    echo ""
+
+    # 1. init
+    echo "init:"
+    cmd_init > /dev/null
+    _assert "directory created" '[ -d "$KNOW_DIR" ]'
+    _assert "index.jsonl exists" '[ -f "$INDEX_FILE" ]'
+    _assert "entries/ exists" '[ -d "$ENTRIES_DIR/rationale" ]'
+
+    # 2. append
+    echo "append:"
+    cmd_append '{"tag":"constraint","tier":1,"scope":"Test.module","tm":"active:defensive","summary":"self-test constraint entry","path":"entries/constraint/self-test.md","hits":0,"revs":0,"created":"2026-01-01","updated":"2026-01-01"}' > /dev/null
+    _assert "entry in index" '[ "$(wc -l < "$INDEX_FILE" | tr -d " ")" -eq 1 ]'
+    _assert "total_created incremented" '[ "$(jq -r ".total_created" "$METRICS_FILE")" -eq 1 ]'
+    _assert "created event logged" 'grep -q "\"created\"" "$EVENTS_FILE"'
+
+    # 3. query
+    echo "query:"
+    _assert "scope prefix match" 'cmd_query "Test.module" | grep -q "self-test constraint"'
+    _assert "no false match" '[ -z "$(cmd_query "Nonexistent.scope" 2>/dev/null | head -1)" ]'
+
+    # 4. search
+    echo "search:"
+    _assert "regex match" 'cmd_search "self-test" | grep -q "constraint"'
+
+    # 5. hit
+    echo "hit:"
+    cmd_hit "self-test" > /dev/null
+    _assert "hits incremented" '[ "$(jq -r ".hits" "$INDEX_FILE")" -eq 1 ]'
+    _assert "last_hit set" 'jq -e ".last_hit" "$INDEX_FILE"'
+    _assert "hit event logged" 'grep -q "\"hit\"" "$EVENTS_FILE"'
+
+    # 6. update
+    echo "update:"
+    cmd_update "self-test" '{"summary":"self-test updated entry"}' > /dev/null
+    _assert "summary updated" 'grep -q "updated entry" "$INDEX_FILE"'
+    _assert "revs incremented" '[ "$(jq -r ".revs" "$INDEX_FILE")" -eq 1 ]'
+    _assert "updated event logged" 'grep -q "\"updated\"" "$EVENTS_FILE"'
+
+    # 7. stats
+    echo "stats:"
+    local stats_out
+    stats_out=$(cmd_stats 2>&1)
+    _assert "output contains Total" 'echo "$stats_out" | grep -q "Total:"'
+
+    # 8. metrics
+    echo "metrics:"
+    echo "## Know" > "$CLAUDE_MD"
+    local metrics_out
+    metrics_out=$(cmd_metrics 2>&1)
+    _assert "contains 命中率" 'echo "$metrics_out" | grep -q "命中率"'
+    _assert "contains 防御次数" 'echo "$metrics_out" | grep -q "防御次数"'
+    _assert "contains 过期文档" 'echo "$metrics_out" | grep -q "过期文档"'
+
+    # 9. history
+    echo "history:"
+    _assert "shows events" 'cmd_history "self-test" | grep -q "created"'
+
+    # 10. decay (construct expired memo)
+    echo "decay:"
+    cmd_append '{"tag":"concept","tier":2,"scope":"Test.decay","tm":"passive","summary":"decay test memo","path":null,"hits":0,"revs":0,"created":"2025-01-01","updated":"2025-01-01"}' > /dev/null
+    local before_count
+    before_count=$(wc -l < "$INDEX_FILE" | tr -d ' ')
+    cmd_decay > /dev/null
+    local after_count
+    after_count=$(wc -l < "$INDEX_FILE" | tr -d ' ')
+    _assert "expired memo deleted" '[ "$after_count" -lt "$before_count" ]'
+    _assert "deleted event logged" '[ "$(grep -c "\"deleted\"" "$EVENTS_FILE")" -gt 0 ]'
+
+    # 11. delete
+    echo "delete:"
+    cmd_delete "self-test" > /dev/null
+    _assert "entry removed" '[ "$(wc -l < "$INDEX_FILE" | tr -d " ")" -eq 0 ]'
+    _assert "delete event logged" 'grep -q "\"deleted\".*self-test" "$EVENTS_FILE"'
+
+    # Cleanup
+    rm -rf "$TMPDIR"
+    KNOW_DIR="$ORIG_KNOW_DIR"
+    INDEX_FILE="$ORIG_INDEX"
+    ENTRIES_DIR="$ORIG_ENTRIES"
+    METRICS_FILE="$ORIG_METRICS"
+    EVENTS_FILE="$ORIG_EVENTS"
+    CLAUDE_MD="$ORIG_CLAUDE"
+
+    # Summary
+    echo ""
+    local total=$((PASS + FAIL))
+    if [ "$FAIL" -eq 0 ]; then
+        echo "✓ All $total tests passed"
+        return 0
+    else
+        echo "✗ $FAIL/$total tests failed"
+        return 1
+    fi
+}
+
 cmd_init() {
     # init — create .know/ directory structure
     ensure_dirs
@@ -402,6 +530,7 @@ case "$CMD" in
     metrics) cmd_metrics ;;
     history) cmd_history "$@" ;;
     init)    cmd_init ;;
+    self-test) cmd_self_test ;;
     help|*)
         cat <<'EOF'
 know-ctl.sh — CLI for .know/ index operations
@@ -419,6 +548,7 @@ Commands:
   stats                             Show index summary (by tier, tag, scope)
   metrics                           Show 6 quality indicators (learn/recall/write)
   history <keyword>                  Show lifecycle events for matching entry
+  self-test                         Run automated tests in temp directory
 EOF
         ;;
 esac
