@@ -25,7 +25,7 @@
 | # | 里程碑 | 验证点 | 进度 | 需求 |
 |---|--------|--------|------|------|
 | M1 | **能测** — know-ctl 自动化验证 | `know-ctl self-test` 覆盖核心命令（append/query/hit/decay/metrics/history），全部通过 | 1/1 | [selftest](../requirements/know-selftest/prd.md) |
-| M2 | **能查** — 文档一致性检查 | `know-ctl check` 检测模版与项目文档的结构偏差，输出具体不一致项 | 0/1 | [check](../requirements/know-check/prd.md) |
+| M2 | **能查** — 文档一致性检查 | `know-ctl check` 检测模版与项目文档的结构偏差，输出具体不一致项 | 1/1 | [check](../requirements/know-check/prd.md) |
 | M3 | **能守** — 流程规则完整性 | write 流程的关键判定点（版本、类型、父子关系）有明确规则且无遗漏 | 0/0 | — |
 
 ## 3. 当前版本

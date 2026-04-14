@@ -505,6 +505,88 @@ cmd_self_test() {
     fi
 }
 
+cmd_check() {
+    # check — verify template-document consistency
+    local TEMPLATES_DIR="$PROJECT_DIR/workflows/templates"
+    local DOCS_DIR="$KNOW_DIR/docs"
+    local deviations=0 consistent=0
+
+    echo "=== know check ==="
+    echo ""
+
+    # Helper: extract section titles (strip ## N. prefix)
+    _sections() {
+        grep -E '^## [0-9]+\.' "$1" 2>/dev/null | sed -E 's/^## [0-9]+\. //' | sort
+    }
+
+    # Helper: infer template from doc path
+    _template_for() {
+        local doc="$1"
+        local basename
+        basename=$(basename "$doc" .md)
+        local tpl="$TEMPLATES_DIR/${basename}.md"
+        [ -f "$tpl" ] && echo "$tpl" || echo ""
+    }
+
+    # 1. Check each doc against its template
+    while IFS= read -r doc; do
+        local tpl
+        tpl=$(_template_for "$doc")
+        if [ -z "$tpl" ]; then
+            continue  # no matching template, skip
+        fi
+
+        local tpl_sections doc_sections
+        tpl_sections=$(_sections "$tpl")
+        doc_sections=$(_sections "$doc")
+
+        local tpl_count doc_count
+        tpl_count=$(echo "$tpl_sections" | grep -c . 2>/dev/null || echo 0)
+        doc_count=$(echo "$doc_sections" | grep -c . 2>/dev/null || echo 0)
+
+        # Find differences
+        local missing extra
+        missing=$(comm -23 <(echo "$tpl_sections") <(echo "$doc_sections") | tr '\n' ', ' | sed 's/, $//')
+        extra=$(comm -13 <(echo "$tpl_sections") <(echo "$doc_sections") | tr '\n' ', ' | sed 's/, $//')
+
+        local rel_doc="${doc#$PROJECT_DIR/}"
+        local rel_tpl
+        rel_tpl=$(basename "$tpl")
+
+        if [ -n "$missing" ] || [ -n "$extra" ]; then
+            echo "✗ $rel_doc"
+            echo "  模版 $rel_tpl 有 $tpl_count sections，文档有 $doc_count sections"
+            [ -n "$missing" ] && echo "  缺少: $missing"
+            [ -n "$extra" ] && echo "  多出: $extra"
+            echo ""
+            deviations=$((deviations + 1))
+        else
+            echo "✓ $rel_doc — 一致"
+            consistent=$((consistent + 1))
+        fi
+    done < <(find "$DOCS_DIR" -name "*.md" -not -path "*/impl/*" 2>/dev/null; find "$DOCS_DIR" -path "*/impl/tech.md" 2>/dev/null)
+
+    # 2. Check CLAUDE.md index completeness
+    if [ -f "$CLAUDE_MD" ]; then
+        while IFS= read -r doc; do
+            local rel_path="${doc#$PROJECT_DIR/}"
+            if ! grep -q "$rel_path" "$CLAUDE_MD" 2>/dev/null; then
+                echo "✗ $rel_path — 不在 CLAUDE.md 索引中"
+                deviations=$((deviations + 1))
+            fi
+        done < <(find "$DOCS_DIR" -name "*.md" 2>/dev/null)
+    fi
+
+    echo ""
+    if [ "$deviations" -eq 0 ]; then
+        echo "✓ 所有文档与模版一致"
+        return 0
+    else
+        echo "=== $deviations 个偏差，$consistent 个一致 ==="
+        return 1
+    fi
+}
+
 cmd_init() {
     # init — create .know/ directory structure
     ensure_dirs
@@ -531,6 +613,7 @@ case "$CMD" in
     history) cmd_history "$@" ;;
     init)    cmd_init ;;
     self-test) cmd_self_test ;;
+    check) cmd_check ;;
     help|*)
         cat <<'EOF'
 know-ctl.sh — CLI for .know/ index operations
@@ -549,6 +632,7 @@ Commands:
   metrics                           Show 6 quality indicators (learn/recall/write)
   history <keyword>                  Show lifecycle events for matching entry
   self-test                         Run automated tests in temp directory
+  check                             Check template-document consistency
 EOF
         ;;
 esac
