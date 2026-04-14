@@ -39,7 +39,7 @@ Shared definitions (output blocks, paths) → SKILL.md.
 
 **Progress tracking**: roadmap tracks PRD progress in milestone table. PRD tracks tech progress in task table (§4 方案). Tech tracks iterations in §4 迭代记录.
 
-**Versioning**: project-level versions by directory (v1→v2). Requirement/feature overwrite in place.
+**Versioning**: project-level versions by directory (v1→v2). Each version directory is self-contained — do not include other versions' content. Milestone numbering restarts from M1 per version. Requirement/feature overwrite in place.
 
 ---
 

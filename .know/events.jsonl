@@ -1,3 +1,4 @@
 {"ts":"2026-04-13","event":"hit","summary":"文档树状向下索引，不回指父级 — roadmap→prd→tech，tech不链回prd"}
 {"ts":"2026-04-13","event":"created","summary":"lifecycle test"}
 {"ts":"2026-04-13","event":"deleted","summary":"lifecycle test"}
+{"ts":"2026-04-14","event":"created","summary":"数据收集嵌入现有命令不独立调用 — 避免依赖AI记住调用丢数据"}
