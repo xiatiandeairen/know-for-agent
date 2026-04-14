@@ -3,3 +3,7 @@
 {"ts":"2026-04-13","event":"deleted","summary":"lifecycle test"}
 {"ts":"2026-04-14","event":"created","summary":"数据收集嵌入现有命令不独立调用 — 避免依赖AI记住调用丢数据"}
 {"ts":"2026-04-14","event":"created","summary":"know功能三层分级：核心增强、辅助维护、可观测冻结"}
+{"ts":"2026-04-14","event":"created","summary":"PRD量化指标未跑基线即写入 — 必须先测当前值再定目标"}
+{"ts":"2026-04-14","event":"created","summary":"技术选项缺ROI量化致凭直觉选错 — 提选项时直接带成本收益数字"}
+{"ts":"2026-04-14","event":"created","summary":"指标ROI筛选框架 — \"恶化时agent应改变行为吗\"是核心过滤器"}
+{"ts":"2026-04-14","event":"created","summary":"Skill优先于MCP — Skill成本极低服务当前用户，MCP在扩展跨生态时再做"}

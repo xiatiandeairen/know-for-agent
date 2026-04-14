@@ -96,6 +96,18 @@ Reason: {drop reason}
 | 3 | Auto memory material | Personal preference, not project knowledge | "I prefer vim" |
 | 4 | No conclusion | Discussion hasn't converged | "still deciding between A and B" |
 | 5 | One-time | Will not recur | "used temp flag for this deploy" |
+| 6 | Low ROI | Q1: 换一个项目还有用吗？no → Q2: 当前项目6个月后还有用吗？no → DROP | "know功能三层分级：核心增强、辅助维护、可观测冻结" |
+
+**Rule 6 — Low ROI decision tree**:
+```
+Q1: 换一个项目，这条知识还有用吗？
+    yes → PASS
+    no  → Q2
+
+Q2: 在当前项目中，6个月后这条知识还有用吗？
+    yes → PASS
+    no  → DROP
+```
 
 **Derivable boundary** — code shows *what*, not *why*:
 
@@ -121,16 +133,22 @@ Q2: Will this situation recur?
     Unlikely         → demote one level (critical→memo, memo→DROP)
     Likely           → keep current level
     Frequently       → promote one level (memo→critical)
+
+Q3: Transferability — this knowledge applies to:
+    Project-specific (this project only)   → demote one level
+    Domain-specific (similar projects)     → keep current level
+    Universal (any project)                → promote one level
 ```
 
-**Constraint**: critical requires confirmed knowledge (verified via test, reproduction, or multi-source agreement). High impact + unconfirmed → memo. Promote when confirmed later.
+**Constraint**: critical requires confirmed knowledge (verified via test, reproduction, or multi-source agreement). High impact + unconfirmed → memo. Promote (including Q3 promote) cannot bypass this constraint.
 
-| Claim | Tier | Why |
-|-------|------|-----|
-| Thresholds defined only in PressureLevel, no hardcoding | critical | violation → multi-module inconsistency |
-| Must use Combine, not AsyncStream | critical | wrong choice → no stack traces, repeated |
-| Panel animation uses Canvas, not frame animation | memo | wasted exploration time only |
-| decay command runs monthly | memo | forgetting → no breakage |
+| Claim | Q1→Tier | Q2→Tier | Q3→Tier | Final | Why |
+|-------|---------|---------|---------|-------|-----|
+| Thresholds defined only in PressureLevel, no hardcoding | critical | critical | critical (domain) | critical | violation → multi-module inconsistency |
+| Must use Combine, not AsyncStream | critical | critical | critical (domain) | critical | wrong choice → no stack traces, repeated |
+| Panel animation uses Canvas, not frame animation | memo | memo | DROP (project) | DROP | project-specific + low impact |
+| PRD量化指标未跑基线即写入 | critical | critical | critical (universal) | critical | universal pitfall, promote confirmed |
+| know功能三层分级 | memo | memo | DROP (project) | DROP | project-specific decision |
 
 ---
 
