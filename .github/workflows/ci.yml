@@ -62,19 +62,12 @@ jobs:
       - name: Check workflow files exist
         run: |
           echo "Checking required workflow files..."
-          for f in decision status trap rule ref; do
-            if [ ! -f "workflows/knowledge/$f.md" ]; then
-              echo "Missing: workflows/knowledge/$f.md"
+          for f in learn.md write.md review.md; do
+            if [ ! -f "workflows/$f" ]; then
+              echo "Missing: workflows/$f"
               exit 1
             fi
-            echo "OK: workflows/knowledge/$f.md"
-          done
-          for f in report review brief; do
-            if [ ! -f "workflows/collab/$f.md" ]; then
-              echo "Missing: workflows/collab/$f.md"
-              exit 1
-            fi
-            echo "OK: workflows/collab/$f.md"
+            echo "OK: workflows/$f"
           done
 
       - name: Lint shell scripts
