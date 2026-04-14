@@ -10,6 +10,7 @@
   - [tech](.know/docs/requirements/know-selftest/impl/tech.md) | 2026-04-14
 - [know-check](.know/docs/requirements/know-check/prd.md) | 2026-04-14
   - [tech](.know/docs/requirements/know-check/impl/tech.md) | 2026-04-14
+- [know-flowrules](.know/docs/requirements/know-flowrules/prd.md) | 2026-04-14
 
 #### v2
 - [know 产品路线图](.know/docs/v2/roadmap.md) | 2026-04-13

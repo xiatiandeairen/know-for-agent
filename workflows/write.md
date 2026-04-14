@@ -74,7 +74,7 @@ Model: opus
 | Data model, sequence diagram, implementation | tech |
 | Wireframe, interaction flow, component spec | ui |
 
-Hint provided → match against type names first.
+Hint provided → match against type names first. Hint does not match any type name → ignore hint, fall back to signal-based inference.
 
 **Default**: ≥2 types tied → list, ask user. 0 matches → ask user.
 
@@ -91,7 +91,7 @@ Hint provided → match against type names first.
 
 ### 2c: New or Update
 
-- **Project-level (non-roadmap)**: file exists in any `v*/` → new version (v{n+1}). No `v*/` → v1.
+- **Project-level (non-roadmap)**: same roadmap version rule applies — new capability/direction → new `v{n+1}`, in-version update → `mode=update` on current `v{n}`. Default: ask user `新建 v{n+1}` or `更新 v{n}`.
 - **Requirement/feature**: file exists → `mode=update`. File absent → `mode=create` (default).
 
 **Roadmap version rule** — roadmap has special versioning based on change type:
@@ -112,6 +112,8 @@ Hint provided → match against type names first.
 | others | none |
 
 **Missing parent**: prd without roadmap → proceed, note absence. tech/ui without prd → [STOP:choose] `A) Continue without parent  B) Create PRD first`
+
+**PRD milestone association**: when creating a PRD, infer which roadmap milestone it belongs to from conversation context. If ambiguous → ask user to specify milestone number. This determines where the PRD link appears in the roadmap milestone table.
 
 ---
 
@@ -137,6 +139,8 @@ Correct?
 ```
 
 Multiple types → [STOP:choose] list with `[1 / 2 / both]`. Both → sequential from Step 4.
+
+**Parameter correction**: if user changes type during confirm → re-infer name/topic (name depends on type). If user changes name → no re-inference needed for other params.
 
 ---
 
@@ -176,6 +180,7 @@ Model: opus
 | roadmap | 里程碑.需求 | Link to each PRD under this milestone. `—` if none yet |
 | prd | §4 方案.任务表 | List each tech doc as one row. Progress = `完成数/总数` (count by existence of 迭代记录 entries) |
 | tech | §4 迭代记录 | Add initial entry with today's date and sprint summary |
+| roadmap | 里程碑编号 | Each version starts from M1. Do not continue numbering from previous version. |
 
 ### Update mode (`mode=update`)
 
@@ -193,6 +198,7 @@ Targeted section update, not full rewrite:
 | New template section not in existing doc | Add with conversation content or `TBD` |
 | Broken relative paths in touched sections | Fix or remove |
 | H1 title | Must follow Title Convention (→ Step 8) |
+| No existing section discussed in conversation | Warn user "对话未涉及已有内容，是否要新增 section？" [STOP:choose] A) Add new content B) Cancel |
 
 #### Update mode for tech
 
@@ -260,6 +266,8 @@ mkdir -p .know/docs/{parent-dir}
 
 Write file using Write tool to target path.
 
+If target file already exists in create mode → switch to update mode (re-enter Step 5 with `mode=update`). Do not overwrite without user consent.
+
 ```
 [written] .know/docs/{path}
 ```
@@ -315,6 +323,7 @@ Index location: CLAUDE.md → `## Know` → `### 文档索引`.
 - Features → append after existing entries under same requirement
 - Date → today (`YYYY-MM-DD`)
 - Missing `## Know` → create with `### 文档索引`, `#### v1`, `#### Requirements`
+- Missing version section (e.g. `#### v3`) → create it after existing version sections, before `#### Requirements`
 
 ```
 [index] CLAUDE.md updated
@@ -330,6 +339,8 @@ After writing a child document, update progress in its parent document:
 | prd | Update parent roadmap milestone table: recalculate 进度 as `完成PRD数/总PRD数` for the milestone |
 
 Progress update uses Edit tool on the parent document. Only update the progress field, do not modify other content.
+
+**Parent not found**: if parent document does not exist (e.g. writing tech but no prd) → skip progress propagation silently. Do not create parent.
 
 ```
 [progress] {parent path} updated ({progress value})
