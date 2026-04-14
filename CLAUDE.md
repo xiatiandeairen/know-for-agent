@@ -17,3 +17,4 @@
   - [tech](.know/docs/requirements/know-metrics/impl/tech.md) | 2026-04-13
 - [know-lifecycle](.know/docs/requirements/know-lifecycle/prd.md) | 2026-04-13
   - [tech](.know/docs/requirements/know-lifecycle/impl/tech.md) | 2026-04-13
+- [know-optimize](.know/docs/requirements/know-optimize/prd.md) | 2026-04-14
