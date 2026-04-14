@@ -3,3 +3,4 @@
 {"tag":"rationale","tier":1,"scope":"workflows.templates","tm":"active:directive","summary":"roadmap/prd/tech是进度跟踪文档 — 不写详细规格，细节由sprint拆解","path":"entries/rationale/templates-track-progress.md","hits":0,"revs":0,"created":"2026-04-13","updated":"2026-04-13"}
 {"tag":"concept","tier":2,"scope":"workflows.templates","tm":"passive","summary":"tech是多次sprint迭代的活文档 — 方案渐进完善，用迭代记录追踪","path":null,"hits":0,"revs":0,"created":"2026-04-13","updated":"2026-04-13"}
 {"tag":"rationale","tier":1,"scope":"scripts.know-ctl","tm":"active:directive","summary":"数据收集嵌入现有命令不独立调用 — 避免依赖AI记住调用丢数据","path":"entries/rationale/embed-data-collection.md","hits":0,"revs":0,"created":"2026-04-14","updated":"2026-04-14"}
+{"tag":"rationale","tier":1,"scope":"project","tm":"active:directive","summary":"know功能三层分级：核心增强、辅助维护、可观测冻结","path":"entries/rationale/feature-tiers.md","hits":0,"revs":0,"created":"2026-04-14","updated":"2026-04-14"}
