@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">know-for-agent</h1>
   <p align="center">
-    Knowledge compiler for AI agents — persist tacit knowledge and write structured documents.
+    Knowledge compiler for AI agents — persist tacit knowledge, write structured documents, and track knowledge health.
   </p>
 </p>
 
@@ -23,10 +23,11 @@
 
 ## What is this?
 
-**know-for-agent** is a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code) that gives AI agents persistent project memory. It solves two problems:
+**know-for-agent** is a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code) that gives AI agents persistent project memory. It solves three problems:
 
-1. **Repeated errors** — AI agents make the same mistakes across sessions. Know records tacit knowledge (rationale, constraints, pitfalls) to correct the agent's mental model.
+1. **Repeated errors** — AI agents make the same mistakes across sessions. Know records tacit knowledge and uses recall to prevent errors before they happen.
 2. **Design artifacts lost** — Discussion results stay in conversations and disappear. Know writes them as structured, versioned documents.
+3. **Knowledge quality blind** — No way to know if stored knowledge is useful. Know provides metrics, lifecycle tracking, and optimization suggestions.
 
 ## Installation
 
@@ -46,78 +47,99 @@ git submodule add git@github.com:xiatiandeairen/know-for-agent.git src/plugins/k
 
 # Write discussion results as structured document
 /know write
+
+# Audit and maintain knowledge entries
+/know review
+
+# View quality metrics + optimization suggestions
+know-ctl metrics
+
+# Check template-document consistency
+know-ctl check
+
+# Run automated self-test
+know-ctl self-test
 ```
 
 ## How It Works
 
-### Two Capabilities
+### Three Pipelines
 
-| Capability | Direction | Purpose |
-|-----------|-----------|---------|
-| **Learn** | Conversation → .knowledge/ | Record tacit knowledge to reduce future errors |
+| Pipeline | Direction | Purpose |
+|----------|-----------|---------|
+| **Learn** | Conversation → .know/ | Record tacit knowledge to reduce future errors |
 | **Write** | Conversation → .know/docs/ | Turn discussion results into structured documents |
+| **Review** | .know/ → User | Audit entries with lifecycle stages and metrics |
 
-### Storage: JSONL Index + Markdown Details
+### Recall — Automatic Error Prevention
 
-```
-.knowledge/
-├── index.jsonl              # One entry per line — filter via jq
-└── entries/                 # Detail files (tier 1/2 only)
-    ├── rationale/           #   Why this, not that
-    ├── constraint/          #   What must not be done
-    ├── pitfall/             #   Known traps with root cause
-    ├── concept/             #   Core logic, algorithms, flows
-    └── reference/           #   External tool guides
-```
+Before operating on code, the agent queries matching knowledge entries. `active:defensive` entries block operations that would violate known constraints. `active:directive` entries suggest best practices.
 
-Each index entry (two tiers: 重要/备忘):
-
-```json
-{"tag":"constraint","tier":1,"scope":"LoppyMetrics","tm":"active:defensive","summary":"Thresholds only in PressureLevel, no hardcoded numbers","path":"entries/constraint/pressure-thresholds.md","hits":3,"revs":0,"created":"2026-03-15","updated":"2026-04-08"}
-```
-
-### Learn Pipeline
+### Storage
 
 ```
-Signal detection → Claim extraction → Route interception → 2-question tier assessment
-→ Entry generation → Conflict detection → User confirmation → Write
+.know/
+├── index.jsonl              # Knowledge entries — filter via jq
+├── entries/                 # Detail files (critical only)
+│   ├── rationale/           #   Why this, not that
+│   ├── constraint/          #   What must not be done
+│   ├── pitfall/             #   Known traps with root cause
+│   ├── concept/             #   Core logic, algorithms, flows
+│   └── reference/           #   External tool guides
+├── metrics.json             # Aggregated metrics data
+├── events.jsonl             # Lifecycle event log
+└── docs/                    # Structured documents
+    ├── v{n}/                #   Project-level versioned
+    └── requirements/        #   Requirement/feature level
 ```
-
-- 6 signal types with rule-based filtering (must contain detection pattern keywords)
-- 2-question assessment: impact if missing? → reuse frequency?
-- 2-phase conflict detection: keyword pre-filter (jq) → LLM similarity assessment
 
 ### Two-Tier System
 
 | Tier | Name | Detail File | Decay |
 |------|------|-------------|-------|
-| 1 | 重要 (important) | ≤ 220 tokens | 180d without hits → demote |
-| 2 | 备忘 (memo) | Summary only | 30d without hits → delete |
+| 1 | critical | ≤ 220 tokens | 180d without hits → demote |
+| 2 | memo | Summary only | 30d without hits → delete |
+
+### Document Templates (9 types)
+
+| Type | Purpose |
+|------|---------|
+| roadmap | Product vision + milestone progress tracking |
+| prd | Requirement progress tracking + acceptance criteria |
+| tech | Technical approach + iteration records (multi-sprint) |
+| arch | System decomposition + component collaboration |
+| ui | User interaction design |
+| schema | API/data contract |
+| decision | Decision rationale + alternatives |
+| ops | Operations + release strategy |
+| marketing | Go-to-market messaging |
 
 ## Architecture
 
 ```
-/know (SKILL.md)
-├── learn (workflows/learn.md)
-│   ├── Signal detection (6 types, rule-based filtering)
+/know (SKILL.md — always loaded, ~250 lines)
+├── learn (workflows/learn.md — on-demand)
+│   ├── Signal detection (6 types, rule-based)
 │   ├── Route interception (5 fast-drop rules)
-│   ├── 2-question tier assessment (重要/备忘)
+│   ├── 2-question tier assessment
 │   ├── Conflict detection (2-phase)
-│   └── Write (index.jsonl + entries/)
-└── write (workflows/write.md)
-    ├── Infer parameters (type, name, version, parent)
-    ├── Confirm parameters (single confirmation)
-    ├── Load template (9 types)
-    ├── Extract and fill content from conversation
-    └── Write file + update CLAUDE.md index
+│   └── Write (index + entries + events)
+├── write (workflows/write.md — on-demand)
+│   ├── Infer parameters (type, name, version, parent)
+│   ├── Load template (9 types)
+│   ├── Fill content + progress fields
+│   ├── Write file + update CLAUDE.md index
+│   └── Cascade marking + progress propagation
+└── review (workflows/review.md — on-demand)
+    ├── Lifecycle stage sorting (⚠ > 💤 > 🆕 > ✅)
+    ├── Metrics summary (decay rate + coverage)
+    └── Per-entry action (delete / update / keep)
 
-scripts/know-ctl.sh
-├── query    Filter index by scope/tag/tier/tm
-├── search   Regex match against summaries
-├── append   Add entry to index
-├── hit      Increment retrieval counter
-├── decay    Apply expiry policy
-└── stats    Index summary
+scripts/know-ctl.sh (14 commands)
+├── Core:     init, query, search, append, hit, update, delete
+├── Policy:   decay
+├── Metrics:  stats, metrics, history
+└── Quality:  self-test, check
 ```
 
 ## Contributing
