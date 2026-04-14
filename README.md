@@ -31,13 +31,21 @@
 
 ## Installation
 
-```bash
-# As a Claude Code plugin
-claude plugin add know-for-agent
+**One-line install** (requires [jq](https://jqlang.github.io/jq/download/) and git):
 
-# Or as a git submodule
-git submodule add git@github.com:xiatiandeairen/know-for-agent.git src/plugins/know
+```bash
+curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/install.sh | bash
 ```
+
+Restart Claude Code after installation. That's it — `/know learn` is now available in any project.
+
+**Uninstall:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/uninstall.sh | bash
+```
+
+> Your `.know/` project data is preserved after uninstall. Delete it manually if needed.
 
 ## Quick Start
 
