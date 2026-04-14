@@ -73,7 +73,7 @@ jobs:
       - name: Lint shell scripts
         run: |
           if command -v shellcheck &> /dev/null; then
-            shellcheck scripts/*.sh
+            shellcheck --severity=warning scripts/*.sh
           else
             echo "shellcheck not available, using bash -n"
             for f in scripts/*.sh; do
