@@ -44,7 +44,12 @@ bash "$KNOW_CTL" metrics 2>/dev/null | grep -E "衰减率|覆盖率"
 [review] 衰减率 {衰减率} | 覆盖率 {覆盖率}
 ```
 
-Sort: tier desc (critical first), then age desc (oldest first).
+Sort by lifecycle stage (most actionable first), then age desc within each stage:
+
+1. ⚠ endangered (most urgent — about to be decayed)
+2. 💤 silent (cleanup candidates)
+3. 🆕 new (recently added, not yet validated)
+4. ✅ active (healthy, lowest priority for review)
 
 Lifecycle stage column — compute per entry using `created`, `hits`, `last_hit`, decay rules:
 

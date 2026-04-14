@@ -26,7 +26,7 @@
 |---|--------|--------|------|------|
 | M1 | **能量** — 核心指标定义 + 数据收集 | `know-ctl metrics` 输出 learn/recall/write 各 2-3 个指标，数据来自真实使用 | 1/1 | [metrics](../requirements/know-metrics/prd.md) |
 | M2 | **能看** — 知识生命周期可追踪 | 一条知识从存入 → 命中 → 衰减/删除的完整轨迹可查询 | 1/1 | [lifecycle](../requirements/know-lifecycle/prd.md) |
-| M3 | **能调** — 基于数据做出一次优化决策 | 看到指标后发现问题，调整规则，指标改善 | 0/1 | [optimize](../requirements/know-optimize/prd.md) |
+| M3 | **能调** — 基于数据做出一次优化决策 | 看到指标后发现问题，调整规则，指标改善 | 1/1 | [optimize](../requirements/know-optimize/prd.md) |
 
 ## 3. 当前版本
 

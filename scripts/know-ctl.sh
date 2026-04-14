@@ -308,7 +308,10 @@ cmd_metrics() {
     if [ -n "$latest_roadmap" ] && [ -f "${latest_roadmap}roadmap.md" ]; then
         milestone_count=$(grep -cE '^\| M[0-9]' "${latest_roadmap}roadmap.md" 2>/dev/null) || milestone_count=0
     fi
-    [ "$milestone_count" -gt 0 ] && doc_pct=$((prd_count * 100 / milestone_count))
+    if [ "$milestone_count" -gt 0 ]; then
+        doc_pct=$((prd_count * 100 / milestone_count))
+        [ "$doc_pct" -gt 100 ] && doc_pct=100
+    fi
 
     # --- Output ---
     cat <<EOF
@@ -326,6 +329,39 @@ Write — 文档跟上了吗？
   过期文档:  $stale_count
   文档覆盖:  $prd_count/$milestone_count ($doc_pct%)
 EOF
+
+    # --- Suggestions ---
+    local suggestions=()
+    if [ "$total" -gt 0 ] && [ "$hit_pct" -lt 50 ]; then
+        local nohit=$((total - hit_count))
+        suggestions+=("命中率 ${hit_pct}%: ${nohit} 条知识从未命中，运行 /know review 清理 → 预计命中率 100%")
+    fi
+    if [ "$total_created" -gt 0 ] && [ "$decay_pct" -gt 30 ]; then
+        suggestions+=("衰减率 ${decay_pct}%: 存入质量需关注，检查 learn filter 规则")
+    fi
+    if [ "$total" -gt 0 ] && [ "$defensive_hits" -eq 0 ]; then
+        suggestions+=("防御次数 0: 无 active:defensive 命中，检查 constraint 类知识或 scope 推断")
+    fi
+    if [ "$total_scopes" -gt 0 ] && [ "$scope_pct" -lt 50 ]; then
+        suggestions+=("覆盖率 ${scope_pct}%: 多数 scope 未被查询，检查 recall scope 推断规则")
+    fi
+    if [ "$stale_count" -gt 0 ]; then
+        suggestions+=("过期文档 ${stale_count} 个: 运行 /know write 更新标记的文档")
+    fi
+    if [ "$milestone_count" -gt 0 ] && [ "$doc_pct" -lt 100 ]; then
+        local uncovered=$((milestone_count - prd_count))
+        suggestions+=("文档覆盖 ${doc_pct}%: ${uncovered} 个里程碑缺 PRD")
+    fi
+
+    echo ""
+    if [ ${#suggestions[@]} -eq 0 ]; then
+        echo "✅ 所有指标健康，无需操作"
+    else
+        echo "--- 建议 ---"
+        for s in "${suggestions[@]}"; do
+            echo "• $s"
+        done
+    fi
 }
 
 cmd_history() {
