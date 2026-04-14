@@ -5,6 +5,9 @@
 #### v3
 - [know 产品路线图](.know/docs/v3/roadmap.md) | 2026-04-14
 
+#### Requirements
+- [know-selftest](.know/docs/requirements/know-selftest/prd.md) | 2026-04-14
+
 #### v2
 - [know 产品路线图](.know/docs/v2/roadmap.md) | 2026-04-13
 
