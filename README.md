@@ -1,21 +1,16 @@
+<h1 align="center">know</h1>
+
 <p align="center">
-  <h1 align="center">know-for-agent</h1>
-  <p align="center">
-    Knowledge compiler for AI agents — persist tacit knowledge, write structured documents, and track knowledge health.
-  </p>
+  <strong>Your AI agent keeps making the same mistakes. This fixes that.</strong>
 </p>
 
 <p align="center">
-  <a href="#installation">Installation</a> •
-  <a href="#quick-start">Quick Start</a> •
-  <a href="#how-it-works">How It Works</a> •
-  <a href="#architecture">Architecture</a> •
-  <a href="#contributing">Contributing</a>
+  A <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> plugin that gives AI agents persistent, structured project memory — so lessons learned in one session are never forgotten.
 </p>
 
 <p align="center">
   <a href="https://github.com/xiatiandeairen/know-for-agent/actions/workflows/ci.yml"><img src="https://github.com/xiatiandeairen/know-for-agent/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <a href="https://github.com/xiatiandeairen/know-for-agent/releases"><img src="https://img.shields.io/github/v/release/xiatiandeairen/know-for-agent?include_prereleases" alt="Release"></a>
+  <a href="https://github.com/xiatiandeairen/know-for-agent/releases"><img src="https://img.shields.io/github/v/release/xiatiandeairen/know-for-agent?include_prereleases&label=version" alt="Release"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
 </p>
 
@@ -25,138 +20,97 @@
 
 ---
 
-## What is this?
+## The Problem
 
-**know-for-agent** is a [Claude Code plugin](https://docs.anthropic.com/en/docs/claude-code) that gives AI agents persistent project memory. It solves three problems:
+AI coding agents forget everything between sessions. They repeat the same mistakes, lose design decisions, and ignore lessons they've already learned — even with `CLAUDE.md` and auto-memory.
 
-1. **Repeated errors** — AI agents make the same mistakes across sessions. Know records tacit knowledge and uses recall to prevent errors before they happen.
-2. **Design artifacts lost** — Discussion results stay in conversations and disappear. Know writes them as structured, versioned documents.
-3. **Knowledge quality blind** — No way to know if stored knowledge is useful. Know provides metrics, lifecycle tracking, and optimization suggestions.
+| Without know | With know |
+|:---|:---|
+| AI makes the same architectural mistake for the 3rd time | `[recall]` fires before the mistake happens |
+| "Why did we choose X over Y?" — no one remembers | Rationale entry retrieved automatically by scope |
+| Design discussion results vanish after the session | Structured docs persisted in `.know/docs/` |
 
-## Installation
-
-**One-line install** (requires [jq](https://jqlang.github.io/jq/download/) and git):
+## Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/install.sh | bash
 ```
 
-Restart Claude Code after installation. That's it — `/know learn` is now available in any project.
+Requires `jq` and `git`. Restart Claude Code after install.
 
-**Uninstall:**
+<details>
+<summary>Uninstall</summary>
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/uninstall.sh | bash
 ```
 
-> Your `.know/` project data is preserved after uninstall. Delete it manually if needed.
+Your `.know/` project data is preserved. Delete it manually if needed.
+</details>
 
-## Quick Start
+## Usage
+
+Three commands. That's it.
 
 ```bash
-# Persist knowledge from current conversation
-/know learn
-
-# Write discussion results as structured document
-/know write
-
-# Audit and maintain knowledge entries
-/know review
-
-# View quality metrics + optimization suggestions
-know-ctl metrics
-
-# Check template-document consistency
-know-ctl check
-
-# Run automated self-test
-know-ctl self-test
+/know learn     # Extract and persist knowledge from the current conversation
+/know write     # Turn discussion into a structured, versioned document
+/know review    # Audit stored knowledge — delete stale, update outdated
 ```
 
-## How It Works
+### How Recall Works
 
-### Three Pipelines
+Know doesn't just store knowledge — it **uses** it. Before your agent modifies code, it automatically queries relevant entries by module scope:
 
-| Pipeline | Direction | Purpose |
-|----------|-----------|---------|
-| **Learn** | Conversation → .know/ | Record tacit knowledge to reduce future errors |
-| **Write** | Conversation → .know/docs/ | Turn discussion results into structured documents |
-| **Review** | .know/ → User | Audit entries with lifecycle stages and metrics |
+- **`active:defensive`** — blocks operations that would violate known constraints
+- **`active:directive`** — suggests proven approaches before the agent guesses
+- **`passive`** — surfaces context only when the agent is about to repeat a known mistake
 
-### Recall — Automatic Error Prevention
+## What Gets Stored
 
-Before operating on code, the agent queries matching knowledge entries. `active:defensive` entries block operations that would violate known constraints. `active:directive` entries suggest best practices.
+Know captures the knowledge that code and git history **can't express**:
 
-### Storage
+| Tag | What it captures | Example |
+|-----|-----------------|---------|
+| `rationale` | Why X, not Y | "Chose JSONL over SQLite — simpler recovery, no binary deps" |
+| `constraint` | What must not be done | "Never hardcode thresholds outside PressureLevel enum" |
+| `pitfall` | Known traps + root cause | "DataEngine singleton leaks state across test targets" |
+| `concept` | Core logic, algorithms | "Pressure scoring uses 3-tier weighted average" |
+| `reference` | External integrations | "HealthKit requires background mode entitlement" |
+
+Every entry is scoped (by module), tiered (critical vs memo), and automatically decayed when no longer useful.
+
+## How It Differs
+
+| | CLAUDE.md | Auto-memory | **know** |
+|---|:---:|:---:|:---:|
+| Scope | Global rules | Personal prefs | **Project knowledge** |
+| Structure | Flat text | Key-value | **Tagged, scoped, tiered** |
+| Retrieval | Always loaded | Always loaded | **On-demand by scope** |
+| Lifecycle | Manual | Manual | **Auto-decay + metrics** |
+| Limit | ~200 lines | ~200 lines | **No hard limit** |
+
+## Storage
 
 ```
 .know/
-├── index.jsonl              # Knowledge entries — filter via jq
-├── entries/                 # Detail files (critical only)
-│   ├── rationale/           #   Why this, not that
-│   ├── constraint/          #   What must not be done
-│   ├── pitfall/             #   Known traps with root cause
-│   ├── concept/             #   Core logic, algorithms, flows
-│   └── reference/           #   External tool guides
-├── metrics.json             # Aggregated metrics data
-├── events.jsonl             # Lifecycle event log
-└── docs/                    # Structured documents
-    ├── v{n}/                #   Project-level versioned
-    └── requirements/        #   Requirement/feature level
-```
-
-### Two-Tier System
-
-| Tier | Name | Detail File | Decay |
-|------|------|-------------|-------|
-| 1 | critical | ≤ 220 tokens | 180d without hits → demote |
-| 2 | memo | Summary only | 30d without hits → delete |
-
-### Document Templates (9 types)
-
-| Type | Purpose |
-|------|---------|
-| roadmap | Product vision + milestone progress tracking |
-| prd | Requirement progress tracking + acceptance criteria |
-| tech | Technical approach + iteration records (multi-sprint) |
-| arch | System decomposition + component collaboration |
-| ui | User interaction design |
-| schema | API/data contract |
-| decision | Decision rationale + alternatives |
-| ops | Operations + release strategy |
-| marketing | Go-to-market messaging |
-
-## Architecture
-
-```
-/know (SKILL.md — always loaded, ~250 lines)
-├── learn (workflows/learn.md — on-demand)
-│   ├── Signal detection (6 types, rule-based)
-│   ├── Route interception (5 fast-drop rules)
-│   ├── 2-question tier assessment
-│   ├── Conflict detection (2-phase)
-│   └── Write (index + entries + events)
-├── write (workflows/write.md — on-demand)
-│   ├── Infer parameters (type, name, version, parent)
-│   ├── Load template (9 types)
-│   ├── Fill content + progress fields
-│   ├── Write file + update CLAUDE.md index
-│   └── Cascade marking + progress propagation
-└── review (workflows/review.md — on-demand)
-    ├── Lifecycle stage sorting (⚠ > 💤 > 🆕 > ✅)
-    ├── Metrics summary (decay rate + coverage)
-    └── Per-entry action (delete / update / keep)
-
-scripts/know-ctl.sh (14 commands)
-├── Core:     init, query, search, append, hit, update, delete
-├── Policy:   decay
-├── Metrics:  stats, metrics, history
-└── Quality:  self-test, check
+├── index.jsonl          # All entries — filter with jq
+├── entries/             # Detail files (critical tier only)
+│   ├── rationale/
+│   ├── constraint/
+│   ├── pitfall/
+│   ├── concept/
+│   └── reference/
+├── metrics.json         # Quality metrics
+├── events.jsonl         # Lifecycle events
+└── docs/                # Structured documents (9 templates)
+    ├── v{n}/            #   roadmap, decision, arch, ops, marketing
+    └── requirements/    #   prd, tech, ui, schema
 ```
 
 ## Contributing
 
-Contributions welcome! Please open an issue first to discuss what you'd like to change.
+Contributions welcome! Please [open an issue](https://github.com/xiatiandeairen/know-for-agent/issues) first to discuss what you'd like to change.
 
 ## License
 
