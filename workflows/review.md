@@ -46,15 +46,22 @@ bash "$KNOW_CTL" metrics 2>/dev/null | grep -E "衰减率|覆盖率"
 
 Sort: tier desc (critical first), then age desc (oldest first).
 
-⚠ column: `hits=0` + age > 7d → mark `hits=0` (cleanup candidate). Otherwise empty.
+Lifecycle stage column — compute per entry using `created`, `hits`, `last_hit`, decay rules:
+
+| Stage | Condition | Icon |
+|-------|-----------|------|
+| new | created < 7d, hits = 0 | 🆕 |
+| active | last_hit < 30d | ✅ |
+| silent | last_hit > 30d or (hits=0 + created > 7d) | 💤 |
+| endangered | meets decay delete/demote criteria | ⚠ |
 
 ```
 [review] {N} entries found:
 
-| # | tag | tier | scope | hits | age | summary | ⚠ |
-|---|-----|------|-------|------|-----|---------|---|
-| 1 | constraint | critical | LoppyMetrics | 5 | 30d | Thresholds defined only in PressureLevel | |
-| 2 | rationale | memo | Auth | 0 | 15d | ... | hits=0 |
+| # | tag | tier | scope | hits | age | summary | stage |
+|---|-----|------|-------|------|-----|---------|-------|
+| 1 | constraint | critical | Auth | 5 | 30d | Thresholds... | ✅ |
+| 2 | rationale | memo | Auth | 0 | 15d | ... | 💤 |
 
 All ok? Or enter numbers to process (e.g. "2" or "1,3"):
 ```

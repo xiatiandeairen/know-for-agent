@@ -9,6 +9,7 @@ KNOW_DIR="$PROJECT_DIR/.know"
 INDEX_FILE="$KNOW_DIR/index.jsonl"
 ENTRIES_DIR="$KNOW_DIR/entries"
 METRICS_FILE="$KNOW_DIR/metrics.json"
+EVENTS_FILE="$KNOW_DIR/events.jsonl"
 CLAUDE_MD="$PROJECT_DIR/CLAUDE.md"
 
 # Ensure metrics.json exists, initialize if needed
@@ -34,6 +35,14 @@ metrics_add_scope() {
     ensure_metrics
     local tmp="$METRICS_FILE.tmp"
     jq --arg s "$scope" 'if (.queried_scopes | index($s)) then . else .queried_scopes += [$s] end' "$METRICS_FILE" > "$tmp" && mv "$tmp" "$METRICS_FILE"
+}
+
+# Emit lifecycle event to events.jsonl
+emit_event() {
+    local event="$1" summary="$2"
+    local ts
+    ts=$(date +%Y-%m-%d)
+    printf '%s' "$summary" | jq -Rc --arg ts "$ts" --arg ev "$event" '{ts:$ts,event:$ev,summary:.}' >> "$EVENTS_FILE"
 }
 
 # Ensure .know/ structure exists
@@ -98,6 +107,7 @@ cmd_append() {
     metrics_inc total_created
     local summary
     summary=$(echo "$json" | jq -r '.summary')
+    emit_event "created" "$summary"
     echo "Appended: $summary"
 }
 
@@ -108,14 +118,18 @@ cmd_hit() {
     today=$(date +%Y-%m-%d)
     local tmpfile="$INDEX_FILE.tmp"
 
+    local match_filter
     if [[ "$target" == entries/* ]]; then
-        # Match by path
-        jq -c "if .path == \"$target\" then .hits += 1 | .updated = \"$today\" else . end" "$INDEX_FILE" > "$tmpfile"
+        match_filter=".path == \"$target\""
     else
-        # Match by summary substring
-        jq -c "if (.summary | test(\"$target\"; \"i\")) then .hits += 1 | .updated = \"$today\" else . end" "$INDEX_FILE" > "$tmpfile"
+        match_filter="(.summary | test(\"$target\"; \"i\"))"
     fi
+    jq -c "if $match_filter then .hits += 1 | .updated = \"$today\" | .last_hit = \"$today\" else . end" "$INDEX_FILE" > "$tmpfile"
     mv "$tmpfile" "$INDEX_FILE"
+    # Emit hit event for matched entries
+    jq -r "select($match_filter) | .summary" "$INDEX_FILE" 2>/dev/null | while IFS= read -r s; do
+        emit_event "hit" "$s"
+    done
 }
 
 cmd_delete() {
@@ -126,10 +140,11 @@ cmd_delete() {
 
     while IFS= read -r line; do
         if echo "$line" | jq -e "select(.summary | test(\"$keyword\"; \"i\"))" > /dev/null 2>&1; then
-            # Remove detail file if exists
-            local path
+            local summary path
+            summary=$(echo "$line" | jq -r '.summary')
             path=$(echo "$line" | jq -r '.path // empty')
             [ -n "$path" ] && [ -f "$KNOW_DIR/$path" ] && rm "$KNOW_DIR/$path"
+            emit_event "deleted" "$summary"
             deleted=$((deleted + 1))
         else
             echo "$line" >> "$tmpfile"
@@ -157,8 +172,10 @@ cmd_update() {
 
     while IFS= read -r line; do
         if echo "$line" | jq -e "select(.summary | test(\"$keyword\"; \"i\"))" > /dev/null 2>&1; then
-            # Apply patch, increment revs, update timestamp
+            local summary
+            summary=$(echo "$line" | jq -r '.summary')
             line=$(echo "$line" | jq -c ". * $patch | .revs = (.revs // 0) + 1 | .updated = \"$today\"")
+            emit_event "updated" "$summary"
             matched=$((matched + 1))
         fi
         echo "$line" >> "$tmpfile"
@@ -183,11 +200,12 @@ cmd_decay() {
 
     > "$tmpfile"
     while IFS= read -r line; do
-        local tier created hits revs
+        local tier created hits revs summary
         tier=$(echo "$line" | jq -r '.tier')
         created=$(echo "$line" | jq -r '.created')
         hits=$(echo "$line" | jq -r '.hits')
         revs=$(echo "$line" | jq -r '.revs // 0')
+        summary=$(echo "$line" | jq -r '.summary')
 
         local created_ts age_days
         created_ts=$(date -j -f "%Y-%m-%d" "$created" +%s 2>/dev/null || date -d "$created" +%s 2>/dev/null || echo 0)
@@ -198,6 +216,7 @@ cmd_decay() {
             local path
             path=$(echo "$line" | jq -r '.path // empty')
             [ -n "$path" ] && [ -f "$KNOW_DIR/$path" ] && rm "$KNOW_DIR/$path"
+            emit_event "deleted" "$summary"
             deleted=$((deleted + 1))
             continue
         fi
@@ -205,12 +224,14 @@ cmd_decay() {
         # 重要 (tier 1) + hits=0 + >180d → demote to 备忘
         if [ "$tier" -eq 1 ] && [ "$hits" -eq 0 ] && [ "$age_days" -gt 180 ]; then
             line=$(echo "$line" | jq -c '.tier = 2')
+            emit_event "demoted" "$summary"
             demoted=$((demoted + 1))
         fi
 
         # revs > 3 + 重要 (tier 1) → demote to 备忘 (unstable)
         if [ "$tier" -eq 1 ] && [ "$revs" -gt 3 ]; then
             line=$(echo "$line" | jq -c '.tier = 2')
+            emit_event "demoted" "$summary"
             demoted=$((demoted + 1))
         fi
 
@@ -307,6 +328,19 @@ Write — 文档跟上了吗？
 EOF
 }
 
+cmd_history() {
+    # history <keyword> — show lifecycle events for matching entry
+    local keyword="${1:?Usage: history <keyword>}"
+    [ -f "$EVENTS_FILE" ] || { echo "No event log"; exit 0; }
+    local results
+    results=$(jq -r "select(.summary | test(\"$keyword\"; \"i\")) | \"\(.ts)  \(.event)\t\(.summary)\"" "$EVENTS_FILE" 2>/dev/null)
+    if [ -z "$results" ]; then
+        echo "No matching events found"
+    else
+        echo "$results"
+    fi
+}
+
 cmd_init() {
     # init — create .know/ directory structure
     ensure_dirs
@@ -330,6 +364,7 @@ case "$CMD" in
     decay)   cmd_decay ;;
     stats)   cmd_stats ;;
     metrics) cmd_metrics ;;
+    history) cmd_history "$@" ;;
     init)    cmd_init ;;
     help|*)
         cat <<'EOF'
@@ -347,6 +382,7 @@ Commands:
   decay                             Apply decay policy (delete/demote expired entries)
   stats                             Show index summary (by tier, tag, scope)
   metrics                           Show 6 quality indicators (learn/recall/write)
+  history <keyword>                  Show lifecycle events for matching entry
 EOF
         ;;
 esac
