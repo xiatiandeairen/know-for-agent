@@ -10,7 +10,6 @@ INDEX_FILE="$KNOW_DIR/index.jsonl"
 ENTRIES_DIR="$KNOW_DIR/entries"
 METRICS_FILE="$KNOW_DIR/metrics.json"
 EVENTS_FILE="$KNOW_DIR/events.jsonl"
-CLAUDE_MD="$PROJECT_DIR/CLAUDE.md"
 
 # Ensure metrics.json exists, initialize if needed
 ensure_metrics() {
@@ -299,17 +298,11 @@ cmd_metrics() {
     [ "$total_scopes" -gt 0 ] && scope_pct=$((queried_count * 100 / total_scopes))
 
     # --- Write ---
-    local stale_count=0
-    if [ -f "$CLAUDE_MD" ]; then
-        stale_count=$(grep -c "⚠ needs update" "$CLAUDE_MD" 2>/dev/null) || stale_count=0
-    fi
-
     local prd_count=0 milestone_count=0 doc_pct=0
     prd_count=$(find "$KNOW_DIR/docs/requirements" -name "prd.md" 2>/dev/null | wc -l | tr -d ' ')
-    local latest_roadmap
-    latest_roadmap=$(ls -d "$KNOW_DIR/docs/v"*/ 2>/dev/null | sort -V | tail -1)
-    if [ -n "$latest_roadmap" ] && [ -f "${latest_roadmap}roadmap.md" ]; then
-        milestone_count=$(grep -cE '^\| M[0-9]' "${latest_roadmap}roadmap.md" 2>/dev/null) || milestone_count=0
+    local roadmap_file="$KNOW_DIR/docs/roadmap.md"
+    if [ -f "$roadmap_file" ]; then
+        milestone_count=$(grep -cE '^\| M[0-9]' "$roadmap_file" 2>/dev/null) || milestone_count=0
     fi
     if [ "$milestone_count" -gt 0 ]; then
         doc_pct=$((prd_count * 100 / milestone_count))
@@ -329,7 +322,6 @@ Recall — 帮我避错了吗？
   覆盖率:    $queried_count/$total_scopes ($scope_pct%)
 
 Write — 文档跟上了吗？
-  过期文档:  $stale_count
   文档覆盖:  $prd_count/$milestone_count ($doc_pct%)
 EOF
 
@@ -347,9 +339,6 @@ EOF
     fi
     if [ "$total_scopes" -gt 0 ] && [ "$scope_pct" -lt 50 ]; then
         suggestions+=("覆盖率 ${scope_pct}%: 多数 scope 未被查询，检查 recall scope 推断规则")
-    fi
-    if [ "$stale_count" -gt 0 ]; then
-        suggestions+=("过期文档 ${stale_count} 个: 运行 /know write 更新标记的文档")
     fi
     if [ "$milestone_count" -gt 0 ] && [ "$doc_pct" -lt 100 ]; then
         local uncovered=$((milestone_count - prd_count))
@@ -387,7 +376,6 @@ cmd_self_test() {
     local ORIG_ENTRIES="$ENTRIES_DIR"
     local ORIG_METRICS="$METRICS_FILE"
     local ORIG_EVENTS="$EVENTS_FILE"
-    local ORIG_CLAUDE="$CLAUDE_MD"
 
     local TMPDIR
     TMPDIR=$(mktemp -d)
@@ -396,7 +384,6 @@ cmd_self_test() {
     ENTRIES_DIR="$KNOW_DIR/entries"
     METRICS_FILE="$KNOW_DIR/metrics.json"
     EVENTS_FILE="$KNOW_DIR/events.jsonl"
-    CLAUDE_MD="$TMPDIR/CLAUDE.md"
 
     local PASS=0 FAIL=0
     _assert() {
@@ -456,12 +443,11 @@ cmd_self_test() {
 
     # 8. metrics
     echo "metrics:"
-    echo "## Know" > "$CLAUDE_MD"
     local metrics_out
     metrics_out=$(cmd_metrics 2>&1)
     _assert "contains 命中率" 'echo "$metrics_out" | grep -q "命中率"'
     _assert "contains 防御次数" 'echo "$metrics_out" | grep -q "防御次数"'
-    _assert "contains 过期文档" 'echo "$metrics_out" | grep -q "过期文档"'
+    _assert "contains 文档覆盖" 'echo "$metrics_out" | grep -q "文档覆盖"'
 
     # 9. history
     echo "history:"
@@ -491,7 +477,6 @@ cmd_self_test() {
     ENTRIES_DIR="$ORIG_ENTRIES"
     METRICS_FILE="$ORIG_METRICS"
     EVENTS_FILE="$ORIG_EVENTS"
-    CLAUDE_MD="$ORIG_CLAUDE"
 
     # Summary
     echo ""
@@ -564,18 +549,7 @@ cmd_check() {
             echo "✓ $rel_doc — 一致"
             consistent=$((consistent + 1))
         fi
-    done < <(find "$DOCS_DIR" -name "*.md" -not -path "*/impl/*" 2>/dev/null; find "$DOCS_DIR" -path "*/impl/tech.md" 2>/dev/null)
-
-    # 2. Check CLAUDE.md index completeness
-    if [ -f "$CLAUDE_MD" ]; then
-        while IFS= read -r doc; do
-            local rel_path="${doc#$PROJECT_DIR/}"
-            if ! grep -q "$rel_path" "$CLAUDE_MD" 2>/dev/null; then
-                echo "✗ $rel_path — 不在 CLAUDE.md 索引中"
-                deviations=$((deviations + 1))
-            fi
-        done < <(find "$DOCS_DIR" -name "*.md" 2>/dev/null)
-    fi
+    done < <(find "$DOCS_DIR" -name "*.md" 2>/dev/null)
 
     echo ""
     if [ "$deviations" -eq 0 ]; then

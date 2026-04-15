@@ -34,7 +34,7 @@
 
 | 任务 | 文档 | 进度 |
 |------|------|------|
-| write-pipeline | [tech](impl/tech.md) | 1/1 |
+| write-pipeline | [tech](tech.md) | 1/1 |
 
 ## 5. 验收标准
 

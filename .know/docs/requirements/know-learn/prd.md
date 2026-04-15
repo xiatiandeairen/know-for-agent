@@ -35,7 +35,7 @@ AI agent 跨会话重复犯错——隐性知识（为什么选 A 不选 B、已
 
 | 任务 | 文档 | 进度 |
 |------|------|------|
-| learn-pipeline | [tech](impl/tech.md) | 1/1 |
+| learn-pipeline | [tech](tech.md) | 1/1 |
 
 ## 5. 验收标准
 

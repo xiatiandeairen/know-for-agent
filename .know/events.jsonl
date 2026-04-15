@@ -24,3 +24,19 @@
 {"ts":"2026-04-15","event":"created","summary":"不用隐式信号触发 know — auto memory system prompt 优先级更高会拦截，统一走 /know 显式入口"}
 {"ts":"2026-04-15","event":"created","summary":"Skill 文件路径不能分散定义 — AI 每次拼接结果不同，必须单一来源表"}
 {"ts":"2026-04-15","event":"created","summary":"Recall 完整逻辑必须在 SKILL.md — 被动触发不加载 workflow，精简版 tag/tier/tm 足够"}
+{"ts":"2026-04-15","event":"created","summary":"压力校准用绝对剩余量非百分比 — 体感取决于剩余而非使用率"}
+{"ts":"2026-04-15","event":"created","summary":"采集层始终全量采集展示层过滤 — 条件采集致历史不完整语义模糊"}
+{"ts":"2026-04-15","event":"created","summary":"三维演进：环境→成本→协同各走可见→闭环，v7融合Agent OS"}
+{"ts":"2026-04-15","event":"created","summary":"校准需考虑用户画像差异 — 重度/轻度/性能敏感接受度不同"}
+{"ts":"2026-04-15","event":"created","summary":"版本间需有价值验证链 — 跳跃太大等于未验证地基上盖楼"}
+{"ts":"2026-04-15","event":"created","summary":"Dual-write ≠ redundancy — check if fields serve different audiences before merging"}
+{"ts":"2026-04-15","event":"created","summary":"dedup_by only removes adjacent duplicates — must sort first"}
+{"ts":"2026-04-15","event":"created","summary":"Encapsulate ordered pipelines into single functions to prevent step-ordering bugs"}
+{"ts":"2026-04-15","event":"created","summary":"参数膨胀用 Context Object 聚合 — 加字段不改签名"}
+{"ts":"2026-04-15","event":"created","summary":"问题→根因→模式：类型→Parse, 参数→Context, 循环→Pipeline"}
+{"ts":"2026-04-15","event":"created","summary":"重构必须测试全过功能不退化 — 靠测试保证行为不变"}
+{"ts":"2026-04-15","event":"created","summary":"hover 信号跟随控件形态 — 文字=下划线，图标=边框，dropdown=背景，同类一致不同类允许不同"}
+{"ts":"2026-04-15","event":"created","summary":"CSS 多状态组件必须有状态表注释 — state/trigger/visual/timing/platform/a11y 格式"}
+{"ts":"2026-04-15","event":"created","summary":"暖色调主题中用多信号类型区分 hover — 纯背景色差不够，组合下划线/边框/背景更有效"}
+{"ts":"2026-04-15","event":"created","summary":"首页信息架构三层递进：吸引(头条)→留住(双栏)→服务(列表+抽屉)，字号密度递减"}
+{"ts":"2026-04-15","event":"created","summary":"侧边栏选择纯 CSS hover 抽屉 — 零 JS、@media (hover:hover) 平台隔离一致、indicator+panel 整体 transform"}

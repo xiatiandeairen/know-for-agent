@@ -53,7 +53,7 @@ M1 的 metrics 提供了聚合指标（命中率 50%、衰减率 20%），但看
 
 | 任务 | 文档 | 进度 |
 |------|------|------|
-| lifecycle-impl | [tech](impl/tech.md) | 1/1 |
+| lifecycle-impl | [tech](tech.md) | 1/1 |
 
 ## 5. 验收标准
 

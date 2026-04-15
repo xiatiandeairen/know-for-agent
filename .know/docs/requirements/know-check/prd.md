@@ -14,7 +14,7 @@
 |------|------|
 | 改了 prd 模版加了"进度"section | 已有的 know-learn/prd.md 和 know-write/prd.md 没跟上 |
 | 删了 tech 模版的"边界情况" | 已有的 tech 文档还留着这个 section |
-| 新增了 roadmap 的"需求"列 | 已有的 v1/roadmap.md 里程碑表缺少这一列 |
+| 新增了 roadmap 的"需求"列 | 已有的 roadmap.md 里程碑表缺少这一列 |
 
 当前替代方案：人工逐文件对比模版和项目文档的 section 结构 — 耗时、容易遗漏。
 
@@ -44,11 +44,11 @@
 ```
 === know check ===
 
-✗ .know/docs/requirements/know-learn/impl/tech.md
+✗ .know/docs/requirements/know-learn/tech.md
   模版 tech.md 有 5 sections，文档有 7 sections
   多出: ## 5. 边界情况, ## 6. 测试用例
 
-✗ .know/docs/v1/roadmap.md
+✗ .know/docs/roadmap.md
   模版 roadmap.md 里程碑表有 5 列，文档有 4 列
   缺少: 需求
 
@@ -63,7 +63,7 @@
 
 | 任务 | 文档 | 进度 |
 |------|------|------|
-| check-impl | [tech](impl/tech.md) | 1/1 |
+| check-impl | [tech](tech.md) | 1/1 |
 
 ## 5. 验收标准
 
