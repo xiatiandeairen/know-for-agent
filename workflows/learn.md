@@ -5,7 +5,59 @@
 Steps: 8
 Names: Detect, Extract, Filter, Assess, Generate, Conflict, Confirm, Write
 
-Shared definitions (schema, tiers, scope, output markers) → SKILL.md.
+Core infrastructure (paths, schema, recall, markers) → SKILL.md.
+
+---
+
+## Shared Definitions
+
+These definitions are used by learn, extract, and review pipelines.
+
+### Tag definitions
+
+| Tag | Records | Examples |
+|-----|---------|---------|
+| rationale | Technical choices, tradeoffs, why A not B | "Chose JSONL over SQLite — need line-level append without locking" |
+| constraint | Must/must-not rules, ordering, boundaries | "Webhook signature must be verified before parsing body" |
+| pitfall | Bugs, root causes, easy-to-repeat mistakes | "DataEngine singleton leaks state across test targets" |
+| concept | Business logic, key mechanisms, core flows | "Decay runs memo→delete at 30d, critical→demote at 180d" |
+| reference | External systems, APIs, SDKs, integration rules | "Stripe webhook retries up to 3 days with exponential backoff" |
+
+### Tier definitions
+
+| Tier | Name | When to use |
+|------|------|-------------|
+| 1 | critical | Missing it causes wrong code, build failure, or obvious rework. Must be confirmed knowledge (verified via test, reproduction, or multi-source). |
+| 2 | memo | Worth noting, helps avoid wasted time, but not a hard error. |
+
+### Trigger mode definitions
+
+| tm | When to use | Recall behavior |
+|----|-------------|-----------------|
+| `active:defensive` | Important constraints, known pitfalls, easily violated during code changes | Prioritize; warn or block |
+| `active:directive` | Recommended practices, not hard errors but worth reminding | Suggest when relevant |
+| `passive` | Background knowledge, rationale, concepts, references | Only show if about to repeat known error |
+
+### Scope guidelines
+
+Scope makes future recall hit the right entries. Not a directory tree replica.
+
+**Generation priority**: explicit file path → module/subsystem name → recurring functional domain → broad stable boundary → `"project"` (last resort).
+
+**Good**: `Auth.session`, `Payment.webhook`, `Search.reranker`, `Infra.queue.worker`
+
+**Bad**: `src.app.services.payment.handlers.webhook.verify.signature.v2`, `misc`, `unknown`
+
+### Conflict handling
+
+| Relationship | Action |
+|-------------|--------|
+| **duplicate** | Same conclusion, different wording → suggest merge or skip |
+| **conflict** | Mutually exclusive conclusions → must show to user, let them decide |
+| **merge** | Complementary (same topic, different angle) → suggest merging |
+| **unrelated** | Pass through |
+
+Semantic similarity can find candidates, but final classification must also consider: scope, conclusion direction, tag, applicable range, chronology.
 
 ---
 
