@@ -102,6 +102,10 @@ scripts/know-ctl.sh                      ← append/search 命令
 
 ## 4. 迭代记录
 
+### 2026-04-15
+
+Step 1 Detect 新增结构化会话价值摘要：claim 列表前先输出对话主题、活动类型、关键产出，帮助用户快速理解 AI 从对话中看到了什么。删除隐式信号触发（与 auto memory 优先级冲突），改为统一通过 `/know` 路由入口。
+
 ### 2026-04-10
 
 learn 管线端到端跑通：8 步工作流实现，know-ctl.sh CLI 工具完成，SKILL.md 添加 learn 路由和存储架构。
