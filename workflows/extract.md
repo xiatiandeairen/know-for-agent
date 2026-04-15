@@ -5,15 +5,13 @@
 Steps: 6
 Names: Scope, Scan, Extract, Filter, Confirm, Write
 
-Shared definitions (schema, tiers, output blocks, paths) → SKILL.md.
+Shared definitions (schema, tiers, scope, output markers) → SKILL.md.
 
 ---
 
 ## Step 1: Scope
 
 Model: sonnet
-
-Gate (always): runs on extract pipeline entry.
 
 Determine which files to scan by inferring from conversation context:
 
@@ -24,7 +22,8 @@ Determine which files to scan by inferring from conversation context:
 | P3 | Fallback | Ask user: `[extract] No files detected in conversation. Provide path or glob:` |
 
 ```
-[extract] Scan scope:
+[extract] step: scope
+Scan scope:
 - src/auth/middleware.ts
 - src/auth/session.ts
 - src/config/index.ts
@@ -44,21 +43,25 @@ Correct? (add/remove files, or confirm)
 
 Model: opus
 
-Gate (always): scope confirmed in Step 1.
+Read each file in scope. Identify knowledge that is **not self-evident from the code alone** — the "why" behind the "what".
 
-Read each file in scope. For each file, identify knowledge that is **not self-evident from the code alone** — the "why" behind the "what":
+### 5 knowledge types to look for
 
-| Knowledge type | What to look for | Example |
-|----------------|-----------------|---------|
-| Design decisions | Patterns chosen over alternatives | "Uses pub/sub instead of direct calls for decoupling" |
+| Type | What to look for | Example |
+|------|-----------------|---------|
+| Design decisions | Why this pattern, why this split, why this wrapper exists | "Uses pub/sub instead of direct calls for decoupling" |
 | Implicit constraints | Rules enforced by convention, not compiler | "All handlers must call validate() before processing" |
-| Non-obvious dependencies | Ordering, initialization, or coupling | "SessionStore must init before AuthMiddleware" |
+| Non-obvious dependencies | Ordering, initialization, coupling | "SessionStore must init before AuthMiddleware" |
 | Configuration rules | Config combinations that must stay in sync | "TIMEOUT_MS must be < RETRY_INTERVAL_MS" |
 | Defensive patterns | Guards against known failure modes | "Retry with backoff because upstream rate-limits at 100 req/s" |
 
-**Per-file cap**: max 3 knowledge items per file. If more found → rank by impact (violation causes errors > violation wastes time), take top 3.
+### Scanning principles
 
-Output: raw list of `{file, knowledge_item, likely_tag}` tuples. Internal only, not shown to user.
+- Do not restate what the code surface-level shows
+- Focus on "why is it written this way" and "what goes wrong if you don't know this"
+- Max 3 knowledge items per file. If more found → rank by impact (causes errors > wastes time), take top 3.
+
+Output: internal list of `{file, knowledge_item, likely_tag}` tuples. Not shown to user.
 
 ---
 
@@ -66,15 +69,26 @@ Output: raw list of `{file, knowledge_item, likely_tag}` tuples. Internal only, 
 
 Model: opus
 
-Gate (auto): Step 2 found ≥1 knowledge item → enter. 0 found → `[extract] No extractable knowledge found in scanned files.` → exit.
+Convert each knowledge item to a claim. Each claim should capture:
 
-Convert each knowledge item to a claim with preliminary fields:
+- **Conclusion**: the core knowledge
+- **Reason**: why this matters
+- **Scope**: affected area
+- **Risk**: what goes wrong if you don't know this
+
+Formal fields:
 
 | Field | Source |
 |-------|--------|
 | tag | Inferred from knowledge type (→ learn.md Step 5a patterns) |
 | scope | File path → module notation (e.g. `src/auth/middleware.ts` → `auth.middleware`) |
-| summary | ≤80 chars, `{conclusion} — {key reason}` format (→ SKILL.md Summary Rules) |
+| summary | ≤80 chars, `{conclusion} — {key reason}` format |
+
+Examples:
+- `Retry must use idempotency key — webhook delivery may be duplicated`
+- `Worker should start before subscription binding — early events may be missed`
+
+If Step 2 found 0 items → `[extract] No extractable knowledge found in scanned files.` → exit.
 
 ---
 
@@ -82,23 +96,27 @@ Convert each knowledge item to a claim with preliminary fields:
 
 Model: sonnet
 
-Gate (always): runs for each extracted claim.
-
 Apply learn.md Step 3 Filter rules with one addition:
 
-| # | Rule | Test | Action |
-|---|------|------|--------|
-| 0 | **Code-obvious** | A developer reading this file would understand this within 30 seconds without external context | DROP |
+| Condition | Action |
+|-----------|--------|
+| **Code-obvious** — a developer reading this file would understand within 30 seconds without external context | DROP |
 
-Rule 0 runs before all other filter rules. It is stricter than learn.md's "code-derivable" rule because extract starts from code — the bar for "not derivable" is higher.
+This is stricter than learn's "code-derivable" rule because extract starts from code — the bar for "not derivable" is higher.
 
-**Skipped block format**:
+### Usually KEEP from code
+
+- Reason not visible from surface code
+- Easy to repeat mistakes
+- Involves external systems, timing, ordering, idempotency, config coupling
+- Has long-term protective value even if single-file
+
+After filtering, apply learn.md Step 4 Assess to assign tier.
+
 ```
 [skipped] {summary}
 Reason: {drop reason}
 ```
-
-After filtering, apply learn.md Step 4 Assess (binary filter chain) to assign tier.
 
 ---
 
@@ -106,10 +124,11 @@ After filtering, apply learn.md Step 4 Assess (binary filter chain) to assign ti
 
 Model: sonnet
 
-Gate (auto): ≥1 claim survived Filter + Assess → enter. 0 survived → `[extract] All items filtered (code-obvious or low impact).` → exit.
+If 0 claims survived → `[extract] All items filtered (code-obvious or low impact).` → exit.
 
 ```
-[extract] Found {N} knowledge items from {M} files:
+[extract] step: confirm
+Found {N} knowledge items from {M} files:
 
 1. [{tag}] {summary} (tier: {tier})
    Source: {file_path}
@@ -125,11 +144,9 @@ Persist? [all / select numbers / skip]
 
 Model: sonnet
 
-Gate (auto): user selected ≥1 claim → enter. User skipped → exit.
+For each selected claim, execute learn.md Steps 5-8:
 
-For each selected claim, execute learn.md Steps 5-8 (Generate → Conflict → Confirm → Write):
-
-1. **Generate** (learn.md Step 5): tag already assigned in Step 3. Generate remaining fields (tm, detail file if critical).
+1. **Generate** (learn.md Step 5): tag already assigned. Generate remaining fields (tm, detail file if critical). Set `source: "extract"`.
 2. **Conflict** (learn.md Step 6): check for duplicates against existing index.
 3. **Per-entry confirm** (learn.md Step 7): show complete entry for final review.
 4. **Write** (learn.md Step 8): append to index, write detail file if critical.
@@ -142,7 +159,7 @@ For each selected claim, execute learn.md Steps 5-8 (Generate → Conflict → C
 
 ## Completion
 
-- All selected claims processed through Steps 3-6
+- All selected claims processed
 - Each persisted entry has: valid index line + detail file (if critical)
 - User saw `[persisted]` or `[skipped]` for every claim
 

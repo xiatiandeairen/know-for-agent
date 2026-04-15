@@ -56,15 +56,25 @@ Model: sonnet
 /know write <hint>   → hint assists type/name inference
 ```
 
-Gate (auto): conversation has ≥3 substantive messages → enter. <3 → warn insufficient context, ask user to point to specific content.
+### Suitable scenarios
+
+- Product requirement analysis → prd
+- Architecture discussion → arch
+- Technical design / implementation plan → tech
+- UI structure / interaction flow → ui
+- Operations / deploy / runbook → ops
+- Version planning / milestones → roadmap
+- Decision summary / tradeoff analysis → decision
+- Schema / data model design → schema
+- Content strategy / launch → marketing
+
+Conversation has <3 substantive messages → warn insufficient context, ask user to point to specific content.
 
 ---
 
 ## Step 2: Infer
 
 Model: opus
-
-Gate (always): runs after trigger.
 
 ### 2a: Type
 
@@ -127,8 +137,6 @@ Hint provided → match against type names first. Hint does not match any type n
 
 Model: sonnet
 
-Gate (always): user must confirm inferred params before proceeding.
-
 For project-level docs, detect latest version:
 
 ```bash
@@ -156,8 +164,6 @@ Multiple types → [STOP:choose] list with `[1 / 2 / both]`. Both → sequential
 
 Model: sonnet
 
-Gate (always): runs after user confirms params.
-
 Load template using project root from Script Paths (→ SKILL.md):
 
 ```bash
@@ -172,8 +178,6 @@ cat "{project_root}/workflows/templates/{type}.md"
 ## Step 5: Fill
 
 Model: opus
-
-Gate (always): template loaded from Step 4.
 
 ### Create mode
 
@@ -228,9 +232,7 @@ Tech docs are iteratively refined across multiple sprints. Update mode has speci
 
 Model: sonnet
 
-Gate (always): filled content from Step 5 must be previewed before writing.
-
-**Gate**: filled content covers <30% of template sections →
+**Content check**: filled content covers <30% of template sections →
 
 ```
 [write] Insufficient content for {type}, missing:
@@ -275,8 +277,6 @@ Confirms → Step 7. Requests edits → adjust, re-display.
 
 Model: sonnet
 
-Gate (auto): user confirmed preview in Step 6 → enter. User cancelled → abort.
-
 Use the full path resolved in Step 3 (from Path Resolution table).
 
 **Create mode**:
@@ -309,8 +309,6 @@ For tech docs: prepend new entry to §4 迭代记录 (no separate changelog need
 ## Step 8: Index
 
 Model: sonnet
-
-Gate (auto): document written successfully in Step 7 → enter.
 
 Index location: CLAUDE.md → `## Know` → `### 文档索引`.
 
