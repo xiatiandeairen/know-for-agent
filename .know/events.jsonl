@@ -15,3 +15,12 @@
 {"ts":"2026-04-14","event":"created","summary":"Noto Serif SC weight 400 正文太细，用 500 作 base weight"}
 {"ts":"2026-04-14","event":"created","summary":"页面区域术语表 — Masthead/Nav/Featured/Sidebar/TOC/Related 等"}
 {"ts":"2026-04-14","event":"updated","summary":"页面区域术语表 — Masthead/Nav/Featured/Sidebar/TOC/Related 等"}
+{"ts":"2026-04-15","event":"created","summary":"icon-button 上用 overflow:hidden+max-width 会裁掉 SVG — 放子元素上"}
+{"ts":"2026-04-15","event":"created","summary":"SKILL.md 只放常驻上下文（recall/route/decay）— 90%场景只需 recall，管线详情按需加载"}
+{"ts":"2026-04-15","event":"created","summary":"视觉/交互变更必须先讨论形态再实现 — 用户两次要求回退重来"}
+{"ts":"2026-04-15","event":"created","summary":".expandable icon-button 模式 — 默认 28px，hover 展开 .icon-label 子元素"}
+{"ts":"2026-04-15","event":"created","summary":"CSS 重构必须覆盖 .astro scoped style — S1 漏掉 50 处硬编码"}
+{"ts":"2026-04-15","event":"created","summary":"Skill 设计用原则驱动不用规则驱动 — 高风险保守+低风险灵活比机械二元链更稳定实用"}
+{"ts":"2026-04-15","event":"created","summary":"不用隐式信号触发 know — auto memory system prompt 优先级更高会拦截，统一走 /know 显式入口"}
+{"ts":"2026-04-15","event":"created","summary":"Skill 文件路径不能分散定义 — AI 每次拼接结果不同，必须单一来源表"}
+{"ts":"2026-04-15","event":"created","summary":"Recall 完整逻辑必须在 SKILL.md — 被动触发不加载 workflow，精简版 tag/tier/tm 足够"}
