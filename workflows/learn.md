@@ -35,9 +35,7 @@ Model: opus
 
 **Pre-step**: run decay (→ Decay section above).
 
-**Explicit**: `/know learn` → scan full conversation.
-
-**Implicit**: AI detects signals during conversation, batches after current task completes:
+**Trigger**: `/know learn` or routed from `/know` → scan full conversation.
 
 | Signal | Keywords (>=1 must match) | Likely Tag |
 |--------|--------------------------|------------|
@@ -55,6 +53,31 @@ Gate (always): this step always runs.
 **Signal cap**: max 5 signals. >5 detected → rank by keyword match count (more keywords matched = higher rank), take top 5. Mention `{N} more signals dropped (lower confidence)`.
 
 **Default**: no signals → `[learn] No high-value knowledge detected in this conversation.`
+
+### Summary + claim presentation
+
+Before listing claims, output a structured conversation value summary:
+
+```
+[learn] 会话价值摘要：
+本次对话围绕 {主题} 进行了 {活动类型}。
+关键产出：
+- {产出1}
+- {产出2}
+
+检测到 {N} 条可持久化知识：
+1. [{likely_tag}] {summary}
+2. [{likely_tag}] {summary}
+3. [{likely_tag}] {summary}
+
+持久化？ [all / 选编号 / skip]
+```
+
+**Summary rules**:
+- 主题: one phrase describing what the conversation was about
+- 活动类型: e.g. 需求讨论, bug 修复, 架构设计, 代码审查, skill 优化
+- 关键产出: 2-4 bullet points of concrete outcomes (decisions made, files changed, problems solved)
+- Claims: numbered list with likely tag and one-line summary
 
 [STOP:choose] User selects → each claim processed through Steps 2-8 sequentially (one at a time, confirm each before next).
 

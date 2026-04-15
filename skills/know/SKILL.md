@@ -5,14 +5,16 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 # Know
 
-`/know learn` persists knowledge. `/know write` generates structured documents. `/know review` audits existing entries.
+`/know` routes to the right pipeline. `/know learn` persists knowledge. `/know write` generates documents. `/know extract` mines code. `/know review` audits entries.
 
 ## Overview
 
 | Pipeline | Purpose | Output |
 |----------|---------|--------|
+| **Route** | Analyze conversation, dispatch to the right pipeline | → learn / write / extract / review |
 | **Learn** | Persist tacit knowledge that code/git cannot express | `.know/` entries |
 | **Write** | Turn discussion results into versioned documents | `.know/docs/` documents |
+| **Extract** | Mine knowledge from project code/files | `.know/` entries |
 | **Review** | Audit and maintain knowledge entries | Delete / Update / Keep |
 
 ## Definitions
@@ -30,20 +32,39 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 ## Input Normalization
 
+### Direct entry (explicit sub-command)
+
 | User Input | Action |
 |------------|--------|
-| `/know` | Show help: list learn, write, review with one-line descriptions |
 | `/know learn` | Learn pipeline — scan full conversation |
 | `/know learn "quoted text"` | Learn pipeline — treat quoted text as explicit claim |
 | `/know write` | Write pipeline — infer all params from conversation |
 | `/know write <hint>` | Write pipeline — hint assists type/name inference |
-| `/know write prd` or `/know write 需求` | Write pipeline — hint = "prd" |
+| `/know extract` | Extract pipeline — mine code for knowledge |
 | `/know review` | Review pipeline — audit all entries |
 | `/know review <scope>` | Review pipeline — audit entries matching scope |
-| "记住这个" / "save this" / "这个要记下来" | → `/know learn` |
-| "写个文档" / "write a doc" / "整理一下" | → `/know write` |
-| "清理知识" / "review knowledge" / "检查经验" | → `/know review` |
-| `/know` + unrecognized argument | Show help with closest match suggestion |
+
+### Route entry (auto-dispatch)
+
+| User Input | Action |
+|------------|--------|
+| `/know` | Route pipeline — scan conversation, present findings, user chooses |
+| `/know {text}` | Route with fast path — keyword match first, fallback to scan |
+
+### Fast path keywords
+
+Fast path matches keywords in `{text}` and dispatches immediately without user confirmation.
+
+| Pipeline | Keywords |
+|----------|----------|
+| learn | 沉淀, 经验, 总结, 记住, save, persist, remember, 教训, lesson |
+| write | prd, tech, roadmap, arch, 文档, doc, 写文档, ops, schema, decision |
+| extract | 提取, extract, 扫描, scan, 挖掘, mine |
+| review | review, 审查, 清理, 检查, audit, cleanup |
+
+**Match rule**: case-insensitive substring match against `{text}`. First match wins. No match → full route (scan + present).
+
+**Conflict**: `{text}` matches keywords from ≥2 pipelines → full route (scan + present).
 
 ## Default Behaviors
 
@@ -54,7 +75,7 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 | Conversation has <3 substantive messages when `/know write` | Warn insufficient context, ask user to point to specific content |
 | `/know learn` finds 0 signals | Output `[learn] No high-value knowledge detected in this conversation.` |
 | `/know review` with empty index | Output `[review] No entries to review.` |
-| Implicit signal detected during task | Batch signals, propose after current task completes. Never interrupt mid-task. |
+| `/know` route scan finds nothing | Output `[know] No actionable findings in this conversation.` Offer: `A) review B) extract` |
 | User gives skip intent (继续/ok/go/好/可以) | Accept current output, proceed to next step |
 | User gives discussion intent (question/objection/edit) | Stay at current step, address feedback |
 | Scope inference fails | Fallback to `"project"` |
@@ -92,11 +113,12 @@ Every Step declares a gate using one of:
 
 | Marker | Pipeline | When |
 |--------|----------|------|
-| `[suggest-learn]` | learn | Implicit signal batch proposal |
-| `[learn]` | learn | Entry pending confirmation |
+| `[know]` | route | Conversation analysis / dispatch |
+| `[learn]` | learn | Entry pending confirmation / summary |
 | `[persisted]` | learn | Write complete |
 | `[conflict]` | learn | Duplicate/contradictory entry found |
-| `[skipped]` | learn | Route interception DROP |
+| `[skipped]` | learn, extract | Filter DROP |
+| `[extract]` | extract | Code knowledge extraction status |
 | `[write]` | write | Status / parameter confirmation / preview |
 | `[written]` | write | Document write complete |
 | `[index]` | write | CLAUDE.md index updated |
@@ -236,13 +258,36 @@ bash "$KNOW_CTL" query "{scope}"
 User input
   │
   ▼
-[Input Normalization] → match against table, resolve to pipeline
+[Input Normalization] → match against tables
   │
-  ├─ /know learn ──→ Read workflows/learn.md → execute 8-step pipeline
-  ├─ /know write ──→ Read workflows/write.md → execute 8-step pipeline
-  ├─ /know review ─→ Read workflows/review.md → execute 3-step pipeline
-  ├─ /know ────────→ Show help
-  └─ implicit signal → Batch, propose after current task, on consent → learn pipeline
+  ├─ /know learn ───→ Read workflows/learn.md → execute 8-step pipeline
+  ├─ /know write ───→ Read workflows/write.md → execute 8-step pipeline
+  ├─ /know extract ─→ Read workflows/extract.md → execute 6-step pipeline
+  ├─ /know review ──→ Read workflows/review.md → execute 3-step pipeline
+  └─ /know [text] ──→ Route (fast path → keyword match → dispatch)
+                       (no match → scan conversation → present → user chooses)
+```
+
+### Route
+
+```
+/know [text]
+  │
+  ├─ [Fast Path] keyword match → dispatch immediately
+  │
+  └─ [Full Route] scan conversation → present findings → [STOP:choose]
+       │
+       ▼
+     [know] 对话分析：
+     - {N} 条可持久化知识 (learn)
+     - {N} 个文档可整理 (write)
+     - {N} 个文件可提取 (extract)
+     
+     A) learn  B) write  C) extract  D) review  E) 多选
+       │
+       ▼
+     [Dispatch] → load corresponding workflow
+     Multi-select → execute in order: learn → extract → write → review
 ```
 
 ### Learn Pipeline
@@ -264,6 +309,16 @@ Full spec: `workflows/learn.md` (load on trigger)
 ```
 
 Full spec: `workflows/write.md` (load on trigger)
+
+### Extract Pipeline
+
+```
+1.Scope → 2.Scan → 3.Extract → 4.Filter → 5.Confirm → 6.Write
+                                 ↓DROP      ↓cancel
+                                 [skipped]  exit
+```
+
+Full spec: `workflows/extract.md` (load on trigger)
 
 ### Review Pipeline
 
