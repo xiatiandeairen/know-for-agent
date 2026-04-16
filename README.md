@@ -29,6 +29,7 @@ AI coding agents forget everything between sessions. They repeat the same mistak
 | AI makes the same architectural mistake for the 3rd time | `[recall]` fires before the mistake happens |
 | "Why did we choose X over Y?" — no one remembers | Rationale entry retrieved automatically by scope |
 | Design discussion results vanish after the session | Structured docs persisted in `.know/docs/` |
+| Generated docs are thin and inconsistent | Template + checklist + update rules enforce quality |
 
 ## Install
 
@@ -50,21 +51,38 @@ Your `.know/` project data is preserved. Delete it manually if needed.
 
 ## Usage
 
-Three commands. That's it.
-
 ```bash
 /know learn     # Extract and persist knowledge from the current conversation
 /know write     # Turn discussion into a structured, versioned document
+/know extract   # Mine knowledge from source code
 /know review    # Audit stored knowledge — delete stale, update outdated
+/know report    # 6-section health diagnostic of your knowledge base
 ```
 
 ### How Recall Works
 
 Know doesn't just store knowledge — it **uses** it. Before your agent modifies code, it automatically queries relevant entries by module scope:
 
-- **`active:defensive`** — blocks operations that would violate known constraints
+- **`active:defensive`** — warns or blocks operations that would violate known constraints
 - **`active:directive`** — suggests proven approaches before the agent guesses
 - **`passive`** — surfaces context only when the agent is about to repeat a known mistake
+
+Every recall query is logged to `events.jsonl` for observability.
+
+### Document Quality Framework
+
+Every document type has a **3-file quality chain**:
+
+| File | Purpose |
+|------|---------|
+| `{type}.md` | Structure template with inline field specs and ❌/✅ examples |
+| `{type}-checklist.md` | Full field specification (info, format, constraints, data confidence) |
+| `{type}-update.md` | Change rules per field (immutable, append-only, data-refresh, updatable) |
+
+Additional quality infrastructure:
+- **Sufficiency gate** — question-based content check blocks thin documents for high-risk types (prd, tech, arch, schema, decision, ui). Insufficient content → downgrade to parent document instead of creating garbage.
+- **Diagram checklist** — 8 diagram types with when→action triggers (data flow, sequence, ER, state, etc.)
+- **Data confidence rules** — every number must cite its source (measured, estimated, target, or no-data). Fabricating precise numbers is prohibited.
 
 ## What Gets Stored
 
@@ -88,24 +106,50 @@ Every entry is scoped (by module), tiered (critical vs memo), and automatically 
 | Structure | Flat text | Key-value | **Tagged, scoped, tiered** |
 | Retrieval | Always loaded | Always loaded | **On-demand by scope** |
 | Lifecycle | Manual | Manual | **Auto-decay + metrics** |
+| Documents | None | None | **11 types with quality framework** |
 | Limit | ~200 lines | ~200 lines | **No hard limit** |
+
+## Document Types
+
+11 types, each with template + checklist + update rules:
+
+| Type | Level | Description |
+|------|-------|-------------|
+| roadmap | Project | Product vision, version planning, milestones |
+| milestone | Project | Goal/plan/tracking/results (plan immutable after start) |
+| capabilities | Project | Cross-version capability inventory |
+| ops | Project | Release strategy, feedback SLA, incident playbook |
+| marketing | Project | Audience, messaging, channels, timeline |
+| prd | Requirement | Problem, users, hypothesis, acceptance criteria |
+| tech | Requirement | Constraints, architecture, decisions, iteration log |
+| arch | Directory | Module structure, data flow, design decisions |
+| schema | Directory | Interface contracts, data models, error codes |
+| decision | Directory | Options comparison, impact analysis, status tracking |
+| ui | Directory | Layout, interaction flows, component states |
 
 ## Storage
 
 ```
 .know/
-├── index.jsonl          # All entries — filter with jq
-├── entries/             # Detail files (critical tier only)
+├── index.jsonl              # Knowledge entries (12 fields per line)
+├── entries/                 # Detail files (critical tier only)
 │   ├── rationale/
 │   ├── constraint/
 │   ├── pitfall/
 │   ├── concept/
 │   └── reference/
-├── metrics.json         # Quality metrics
-├── events.jsonl         # Lifecycle events
-└── docs/                # Structured documents (9 templates)
-    ├── v{n}/            #   roadmap, decision, arch, ops, marketing
-    └── requirements/    #   prd, tech, ui, schema
+├── events.jsonl             # Lifecycle + recall query events
+├── metrics.json             # Aggregated counters
+└── docs/                    # Structured documents
+    ├── roadmap.md           #   Product roadmap
+    ├── capabilities.md      #   Capability inventory
+    ├── ops.md               #   Operations playbook
+    ├── marketing.md         #   Marketing plan
+    ├── arch/{topic}.md      #   Architecture per module
+    ├── schema/{topic}.md    #   Interface specs per topic
+    ├── decision/{topic}.md  #   Decision records per topic
+    ├── milestones/m{n}.md   #   Milestone details
+    └── requirements/{req}/  #   prd.md + tech.md per requirement
 ```
 
 ## Contributing
