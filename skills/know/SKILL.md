@@ -85,6 +85,12 @@ Scope Inference → Query → Rank → Select (max 3) → Act
 bash "$KNOW_CTL" query "{scope}"
 ```
 
+**Record query** (immediately after Query, before Rank):
+```bash
+# [RUN]
+bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}"
+```
+
 **Rank**: scope relevance → `active:defensive` > `active:directive` > `passive` → tier 1 before tier 2.
 
 **Select**: max 3 entries. 0 relevant → show nothing, no output.

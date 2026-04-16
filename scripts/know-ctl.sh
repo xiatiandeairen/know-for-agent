@@ -325,6 +325,20 @@ Write — 文档跟上了吗？
   文档覆盖:  $prd_count/$milestone_count ($doc_pct%)
 EOF
 
+    # --- Recall Run Panel ---
+    if [ -f "$EVENTS_FILE" ] && grep -q '"recall_query"' "$EVENTS_FILE" 2>/dev/null; then
+        local rq_total=0 rq_hit=0 rq_empty=0 rq_hit_pct=0 rq_empty_pct=0 rq_scopes=0
+        rq_total=$(grep -c '"recall_query"' "$EVENTS_FILE" 2>/dev/null || echo 0)
+        rq_hit=$(jq -s '[.[] | select(.event=="recall_query" and .matched>0)] | length' "$EVENTS_FILE" 2>/dev/null || echo 0)
+        rq_empty=$((rq_total - rq_hit))
+        rq_hit_pct=$((rq_hit * 100 / rq_total))
+        rq_empty_pct=$((rq_empty * 100 / rq_total))
+        rq_scopes=$(jq -s '[.[] | select(.event=="recall_query") | .scope] | unique | length' "$EVENTS_FILE" 2>/dev/null || echo 0)
+        printf '\nRecall Run\n'
+        printf '  queries:   %s (hit %s/%s%%, empty %s/%s%%)\n' "$rq_total" "$rq_hit" "$rq_hit_pct" "$rq_empty" "$rq_empty_pct"
+        printf '  scopes:    %s queried\n' "$rq_scopes"
+    fi
+
     # --- Suggestions ---
     local suggestions=()
     if [ "$total" -gt 0 ] && [ "$hit_pct" -lt 50 ]; then
@@ -354,6 +368,16 @@ EOF
             echo "• $s"
         done
     fi
+}
+
+cmd_recall_log() {
+    # recall-log <scope> <matched> — record recall query event
+    local scope="${1:?Usage: recall-log <scope> <matched_count>}"
+    local matched="${2:?Usage: recall-log <scope> <matched_count>}"
+    [ -f "$EVENTS_FILE" ] || touch "$EVENTS_FILE"
+    local ts
+    ts=$(date +%Y-%m-%d)
+    printf '{"ts":"%s","event":"recall_query","scope":"%s","matched":%s}\n' "$ts" "$scope" "$matched" >> "$EVENTS_FILE"
 }
 
 cmd_history() {
@@ -588,6 +612,7 @@ case "$CMD" in
     init)    cmd_init ;;
     self-test) cmd_self_test ;;
     check) cmd_check ;;
+    recall-log) cmd_recall_log "$@" ;;
     help|*)
         cat <<'EOF'
 know-ctl.sh — CLI for .know/ index operations
@@ -607,6 +632,7 @@ Commands:
   history <keyword>                  Show lifecycle events for matching entry
   self-test                         Run automated tests in temp directory
   check                             Check template-document consistency
+  recall-log <scope> <matched>       Record recall query event to events.jsonl
 EOF
         ;;
 esac
