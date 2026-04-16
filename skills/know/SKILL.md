@@ -9,6 +9,8 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 2 always-on systems: **recall** (remind before code changes), **decay** (expire stale entries).
 
+1 report: **report** (knowledge base health — 6 section diagnostic).
+
 ## Principles
 
 **High-risk = conservative**: overwrite/delete knowledge, assign critical, recall block, rewrite documents, write unconfirmed as fact → require evidence + user confirmation.
@@ -32,6 +34,7 @@ Semantic understanding recommends; explicit signals + user intent decide. Rules 
 | `/know extract` | Extract — mine code | `workflows/extract.md` |
 | `/know review` | Review — audit all entries | `workflows/review.md` |
 | `/know review <scope>` | Review — audit matching scope | `workflows/review.md` |
+| `/know report` | Report — knowledge base health report | inline (no workflow file) |
 
 ### Auto-dispatch
 
@@ -43,6 +46,7 @@ Semantic understanding recommends; explicit signals + user intent decide. Rules 
 | write | prd, tech, roadmap, arch, capabilities, ui, 文档, doc, 写文档, ops, marketing, schema, decision |
 | extract | 提取, extract, 扫描, scan, 挖掘, mine |
 | review | review, 审查, 清理, 检查, audit, cleanup |
+| report | report, 报告, 健康, health, status, 状态, 概况 |
 
 Case-insensitive substring match. First match wins.
 
@@ -132,6 +136,87 @@ bash "$KNOW_CTL" decay
 | tier=1 (critical) + revs > 3 | Demote to memo (unstable) |
 
 Output: `[decay] {N} deleted, {M} demoted` if any action taken. Silent if none.
+
+---
+
+## Report
+
+Triggered by `/know report`. No workflow file — runs inline commands and assembles output.
+
+### Data Collection
+
+```bash
+# [RUN] collect all data in one pass
+bash "$KNOW_CTL" metrics
+bash "$KNOW_CTL" stats
+```
+
+Then gather additional data with inline commands:
+
+```bash
+# [RUN] recent activity (7 days)
+jq -s --arg since "$(date -v-7d +%Y-%m-%d 2>/dev/null || date -d '7 days ago' +%Y-%m-%d)" '[.[] | select(.ts >= $since)]' "$KNOW_DIR/events.jsonl" 2>/dev/null | jq '{created: [.[] | select(.event=="created")] | length, hit: [.[] | select(.event=="hit")] | length, decay: [.[] | select(.event=="decay_delete" or .event=="decay_demote")] | length, recall_query: [.[] | select(.event=="recall_query")] | length}'
+```
+
+```bash
+# [RUN] top never-hit entries
+jq -r 'select(.hits == 0) | "\(.scope) | \(.summary[0:60])"' "$KNOW_DIR/index.jsonl" | head -5
+```
+
+```bash
+# [RUN] document inventory
+find "$KNOW_DIR/docs" -name "*.md" -not -path "*/milestones/*" | wc -l
+```
+
+### Output Format
+
+Assemble into 6 sections. Use `[report]` marker.
+
+```
+[report] know health report
+
+--- 1. Overview ---
+  Entries:    {total} (tier1: {n}, tier2: {n})
+  Tags:       {tag1} {n}, {tag2} {n}, ...
+  Scopes:     {n} ({largest}: {n} entries)
+  Last 7d:    +{created} new, -{decayed} decayed, -{deleted} deleted
+
+--- 2. Knowledge Value ---
+  Hit rate:   {hit_count}/{total} ({pct}%)
+  Last hit:   "{summary}" — {hits} hits
+  Never hit:  {count} entries (top 3: ...)
+
+--- 3. Recall ---
+  Defenses:   {defensive_hits}
+  Coverage:   {queried}/{total_scopes} ({pct}%)
+  Queries:    {rq_total} (hit {rq_hit}/{pct}%, empty {rq_empty}/{pct}%)
+  Blind spots: {scopes never queried}
+
+--- 4. Documents ---
+  Types:      {covered}/{total} ({list of covered types})
+  Files:      {count}
+  Missing:    {uncovered types}
+
+--- 5. Trend (7d vs prior) ---
+  New:        {recent} vs {prior}
+  Hits:       {recent} vs {prior}
+  Queries:    {recent} vs {prior}
+  Direction:  {growing/stable/declining} — {one-line interpretation}
+
+--- 6. Actions ---
+  {priority}. {action description}
+```
+
+### Action Generation Rules
+
+| Condition | Priority | Action |
+|-----------|----------|--------|
+| hit rate < 10% | high | "{n} entries never hit — run /know review" |
+| recall queries = 0 for > 7 days | high | "recall not triggering — check SKILL.md recall section" |
+| recall empty rate > 50% | medium | "recall matching too narrow — check scope rules" |
+| uncovered doc types with existing data | medium | "missing {types} — run /know write" |
+| no new entries in 7 days | low | "no recent knowledge — run /know learn or /know extract" |
+| all healthy | — | "all indicators healthy" |
 
 ---
 
@@ -225,6 +310,7 @@ Flow markers never appear in user-facing output.
 | `[progress]` | Parent document updated |
 | `[recall]` | Knowledge recalled before edit |
 | `[review]` | Review pipeline status |
+| `[report]` | Health report output |
 | `[decay]` | Entries deleted or demoted |
 | `[error]` | Unrecoverable error |
 

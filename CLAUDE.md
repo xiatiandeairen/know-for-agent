@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-know — Project knowledge compiler for AI agents. A Claude Code plugin that persists tacit knowledge and generates structured documents. Run `/know` for help. Docs in `.know/docs/`.
+know — Project knowledge compiler for AI agents. A Claude Code plugin that persists tacit knowledge and generates structured documents. Run `/know` for help, `/know report` for health diagnostics. Docs in `.know/docs/`.
 
 ## Architecture
 
