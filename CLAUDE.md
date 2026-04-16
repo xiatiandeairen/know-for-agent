@@ -15,7 +15,6 @@ workflows/                     ← Pipeline definitions (loaded on demand by SKI
   write.md                       8-step document authoring (includes sufficiency gate + validate)
   extract.md                     Code mining pipeline
   review.md                      Entry audit pipeline
-  refine.md                      Skill text optimization
   templates/                   ← Document templates + quality infrastructure
     {type}.md                    Structure template (11 types)
     {type}-checklist.md          Field specs (概览表 + 逐字段定义块)

@@ -5,7 +5,7 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 # Know
 
-5 pipelines: **learn** (persist knowledge), **write** (generate documents), **extract** (mine code), **review** (audit entries), **refine** (optimize skill text). Each loads its workflow file on demand.
+4 pipelines: **learn** (persist knowledge), **write** (generate documents), **extract** (mine code), **review** (audit entries). Each loads its workflow file on demand.
 
 2 always-on systems: **recall** (remind before code changes), **decay** (expire stale entries).
 
@@ -32,7 +32,6 @@ Semantic understanding recommends; explicit signals + user intent decide. Rules 
 | `/know extract` | Extract — mine code | `workflows/extract.md` |
 | `/know review` | Review — audit all entries | `workflows/review.md` |
 | `/know review <scope>` | Review — audit matching scope | `workflows/review.md` |
-| `/know refine` | Refine — optimize skill text | `workflows/refine.md` |
 
 ### Auto-dispatch
 
@@ -44,7 +43,6 @@ Semantic understanding recommends; explicit signals + user intent decide. Rules 
 | write | prd, tech, roadmap, arch, capabilities, ui, 文档, doc, 写文档, ops, marketing, schema, decision |
 | extract | 提取, extract, 扫描, scan, 挖掘, mine |
 | review | review, 审查, 清理, 检查, audit, cleanup |
-| refine | refine, polish, 优化, 润色, 上线版, prompt |
 
 Case-insensitive substring match. First match wins.
 
@@ -222,7 +220,6 @@ Flow markers never appear in user-facing output.
 | `[recall]` | Knowledge recalled before edit |
 | `[review]` | Review pipeline status |
 | `[decay]` | Entries deleted or demoted |
-| `[refine]` | Skill text optimized |
 | `[error]` | Unrecoverable error |
 
 **Style rules**:
