@@ -342,8 +342,8 @@ If user is repeatedly uncertain → suggest downgrading to memo.
 Model: sonnet
 
 ```bash
-# [RUN]
-bash "$KNOW_CTL" append '{"tag":"...","tier":...,"scope":"...","tm":"...","summary":"...","path":"...","hits":0,"revs":0,"last_hit":null,"source":"learn","created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}'
+# [RUN] append accepts exactly 1 argument: a complete JSON string. No positional args.
+TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append '{"tag":"{tag}","tier":{tier},"scope":"{scope}","tm":"{tm}","summary":"{summary}","path":{path_or_null},"hits":0,"revs":0,"last_hit":null,"source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"}'
 ```
 
 **Slug**: summary → 2-4 English keywords → hyphenated lowercase → `[a-z0-9-]` → max 50 chars.

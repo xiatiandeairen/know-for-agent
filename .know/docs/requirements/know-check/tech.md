@@ -1,54 +1,50 @@
 # know check 技术方案
 
-<!-- 核心问题: 怎么实现、做到哪了？ -->
-
 ## 1. 背景
 
-PRD 定义 3 个检查维度：section 数量、section 名称、CLAUDE.md 索引完整性。只检查结构不检查内容。
+### 技术约束
+
+- 模版结构: section 编号可能因插入而偏移，匹配只能基于标题文本不能依赖编号
+- 检查范围: 只验证文档结构（section 数量、名称、索引完整性），不检查内容质量
+- 模版推断: 文件名到模版的映射必须覆盖所有已有模版类型（prd/tech/roadmap 等）
+
+### 前置依赖
+
+- workflows/templates/ 下各模版文件 — 已完成
+- know-ctl.sh dispatch 机制 — 已完成
 
 ## 2. 方案
 
-### 文档类型推断
+### 文件/模块结构
 
-从文件路径自动推断对应模版：
+| 文件/模块 | 职责 |
+|-----------|------|
+| scripts/know-ctl.sh `cmd_check` | 检查入口，扫描 .know/docs/ 并逐文件比对模版结构 |
 
-| 路径模式 | 模版 |
-|---------|------|
-| `*/prd.md` | `workflows/templates/prd.md` |
-| `*/tech.md` | `workflows/templates/tech.md` |
-| `*/roadmap.md` | `workflows/templates/roadmap.md` |
-| 其他类型同理 | 文件名去 .md 匹配模版 |
+### 核心流程
 
-### 检查逻辑
+1. `cmd_check` → 扫描 `.know/docs/` 下所有 `.md` 文件 → 待检查文件列表
+2. 路径推断 → 从文件名（prd.md/tech.md 等）映射到 `workflows/templates/` 对应模版 → 模版路径
+3. section 提取 → `grep '^## '` 提取文档和模版的标题列表，忽略编号只比较标题文本 → 差异报告（多出/缺少）
+4. 索引检查 → `grep` 搜索 CLAUDE.md 中是否包含各文档路径 → 未索引文件列表
 
-```bash
-cmd_check() {
-    # 1. 扫描 .know/docs/ 下所有 .md 文件
-    # 2. 每个文件推断对应模版
-    # 3. 比较 section 结构
-    # 4. 检查 CLAUDE.md 索引覆盖
-}
-```
+### 数据结构
 
-Section 提取：`grep -E '^## [0-9]+\.' file | sed 's/^## [0-9]+\. //'` 得到标题列表。
-
-比较：模版标题集合 vs 文档标题集合，输出差异（多出/缺少）。
-
-### 文件变更
-
-| 操作 | 文件 |
-|------|------|
-| modify | scripts/know-ctl.sh — 新增 cmd_check + dispatch |
+| 字段 | 类型 | 用途 |
+|------|------|------|
+| 路径模式 | glob | 文件名到模版的映射规则 |
+| section 标题 | string[] | 从 `## N. 标题` 中提取的纯标题文本 |
 
 ## 3. 关键决策
 
 | 决策 | 选择 | 为什么 |
 |------|------|--------|
-| section 匹配 | 只比标题，忽略编号 | 编号可能因插入新 section 而偏移 |
-| 索引检查 | 用 grep 搜 CLAUDE.md 中的文件路径 | 简单可靠 |
+| section 匹配策略 | 只比标题文本，忽略编号 | 精确编号匹配会因插入新 section 导致误报，标题文本稳定 |
+| 索引检查方式 | grep 搜索 CLAUDE.md 中的文件路径 | 正则解析 markdown 链接过于复杂且脆弱，grep 路径字符串简单可靠 |
+| 模版推断方式 | 文件名去 .md 后缀匹配模版目录 | 基于目录结构推断需额外约定，文件名天然携带类型信息 |
 
 ## 4. 迭代记录
 
 ### 2026-04-14
 
-tech 方案设计完成。
+- tech 方案设计完成（覆盖 3 个检查维度：section 数量、section 名称、CLAUDE.md 索引完整性）

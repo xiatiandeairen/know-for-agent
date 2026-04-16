@@ -1,104 +1,56 @@
 # know metrics 技术方案
 
-<!-- 核心问题: 怎么实现、做到哪了？ -->
-
 ## 1. 背景
 
-PRD 定义了 6 个场景驱动指标（learn 2 + recall 2 + write 2）。4 个可从现有数据实时计算，2 个需要新增记录点。`know-ctl metrics` 展示全部 6 个，`/know review` 消费其中 3 个（命中率逐条、衰减率、覆盖率）。
+### 技术约束
 
-技术约束：
-- know-ctl.sh 是纯 bash + jq，不引入新依赖
-- 数据必须 git 可追踪
-- 指标实时计算，不缓存
+- know-ctl.sh: 纯 bash + jq，不引入新依赖
+- 数据存储: 必须 git 可追踪（纯文本文件）
+- 指标计算: 实时计算，不缓存中间结果
+- 数据收集: 嵌入现有命令内部，不依赖 AI 主动调用
+
+### 前置依赖
+
+- know-ctl.sh append/decay/query 命令 — 已完成
+- index.jsonl（含 hits 字段） — 已完成
+- CLAUDE.md 文档索引（含 `⚠ needs update` 标记） — 已完成
 
 ## 2. 方案
 
-### 新增存储：`.know/metrics.json`
+### 文件/模块结构
 
-```json
-{
-  "total_created": 0,
-  "total_decayed": 0,
-  "queried_scopes": []
-}
-```
+- `scripts/know-ctl.sh` — CLI 入口，新增 cmd_metrics 函数；cmd_append/cmd_decay/cmd_query 内嵌数据收集逻辑
+- `.know/metrics.json` — 辅助统计数据（total_created, total_decayed, queried_scopes）
+- `.know/index.jsonl` — 知识条目索引，提供 hits/scope/tm 等字段供指标计算
+- `workflows/review.md` — review 流程 Step 2 消费 3 个指标（命中率、衰减率、覆盖率）
 
-- 首次调用自动创建，`total_created` 校准为当前条目数
-- `total_decayed` 记录实际衰减（delete + demote）次数
-- `queried_scopes` 去重数组，只记录 scope 名
+### 核心流程
 
-### 数据收集（嵌入现有命令，无需 AI 记住调用）
+1. 数据收集（被动）：cmd_append 执行时 total_created += 1 → cmd_decay 执行时 total_decayed += (deleted + demoted) → cmd_query 执行时 queried_scopes 追加去重
+2. `know-ctl metrics` 调用时 → 读取 index.jsonl + metrics.json + CLAUDE.md + 文件系统 → 实时计算 6 个指标
+3. 计算结果按 3 组输出（Learn: 命中率+衰减率 / Recall: 防御次数+覆盖率 / Write: 过期文档数+文档覆盖率） → 格式化输出到 stdout
 
-| 收集点 | 嵌入位置 | 动作 |
-|--------|---------|------|
-| 创建计数 | `cmd_append` 内部 | `total_created += 1` |
-| 衰减计数 | `cmd_decay` 内部 | `total_decayed += (deleted + demoted)` |
-| 查询 scope | `cmd_query` 内部 | `queried_scopes` 追加去重 |
+### 数据结构
 
-### `cmd_metrics` 计算逻辑
-
-| 指标 | 计算 | 数据源 |
-|------|------|--------|
-| 命中率 | hits > 0 的条目数 / 总条目数 | index.jsonl |
-| 衰减率 | total_decayed / total_created | metrics.json |
-| 防御次数 | tm=active:defensive 条目的 hits 总和 | index.jsonl |
-| 覆盖率 | queried_scopes 数 / index 中唯一 scope 数 | metrics.json + index.jsonl |
-| 过期文档数 | CLAUDE.md 中 `⚠ needs update` 出现次数 | CLAUDE.md |
-| 文档覆盖率 | `.know/docs/requirements/*/prd.md` 存在数 / 最新 roadmap 里程碑行数 | 文件系统 + roadmap |
-
-输出格式：
-
-```
-=== know metrics ===
-
-Learn — 存的有用吗？
-  命中率:    2/4 (50%)
-  衰减率:    1/5 (20%)
-
-Recall — 帮我避错了吗？
-  防御次数:  3
-  覆盖率:    2/4 (50%)
-
-Write — 文档跟上了吗？
-  过期文档:  1
-  文档覆盖:  2/4 (50%)
-```
-
-边界情况：
-- index.jsonl 不存在 → 全部指标显示 0
-- metrics.json 不存在 → 自动创建，total_created = 当前条目数
-- CLAUDE.md 不存在 → 过期文档 0
-- total_created = 0 → 衰减率显示 0%
-- 最新 roadmap 无里程碑表 → 文档覆盖 0/0
-
-### review 流程变更
-
-Step 2 Display 前增加摘要：
-```
-[review] 衰减率 20% | 覆盖率 50%
-```
-
-Step 2 Display 表格增加 ⚠ 列：
-- `hits=0` + age > 7d → 标注 `hits=0`
-
-### 文件变更
-
-| 操作 | 文件 | 说明 |
+| 字段 | 类型 | 用途 |
 |------|------|------|
-| modify | scripts/know-ctl.sh | 新增 cmd_metrics，append/decay/query 内嵌数据收集 |
-| modify | workflows/review.md | Step 2 增加摘要 + ⚠ 列 |
+| total_created | number | 累计创建条目数，首次初始化为当前条目数 |
+| total_decayed | number | 累计衰减（delete + demote）次数 |
+| queried_scopes | string[] | 去重的查询 scope 数组 |
 
 ## 3. 关键决策
 
 | 决策 | 选择 | 为什么 |
 |------|------|--------|
-| 数据收集方式 | 嵌入现有命令 | 不依赖 AI 记住调用，不会丢数据 |
-| 衰减率计算 | total_decayed / total_created | 手动删除不计入衰减，只记录 decay 命令的实际动作 |
-| 文档覆盖率 | 统计 prd.md 文件存在数 | 不解析 markdown 表格，避免格式脆弱性 |
-| 独立命令 vs 嵌入 | 取消 record_created/record_query | 合并进 append/query，减少调用链 |
+| 数据收集方式 | 嵌入现有命令内部 | 独立 record_created/record_query 命令依赖 AI 主动调用容易遗漏，嵌入命令内部保证不丢数据 |
+| 衰减率分母 | total_created（累计创建数） | 用当前存活条目数做分母会因删除条目而膨胀衰减率，累计创建数反映真实比例 |
+| 文档覆盖率计算 | 统计 prd.md 文件是否存在 | 解析 markdown 表格内容脆弱易断，文件存在性检查简单可靠 |
+| 指标存储方式 | 实时计算，不缓存 | 缓存需要失效策略且可能与源数据不一致，实时计算虽慢但保证准确 |
 
 ## 4. 迭代记录
 
 ### 2026-04-13
 
-tech 方案 v2：修正 5 个设计问题（衰减率误算、文档覆盖率脆弱、冗余命令、调用时机依赖 AI、初始化精度）。数据收集改为嵌入现有命令，metrics.json 增加 total_decayed 字段。
+- tech 方案 v2（修正 5 个设计问题：衰减率误算、文档覆盖率脆弱、冗余命令、调用时机依赖 AI、初始化精度）
+- 数据收集改为嵌入现有命令（合并 record_created/record_query 进 append/query）
+- metrics.json 增加 total_decayed 字段

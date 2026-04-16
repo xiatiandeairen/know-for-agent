@@ -2,8 +2,8 @@
 
 ## Progress
 
-Steps: 7
-Names: Resolve, Confirm, Template, Fill, Write, Validate, Progress
+Steps: 8
+Names: Resolve, Sufficiency, Confirm, Template, Fill, Write, Validate, Progress
 
 Shared definitions (output blocks, paths) → SKILL.md.
 
@@ -105,6 +105,36 @@ Roadmap is always a single file. New version = `mode=update` (append `### v{n+1}
 **Missing parent**: prd without roadmap → proceed, note absence. tech without prd → [STOP:choose] `A) Continue without parent  B) Create PRD first`
 
 **PRD milestone association**: infer which roadmap milestone the PRD belongs to from conversation context. Ambiguous → ask user to specify milestone number.
+
+---
+
+## Step 1.5: Sufficiency Gate
+
+Model: sonnet
+
+Gate: document type is prd/tech/arch/schema/decision/ui (high-risk types). Other types → skip.
+
+```bash
+# [RUN]
+cat "{project_root}/workflows/templates/sufficiency-gate.md"
+```
+
+Find the question group for this document type. Answer each question yes/no based on conversation content.
+
+| Result | Condition | Action |
+|--------|-----------|--------|
+| 充足 | 全部 yes | 正常继续 Step 2 |
+| 降级 | 任一 no | 提示降级选项 [STOP:choose] |
+| 拒绝 | 全部 no | 提示补充信息 |
+
+```
+[write] 充分性检查: {type}
+- ✅ Q1: {问题} — {判定依据}
+- ❌ Q2: {问题} — {不满足原因}
+建议: A) 补充信息后重新创建  B) 降级为 {降级目标}
+```
+
+User chooses B → switch type/path to degraded target, re-enter Step 1 with new type.
 
 ---
 
@@ -282,6 +312,12 @@ Validate the written document against the checklist:
    - Cannot estimate → "无数据（{reason}）"
    - **Fabricated precise numbers with no source → FAIL**
 4. **Completeness**: non-optional fields are filled (not placeholder text)
+5. **Diagrams**: if checklist references `diagram-checklist.md`, load it and check each when→action trigger against the document content. Missing diagram for a satisfied trigger → FAIL
+
+```bash
+# [RUN] only if checklist contains "diagram-checklist.md" reference
+cat "{project_root}/workflows/templates/diagram-checklist.md"
+```
 
 **Any failure** → list violations, fix in the document, re-preview changed sections.
 

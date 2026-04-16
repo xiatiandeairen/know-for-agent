@@ -1,111 +1,71 @@
 # /know learn 技术方案
 
-<!-- 核心问题: 怎么实现、做到哪了？ -->
-
 ## 1. 背景
 
-know 插件需要将对话中产生的隐性知识持久化为结构化条目，供未来会话加载使用。learn 管线是知识的入口，负责信号检测、质量过滤、结构化和持久化。
+### 技术约束
+
+- know-ctl.sh: 纯 bash + jq 实现，不引入额外依赖
+- JSONL 索引: 每条目 10 字段定长结构，summary ≤80 chars
+- 详情文件: Markdown 格式，存储于 entries/{tag}/{slug}.md，git 可追踪
+- 信号检测: 仅关键词匹配，不使用 LLM 做触发判断
+
+### 前置依赖
+
+- know-ctl.sh append 命令 — 已完成
+- know-ctl.sh search 命令 — 已完成
+- index.jsonl schema（10 字段） — 已完成
 
 ## 2. 方案
 
-### 整体结构
+### 文件/模块结构
 
-```
-skills/know/SKILL.md                     ← 意图路由，/know learn 入口
-workflows/learn.md                       ← 8 步工作流
-scripts/know-ctl.sh                      ← append/search 命令
-.know/index.jsonl                   ← JSONL 索引
-.know/entries/{tag}/{slug}.md       ← 详情文件（tier 1）
-```
+- `skills/know/SKILL.md` — 意图路由，/know learn 入口
+- `workflows/learn.md` — 8 步工作流定义（信号检测到写入的完整管线）
+- `scripts/know-ctl.sh` — CLI 入口，提供 append/search 等子命令
+- `.know/index.jsonl` — 知识条目 JSONL 索引
+- `.know/entries/{tag}/{slug}.md` — tier 1 条目的详情文件
 
-### 工作流（8 步）
+### 核心流程
 
-```
-/know learn (或隐式信号)
-  │
-  ├─ 1. Trigger          显式调用 / 6 种隐式信号检测
-  ├─ 2. Claim Extract    对话 → 最小知识单元，独立可检索
-  ├─ 3. Route Intercept  5 条 fast-DROP：可推导 / CLAUDE.md / memory / 无结论 / 一次性
-  ├─ 4. Tier Assess      Q1 缺失影响 × Q2 复现频率 → critical(T1) / memo(T2) / DROP
-  ├─ 5. Entry Generate   tag + scope + tm + summary(≤80ch) + detail(.md)
-  ├─ 6. Conflict Detect  关键词预筛(know-ctl search) + LLM 语义判断
-  ├─ 7. Confirm          展示完整条目，用户确认/编辑/取消
-  └─ 8. Write            know-ctl append + 写入 entries/{tag}/{slug}.md
-```
+1. 用户触发 `/know learn`（或由 6 种隐式信号检测启动） → Trigger → 进入管线
+2. Claim Extract 从对话中提取最小知识单元 → Route Intercept 执行 5 条 fast-DROP 规则过滤 → 通过的 claim 进入评估
+3. Tier Assess 按缺失影响 × 复现频率评定 critical(T1) / memo(T2) / DROP → Entry Generate 生成 tag + scope + tm + summary + detail
+4. Conflict Detect 关键词预筛 + LLM 语义判断检查已有条目 → 识别重复/矛盾/补充/无关
+5. Confirm 展示完整条目供用户确认/编辑/取消 → Write 调用 know-ctl append 写入索引 + entries 文件
 
-### JSONL 条目结构（10 字段）
+### 数据结构
 
-```json
-{
-  "tag":      "rationale|constraint|pitfall|concept|reference",
-  "tier":     1|2,
-  "scope":    "Module.Class.method",
-  "tm":       "passive|active:defensive|active:directive",
-  "summary":  "≤80 chars，含检索锚点词",
-  "path":     "entries/{tag}/{slug}.md|null",
-  "hits":     0,
-  "revs":     0,
-  "created":  "YYYY-MM-DD",
-  "updated":  "YYYY-MM-DD"
-}
-```
-
-### 信号检测规则
-
-| 信号 | 检测模式 | 推断 tag |
-|------|---------|---------|
-| 用户纠正 | "don't", "not X use Y", "change to", "wrong", "should be" | constraint / rationale |
-| 技术选型 | "chose", "picked", "decided", "over", "instead of", "compared" | rationale |
-| 根因发现 | "turns out", "root cause", "the issue was", "because of" | pitfall |
-| 业务逻辑 | "the flow is", "algorithm", "works by", "rule is" | concept |
-| 约束声明 | "must not", "forbidden", "always", "never" | constraint |
-| 外部集成 | "API", "endpoint", "SDK", "configured via" | reference |
-
-### 路由拦截（5 条 DROP 规则）
-
-顺序检查，首条命中即终止：
-
-| 规则 | 判断标准 |
-|------|---------|
-| 代码可推导 | 不熟悉代码库的 AI 也能在 2 分钟内通过 grep/git log 得出 |
-| 属于 CLAUDE.md | 每次会话都需要的项目级规则 |
-| 属于 auto memory | 与项目无关的个人偏好 |
-| 无结论 | 讨论未收敛 |
-| 一次性 | 不会再遇到 |
-
-### 冲突检测（2 阶段）
-
-**阶段 1: 关键词预筛** — 从摘要提取关键词（≤30ch→2词, 30-60ch→3词, >60ch→4词），`know-ctl search` 匹配候选集。
-
-**阶段 2: LLM 语义判断** — 候选摘要 vs 新摘要，分类为：无关 / 补充 / 重复 / 矛盾。重复或矛盾 → 展示冲突选项。
-
-### 详情文件格式（按 tag）
-
-| Tag | 文件结构 |
-|-----|---------|
-| rationale | `# 标题` → 为什么 → 被拒绝的方案 → 约束 |
-| constraint | `# 标题` → 规则 → 为什么 → 检查方式 |
-| pitfall | `# 标题` → 症状 → 根因 → 教训 |
-| concept | `# 标题` → 概述 → 关键步骤 → 边界 |
-| reference | `# 标题` → 是什么 → 用法 → 注意事项 |
+| 字段 | 类型 | 用途 |
+|------|------|------|
+| tag | string | 知识分类：rationale/constraint/pitfall/concept/reference |
+| tier | number | 优先级层级：1(critical) 或 2(memo) |
+| scope | string | 作用域，Module.Class.method 格式 |
+| tm | string | 触发模式：passive/active:defensive/active:directive |
+| summary | string | 摘要，≤80 chars，含检索锚点词 |
+| path | string\|null | 详情文件路径，tier 2 为 null |
+| hits | number | 命中次数 |
+| revs | number | 修订次数 |
+| created | string | 创建日期，YYYY-MM-DD |
+| updated | string | 更新日期，YYYY-MM-DD |
 
 ## 3. 关键决策
 
 | 决策 | 选择 | 为什么 |
 |------|------|--------|
-| 存储格式 | JSONL + 独立 .md | 索引用 jq 过滤，详情用 Markdown 可版本控制 |
-| 冲突检测 | 2 阶段 | 关键词预筛缩小范围，LLM 语义判断避免误判 |
-| 信号检测 | 关键词匹配 | 简单可靠，避免过度提议打扰用户 |
-| 确认机制 | 必须用户确认 | 隐性知识的准确性依赖人类判断 |
-| Scope 推断 | 文件路径 > 工具调用 > 关键词 > 兜底 | 优先用确定性高的信号 |
-| 分层 | 2 级 | 足够区分优先级，不增加决策负担 |
+| 知识条目持久化格式 | JSONL 索引 + 独立 .md 详情 | SQLite 引入二进制依赖且不可 git diff，JSONL 纯文本可 jq 过滤且 git 可追踪 |
+| 冲突检测策略 | 2 阶段（关键词预筛 + LLM 语义判断） | 纯 LLM 全量比对 token 开销大，纯关键词误判率高；两阶段兼顾效率和准确性 |
+| 信号检测方式 | 关键词模式匹配 | LLM 实时检测每轮对话 token 开销过高且易过度触发，关键词匹配简单可靠不打扰用户 |
+| 确认机制 | 必须用户确认后才写入 | 自动写入可能存入错误知识，隐性知识的准确性依赖人类判断 |
+| Scope 推断优先级 | 文件路径 > 工具调用 > 关键词 > 兜底 | 随机推断不稳定，按确定性从高到低排序保证一致性 |
+| 知识分层 | 2 级（critical / memo） | 3+ 级增加决策负担但区分度收益递减，2 级足够区分"必须加载"和"按需加载" |
 
 ## 4. 迭代记录
 
 ### 2026-04-15
 
-Step 1 Detect 新增结构化会话价值摘要：claim 列表前先输出对话主题、活动类型、关键产出，帮助用户快速理解 AI 从对话中看到了什么。删除隐式信号触发（与 auto memory 优先级冲突），改为统一通过 `/know` 路由入口。
+- 重构 Step 1 Detect（claim 列表前新增对话主题、活动类型、关键产出的结构化摘要）
+- 删除隐式信号触发（与 auto memory 优先级冲突，改为统一通过 /know 路由入口）
 
 ### 2026-04-10
 
-learn 管线端到端跑通：8 步工作流实现，know-ctl.sh CLI 工具完成，SKILL.md 添加 learn 路由和存储架构。
+- learn 管线端到端跑通（8 步工作流实现，know-ctl.sh CLI 工具完成，SKILL.md 添加 learn 路由和存储架构）
