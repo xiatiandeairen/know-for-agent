@@ -1,0 +1,52 @@
+# Know 营销方案
+
+## 1. 目标受众
+
+**用户画像:** Claude Code 重度用户，日常用 Claude Code 做开发，积累了大量项目经验但苦于每次新会话都要重复解释上下文。其中一部分是 skill/plugin 开发者，关注 Claude Code 生态工具链。
+
+**活跃平台:**
+- GitHub（Claude Code 相关 repo、Anthropic 社区）
+- Twitter/X（AI 工具链讨论、Claude Code 使用技巧分享）
+- Claude Code 官方 plugin marketplace（如开放）
+
+**决策因素:**
+- 安装是否简单（一条命令搞定，不需要额外依赖）
+- 是否真的减少重复解释（对比手动维护 CLAUDE.md 的体验提升）
+- 是否影响 Claude Code 正常使用（无侵入性，不改变现有工作流）
+
+## 2. 核心信息
+
+**一句话卖点:** 让 Claude Code 自动记住项目经验，不用每次新对话都从头教起。
+
+**差异化:**
+- 比手动维护 CLAUDE.md 更省事：know 自动从对话中提取经验，分类存储，按需召回，不需要你手动整理
+- 结构化而非堆砌：每条知识有标签、层级、触发模式，不是一个越来越长的纯文本文件
+- 会遗忘过时的：内置 decay 机制自动淘汰过期知识，CLAUDE.md 只会越来越臃肿
+
+## 3. 推广渠道
+
+| 渠道 | 策略 | 优先级 |
+|------|------|--------|
+| GitHub README | 清晰的安装说明 + 30 秒 GIF 演示 learn/recall 流程 + 真实使用数据 | P0 |
+| Twitter/X | 发布系列推文：问题场景→解决方案→安装体验，附带真实截图 | P0 |
+| Claude Code plugin marketplace | 上架并维护 listing（待 marketplace 开放） | P1 |
+| Anthropic 社区 / Discord | 在相关讨论中自然提及，分享使用经验而非硬推 | P1 |
+| 技术博客 | 写一篇"Claude Code 知识管理实践"长文，know 作为工具案例 | P2 |
+
+## 4. 传播节奏
+
+1. 2026.04.20 — GitHub README 优化：补充安装 GIF、使用场景示例、真实数据（70 条知识、5 个 pipeline）
+2. 2026.04.25 — Twitter/X 首发推文系列（3 条线程）：痛点描述→know 演示→安装链接
+3. 2026.05.05 — 在 Anthropic 社区/相关 GitHub Discussion 中分享使用体验帖
+4. 2026.05.15 — 根据早期用户反馈发布 v1.1.0，同步发 Twitter 更新推文
+5. 2026.06.01 — 发布"Claude Code 知识管理实践"博客文章
+
+## 5. 效果衡量
+
+| 指标 | 目标 | 复盘节点 |
+|------|------|---------|
+| GitHub stars | 50（目标值，待验证） | 2026.06.01 |
+| 安装用户数（clone 数） | 30（目标值，待验证） | 2026.06.01 |
+| GitHub Issues 活跃度 | ≥10 个 issue（含 bug + feature request，目标值，待验证） | 2026.06.01 |
+| Twitter 推文曝光 | 5000 impressions（目标值，待验证） | 2026.05.15 |
+| 活跃用户（持续使用 >2 周） | 10（目标值，待验证） | 2026.07.01 |

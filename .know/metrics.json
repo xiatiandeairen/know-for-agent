@@ -1,8 +1,9 @@
 {
-  "total_created": 42,
+  "total_created": 70,
   "total_decayed": 0,
   "queried_scopes": [
     "workflows.templates",
-    "project"
+    "project",
+    "css"
   ]
 }

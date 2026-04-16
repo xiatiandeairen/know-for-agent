@@ -40,3 +40,31 @@
 {"ts":"2026-04-15","event":"created","summary":"暖色调主题中用多信号类型区分 hover — 纯背景色差不够，组合下划线/边框/背景更有效"}
 {"ts":"2026-04-15","event":"created","summary":"首页信息架构三层递进：吸引(头条)→留住(双栏)→服务(列表+抽屉)，字号密度递减"}
 {"ts":"2026-04-15","event":"created","summary":"侧边栏选择纯 CSS hover 抽屉 — 零 JS、@media (hover:hover) 平台隔离一致、indicator+panel 整体 transform"}
+{"ts":"2026-04-16","event":"created","summary":"CSS float与flex垂直空间分配不兼容 — 规范层面互斥，不要尝试同时满足"}
+{"ts":"2026-04-16","event":"created","summary":"技术可行性评估必须在编码之前 — 先调研能力边界再写代码"}
+{"ts":"2026-04-16","event":"created","summary":"只改用户要求的不夹带额外变更 — 额外改动必须单独确认"}
+{"ts":"2026-04-16","event":"created","summary":"报纸风格卡片设计比例 — 标题:正文2.2-2.8:1，间距分层级，评论区三要素"}
+{"ts":"2026-04-16","event":"created","summary":"Design System演进5阶段 — 个人项目做到Stage4文档化即可，Stage5 ROI太低"}
+{"ts":"2026-04-16","event":"created","summary":"去AI感的本质是引入不对称 — 变体性格+交互状态+物理隐喻三维度打破均匀"}
+{"ts":"2026-04-16","event":"created","summary":"--ink-hover统一交互色替代--accent — 墨绿#5a7a6a克制不跳，--accent仅用于进度条"}
+{"ts":"2026-04-16","event":"created","summary":"8-category A-H taxonomy: SecurityCritical→Prevention, first-match-wins rule table"}
+{"ts":"2026-04-16","event":"created","summary":"linear regression + k×σ for trend — small data, interpretable slope, O(n) cost"}
+{"ts":"2026-04-16","event":"created","summary":"profile weights asymmetric by project type — each type has 1-2 key dimensions at ≥0.18"}
+{"ts":"2026-04-16","event":"created","summary":"coupling detection uses churn frequency proxy — false positives when unrelated files have similar churn"}
+{"ts":"2026-04-16","event":"created","summary":"40+ thresholds from 3 sources: stats consensus, v7 calibration, empirical — check v7 history before changing"}
+{"ts":"2026-04-16","event":"created","summary":"文档模板三件套架构 — 模板定骨架+检查清单定规格+更新规则定变更，三者配合保证输出质量"}
+{"ts":"2026-04-16","event":"created","summary":"LLM友好规格格式 — 概览表索引+逐字段定义块+允许禁止分离+few-shot示例"}
+{"ts":"2026-04-16","event":"created","summary":"版本规划5问框架 — 为什么做/值不值/该不该现在/能不能做/怎么算成功"}
+{"ts":"2026-04-16","event":"created","summary":"里程碑5问框架 — 完成定义/交付物/假设验证/5维达标评估/下一步决策"}
+{"ts":"2026-04-16","event":"created","summary":"文档充分性门槛 — 6种高风险类型用问题式门槛判定，不足降级到父文档而非生成垃圾"}
+{"ts":"2026-04-16","event":"created","summary":"roadmap结构 — 愿景(核心+价值体系+问题+用户+竞品)+版本(汇总+5问详情卡)+里程碑(汇总+独立文件)"}
+{"ts":"2026-04-16","event":"created","summary":"milestone结构 — 目标(不可变)+计划(不可变)+任务追踪(PRD为单位)+结果(完成后填不可变)"}
+{"ts":"2026-04-16","event":"created","summary":"prd结构 — 问题(痛点+影响+为什么现在)+用户(Before/After)+假设+方案(B→A+tech任务追踪)+验收≥3+排除≥2"}
+{"ts":"2026-04-16","event":"created","summary":"tech结构 — 背景(约束+依赖)+方案(模块结构+核心流程≥3步+数据结构)+关键决策(含被拒方案)+迭代记录"}
+{"ts":"2026-04-16","event":"created","summary":"arch结构 — 定位与边界(职责+不负责)+结构与交互(组件图+表+数据流)+设计决策(驱动+选择+约束)+质量要求"}
+{"ts":"2026-04-16","event":"created","summary":"ops结构 — 发布策略(渠道+节奏+版本规则)+反馈闭环(SLA必须具体时间)+关键指标(目标+阈值必须数字)+异常预案(升级必须指名角色)"}
+{"ts":"2026-04-16","event":"created","summary":"capabilities结构 — 能力清单(用户视角名+描述+状态枚举+版本≥3行)+覆盖范围(限制+未覆盖各≥2条含原因)"}
+{"ts":"2026-04-16","event":"created","summary":"schema结构 — 概述(范围+调用方+协议枚举)+数据结构(字段表≥3)+接口(参数+返回+错误码≥2)+约束≥2+示例≥1组"}
+{"ts":"2026-04-16","event":"created","summary":"marketing结构 — 受众(画像+平台≥2+决策因素≥2)+核心信息(卖点用用户语言+差异化≥2)+渠道(P0/P1/P2)+节奏(具体日期≥3)+效果(数字目标+具体复盘日期)"}
+{"ts":"2026-04-16","event":"created","summary":"decision结构 — 背景(触发+约束+范围)+决策(结论+理由)+备选≥2(优缺点各≥2)+影响(正面+负面+行动各≥1)+状态枚举"}
+{"ts":"2026-04-16","event":"created","summary":"ui结构 — 布局(ASCII草图+区域表)+交互流程(触发→响应→下一步≥3步)+状态(每组件≥4状态必覆盖hover/disabled/loading/error)"}
