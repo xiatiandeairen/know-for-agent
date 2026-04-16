@@ -11,6 +11,23 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 1 report: **report** (knowledge base health — 6 section diagnostic).
 
+## Session Init
+
+On first load per session, run silently and output 1 line:
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" stats 2>/dev/null | head -1
+```
+
+Output: `[know] {total} entries | last updated: {date}`
+
+Where `{date}` comes from: `jq -sr 'sort_by(.updated) | last | .updated' "$KNOW_DIR/index.jsonl" 2>/dev/null`
+
+No output if index file missing or empty (new project). Run once per session, do not repeat.
+
+---
+
 ## Principles
 
 **High-risk = conservative**: overwrite/delete knowledge, assign critical, recall block, rewrite documents, write unconfirmed as fact → require evidence + user confirmation.
@@ -117,6 +134,14 @@ Action: suggest | warn | block
 ```
 
 **Record hit**: `bash "$KNOW_CTL" hit "{keyword}"`
+
+**Learn hint** (once per session, only when ≥5 user messages in conversation and not yet hinted):
+
+```
+[know] tip: this conversation has learnable insights — run /know learn before ending
+```
+
+Conditions: ≥5 user messages AND learn hint not yet shown this session AND recall was triggered (piggyback on recall, don't fire independently). Append after recall output, not as standalone interruption.
 
 ---
 
