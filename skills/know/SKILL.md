@@ -38,6 +38,18 @@ Semantic understanding recommends; explicit signals + user intent decide. Rules 
 
 ---
 
+## Definitions
+
+| Term | Meaning |
+|------|---------|
+| entry | index.jsonl 中的一行记录，12 个字段（见 Entry Schema） |
+| scope | dot-separated keypath（如 `Module.Class.method`），支持前缀匹配 |
+| pipeline | 子命令对应的执行流程（learn/write/extract/review），由 workflow 文件定义 |
+| tier | entry 重要度：`1` = critical（缺失导致错误），`2` = memo（缺失浪费时间） |
+| tm | trigger mode：`active:defensive`（warn/block）、`active:directive`（suggest）、`passive`（不主动） |
+
+---
+
 ## Input Normalization
 
 ### Direct entry
@@ -84,7 +96,10 @@ Goal: remind, not block. Help system, not enforcement.
 
 Before code-changing operations (Edit, Write, Bash that modifies files).
 
-**Skip when**: no index file, same scope already queried this session, read-only exploration.
+**Skip when any**:
+1. No index file exists
+2. Same scope already queried this session
+3. Current operation is Read/Glob/Grep (no Edit/Write/Bash write)
 
 ### Pipeline
 
@@ -116,15 +131,15 @@ bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}"
 
 **Select**: max 3 entries. 0 relevant → show nothing, no output.
 
-**Act**:
+**Act** (based on entry fields):
 
-| Action | Condition | Threshold |
-|--------|-----------|-----------|
-| suggest | Default | Helpful, not high-risk |
-| warn | Medium risk | Error if ignored |
-| block | Critical violated, high confidence | Block benefit > interruption cost |
+| Action | Condition |
+|--------|-----------|
+| suggest | `tm=passive` or `tm=active:directive` |
+| warn | `tm=active:defensive` and `tier=2` |
+| block | `tm=active:defensive` and `tier=1` and scope exact match |
 
-Uncertain → downgrade: block → warn → suggest.
+No exact match on `tier=1` + `active:defensive` → downgrade to warn. No match at all → suggest.
 
 **Output format**:
 ```
