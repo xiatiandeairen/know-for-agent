@@ -4,14 +4,14 @@
     "name": "taoxia"
   },
   "metadata": {
-    "description": "Knowledge compiler for AI agents — scoped retrieval and mental model correction"
+    "description": "Knowledge compiler for AI agents — persist tacit knowledge, generate structured documents, recall before code changes"
   },
   "plugins": [
     {
       "name": "know",
       "source": "./",
-      "description": "Project knowledge compiler — retrieve scoped context, persist tacit knowledge, reduce AI exploration errors",
-      "version": "1.0.0",
+      "description": "Project knowledge compiler — persist tacit knowledge, generate structured documents, recall before code changes",
+      "version": "1.1.0",
       "author": {
         "name": "taoxia"
       },
