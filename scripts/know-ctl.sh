@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Resolve paths relative to project root
-PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(cd "$(dirname "$0")/.." && pwd)}"
+PROJECT_DIR="${CLAUDE_PROJECT_DIR:-$(pwd)}"
 KNOW_DIR="$PROJECT_DIR/.know"
 INDEX_FILE="$KNOW_DIR/index.jsonl"
 ENTRIES_DIR="$KNOW_DIR/entries"

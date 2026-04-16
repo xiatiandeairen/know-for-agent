@@ -2,8 +2,8 @@
 
 ## Progress
 
-Steps: 6
-Names: Resolve, Confirm, Template, Fill, Write, Progress
+Steps: 7
+Names: Resolve, Confirm, Template, Fill, Write, Validate, Progress
 
 Shared definitions (output blocks, paths) → SKILL.md.
 
@@ -257,6 +257,40 @@ For tech docs: prepend new entry to §4 迭代记录.
 ```
 [written] .know/docs/roadmap.md (updated 2 sections)
 ```
+
+---
+
+## Step 5.5: Validate
+
+Model: sonnet
+
+Gate: checklist file exists for this document type (`templates/{type}-checklist.md`). No checklist → skip.
+
+```bash
+# [RUN]
+cat "{project_root}/workflows/templates/{type}-checklist.md"
+```
+
+Validate the written document against the checklist:
+
+1. **Structure**: every required field present, no extra/missing columns
+2. **Language**: each field meets its language constraint (check ❌/✅ patterns)
+3. **Data confidence**: every numeric value has a valid source
+   - Has real data → value + source citation
+   - Has estimate → value + "估算" + basis
+   - Has target only → value + "目标值，待验证"
+   - Cannot estimate → "无数据（{reason}）"
+   - **Fabricated precise numbers with no source → FAIL**
+4. **Completeness**: non-optional fields are filled (not placeholder text)
+
+**Any failure** → list violations, fix in the document, re-preview changed sections.
+
+```
+[validate] {type} checklist: {passed}/{total} checks passed
+{list of violations if any}
+```
+
+No violations → proceed silently to Step 6.
 
 ---
 

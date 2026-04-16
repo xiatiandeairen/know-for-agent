@@ -133,6 +133,8 @@ Output: `[decay] {N} deleted, {M} demoted` if any action taken. Silent if none.
 
 ## Storage
 
+Directory name is always `.know/`. Never use `knowledge/`, `know/`, or any other variant.
+
 ```
 .know/
 ├── index.jsonl              # One entry per line (JSONL)
