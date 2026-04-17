@@ -2,8 +2,8 @@
 
 ## Progress
 
-Steps: 8
-Names: Detect, Extract, Filter, Assess, Generate, Conflict, Confirm, Write
+Steps: 9
+Names: Detect, Extract, Filter, Assess, Generate, Conflict, Challenge, Confirm, Write
 
 Core infrastructure (paths, schema, recall, markers) → SKILL.md.
 
@@ -17,26 +17,23 @@ These definitions are used by learn, extract, and review pipelines.
 
 | Tag | Records | Examples |
 |-----|---------|---------|
-| rationale | Technical choices, tradeoffs, why A not B | "Chose JSONL over SQLite — need line-level append without locking" |
-| constraint | Must/must-not rules, ordering, boundaries | "Webhook signature must be verified before parsing body" |
-| pitfall | Bugs, root causes, easy-to-repeat mistakes | "DataEngine singleton leaks state across test targets" |
-| concept | Business logic, key mechanisms, core flows | "Decay runs memo→delete at 30d, critical→demote at 180d" |
-| reference | External systems, APIs, SDKs, integration rules | "Stripe webhook retries up to 3 days with exponential backoff" |
+| insight | Cognitive understanding: decisions, rationale, mental models, concepts, frameworks | "Chose JSONL over SQLite — need line-level append without locking" |
+| rule | Must/must-not constraints, ordering, boundaries | "Webhook signature must be verified before parsing body" |
+| trap | Bugs, root causes, easy-to-repeat mistakes | "DataEngine singleton leaks state across test targets" |
 
 ### Tier definitions
 
 | Tier | Name | When to use |
 |------|------|-------------|
-| 1 | critical | Missing it causes wrong code, build failure, or obvious rework. Must be confirmed knowledge (verified via test, reproduction, or multi-source). |
-| 2 | memo | Worth noting, helps avoid wasted time, but not a hard error. |
+| 1 | critical | Not knowing this causes AI to produce code that fails to compile or causes data loss/corruption. Must be confirmed knowledge. |
+| 2 | memo | Worth noting, helps avoid wasted time, but AI would eventually discover the issue through tests/review. |
 
 ### Trigger mode definitions
 
 | tm | When to use | Recall behavior |
 |----|-------------|-----------------|
-| `active:defensive` | Important constraints, known pitfalls, easily violated during code changes | Prioritize; warn or block |
-| `active:directive` | Recommended practices, not hard errors but worth reminding | Suggest when relevant |
-| `passive` | Background knowledge, rationale, concepts, references | Only show if about to repeat known error |
+| `guard` | Important rules, known traps, easily violated during code changes | Prioritize; warn or block |
+| `info` | Background knowledge, insights, recommended practices | Suggest when relevant |
 
 ### Scope guidelines
 
@@ -85,12 +82,12 @@ Model: opus
 
 | Signal | Typical language | Likely tag |
 |--------|-----------------|------------|
-| User correction | don't, not X use Y, wrong, should be, 必须, 不能 | constraint / rationale |
-| Technical choice | chose, decided, instead of, tradeoff, 选了, 决定用 | rationale |
-| Root cause | root cause, caused by, turns out, 根因, 问题是 | pitfall |
-| Business logic | the flow is, algorithm, works by, 机制是, 流程是 | concept |
-| Constraint declared | must not, forbidden, never, always, 千万别 | constraint |
-| External integration | API, endpoint, SDK, webhook, 第三方接口 | reference |
+| User correction | don't, not X use Y, wrong, should be, 必须, 不能 | rule / insight |
+| Technical choice | chose, decided, instead of, tradeoff, 选了, 决定用 | insight |
+| Root cause | root cause, caused by, turns out, 根因, 问题是 | trap |
+| Business logic | the flow is, algorithm, works by, 机制是, 流程是 | insight |
+| Constraint declared | must not, forbidden, never, always, 千万别 | rule |
+| External integration | API, endpoint, SDK, webhook, 第三方接口 | insight |
 
 ### Detection requirements
 
@@ -117,7 +114,7 @@ Output a structured conversation value summary before listing claims:
 持久化？ [all / 选编号 / skip]
 ```
 
-[STOP:choose] User selects → each claim processed through Steps 2-8 sequentially.
+[STOP:choose] User selects → each claim processed through Steps 2-9 sequentially.
 
 ---
 
@@ -138,7 +135,7 @@ Each unit should have:
 
 - Conclusion + its direct reason = one unit (do not split)
 - Two independent facts = split
-- One choice + one rejection reason = usually one rationale entry
+- One choice + one rejection reason = usually one insight entry
 - Uncertain whether to split → do not split (prefer fewer, not more)
 
 ### Output per unit
@@ -172,7 +169,7 @@ Drop claims that don't belong in the knowledge base. This is not about "store as
 - Easy to re-encounter (repeat mistakes)
 - Involves business boundaries, external systems, timing, ordering
 - Clear "why we did this" value
-- Project-specific decision or constraint
+- Project-specific decision or rule
 
 ### Output
 
@@ -194,7 +191,7 @@ Determine tier: `critical`, `memo`, or `drop`.
 Suitable when:
 - Missing this knowledge easily leads to wrong implementation
 - Causes obvious error, failure, or rework
-- Is an important constraint, basically confirmed
+- Is an important rule, basically confirmed
 - Has strong protective value for code changes
 
 ### memo
@@ -202,7 +199,7 @@ Suitable when:
 Suitable when:
 - Has reuse value, saves understanding cost
 - Helps reduce repeated discussion or low-level mistakes
-- Not a hard constraint, but worth preserving
+- Not a hard rule, but worth preserving
 
 ### drop
 
@@ -233,11 +230,11 @@ Convert claim into a formal entry. Execute sub-steps in order: tag → scope →
 
 | Pattern | Tag |
 |---------|-----|
-| Choice/comparison ("chose X over Y") | rationale |
-| Prohibition ("must not", "forbidden", "always") | constraint |
-| Bug/error/root-cause discovery | pitfall |
-| Flow/algorithm/architecture/business-rule | concept |
-| Integration/API/SDK/config | reference |
+| Choice/comparison ("chose X over Y") | insight |
+| Prohibition ("must not", "forbidden", "always") | rule |
+| Bug/error/root-cause discovery | trap |
+| Flow/algorithm/architecture/business-rule | insight |
+| Integration/API/SDK/config | insight |
 
 ≥2 tags equally likely → ask user.
 
@@ -249,12 +246,10 @@ Generate using SKILL.md Scope Guidelines. Scope should be stable, reusable, and 
 
 | Claim type | Suggested tm |
 |-----------|--------------|
-| constraint + high risk | `active:defensive` |
-| constraint + advisory | `active:directive` |
-| pitfall + easy to repeat | `active:defensive` |
-| rationale | `passive` |
-| concept | `passive` |
-| reference | `passive` (or `active:directive` if important integration rule) |
+| rule + high risk | `guard` |
+| rule + advisory | `info` |
+| trap + easy to repeat | `guard` |
+| insight | `info` |
 
 ### 5d: Summary
 
@@ -268,11 +263,9 @@ Overflow: remove qualifiers → core conclusion only → still over → split in
 
 | Tag | Recommended sections |
 |-----|---------------------|
-| rationale | Why → Rejected alternatives → Constraints |
-| constraint | Rule → Why → How to check |
-| pitfall | Symptoms → Root cause → Lesson |
-| concept | Overview → Key steps → Boundaries |
-| reference | What it is → Usage → Caveats |
+| insight | Why → Rejected alternatives → Constraints |
+| rule | Rule → Why → How to check |
+| trap | Symptoms → Root cause → Lesson |
 
 No frontmatter — all metadata in index.jsonl.
 
@@ -299,7 +292,7 @@ Extract keywords from summary (scope module names → proper nouns → action ve
 bash "$KNOW_CTL" search "<kw1>|<kw2>"
 ```
 
-0 results → skip Phase 2, proceed to Step 7.
+0 results → skip Phase 2, proceed to Step 8.
 
 ### Phase 2: Relationship classification
 
@@ -307,7 +300,7 @@ Compare each candidate against new claim. Classify as:
 
 | Relationship | Action |
 |-------------|--------|
-| unrelated | → Step 7 |
+| unrelated | → Step 8 |
 | merge (complementary) | → suggest merge [STOP:choose] |
 | duplicate (same conclusion) | → suggest skip or merge [STOP:choose] |
 | conflict (opposite conclusion) | → must show, user decides [STOP:choose] |
@@ -325,7 +318,50 @@ Do not classify based on semantic similarity alone. Also consider: scope, conclu
 
 ---
 
-## Step 7: Confirm [STOP:confirm]
+## Step 7: Challenge
+
+Model: opus
+
+Adversarial review of each generated entry before user sees it. Goal: catch weak, vague, or misclassified entries before they pollute the knowledge base.
+
+### Per entry, answer 5 questions internally
+
+| # | Challenge question | Fail action |
+|---|-------------------|-------------|
+| 1 | Is the conclusion falsifiable? Can you construct a scenario where it's wrong? | If trivially falsifiable → drop or narrow scope |
+| 2 | Would a different AI, without this knowledge, actually produce broken code? | If no → demote tier 1 to tier 2 |
+| 3 | Is this a fact that can be derived by reading the code? | If yes → drop (code is the source of truth) |
+| 4 | Does the summary capture the "why", not just the "what"? | If no → rewrite summary to include reason |
+| 5 | Is the scope precise enough for recall to hit it, but not so narrow it's useless? | If too broad or too narrow → adjust scope |
+
+### Execution
+
+- Run all 5 questions per entry. Record pass/fail.
+- **All pass** → proceed to Step 8 unchanged.
+- **Any fail** → apply fix (drop / demote / rewrite / adjust), mark what changed.
+- **≥3 fail** → drop entry, report reason.
+
+### Output
+
+```
+[learn] step: challenge
+{N} entries reviewed:
+  ✓ {summary}                          — passed
+  △ {summary}                          — {field}: {old} → {new}
+  ✗ {summary}                          — dropped: {reason}
+
+Surviving entries ({M}/{N}):
+1. [{tag}] {summary} — tier {tier}, tm {tm}, scope {scope}
+2. ...
+
+持久化？ [all / 选编号 / skip]
+```
+
+[STOP:choose] User selects → each surviving entry processed through Steps 8-9.
+
+---
+
+## Step 8: Confirm [STOP:confirm]
 
 Show complete entry for user review.
 
@@ -337,13 +373,13 @@ If user is repeatedly uncertain → suggest downgrading to memo.
 
 ---
 
-## Step 8: Write
+## Step 9: Write
 
 Model: sonnet
 
 ```bash
 # [RUN] append accepts exactly 1 argument: a complete JSON string. No positional args.
-TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append '{"tag":"{tag}","tier":{tier},"scope":"{scope}","tm":"{tm}","summary":"{summary}","path":{path_or_null},"hits":0,"revs":0,"last_hit":null,"source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"}'
+TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append '{"tag":"{tag}","tier":{tier},"scope":"{scope}","tm":"{tm}","summary":"{summary}","path":{path_or_null},"hits":0,"revs":0,"source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"}'
 ```
 
 **Slug**: summary → 2-4 English keywords → hyphenated lowercase → `[a-z0-9-]` → max 50 chars.
@@ -354,14 +390,14 @@ TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append '{"tag":"{tag}","tier":{tier}
 | memo | Index entry only (`path: null`) |
 
 ```
-[persisted] entries/constraint/pressure-thresholds.md (critical)
+[persisted] entries/rule/pressure-thresholds.md (critical)
 ```
 
 ---
 
 ## Completion
 
-- All selected claims processed through Steps 2-8
+- All selected claims processed through Steps 2-9
 - Each persisted entry has: valid index line + detail file (if critical)
 - User saw `[persisted]` or `[skipped]` for every claim
 

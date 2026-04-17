@@ -42,11 +42,11 @@ Semantic understanding recommends; explicit signals + user intent decide. Rules 
 
 | Term | Meaning |
 |------|---------|
-| entry | index.jsonl 中的一行记录，12 个字段（见 Entry Schema） |
-| scope | dot-separated keypath（如 `Module.Class.method`），支持前缀匹配 |
+| entry | index.jsonl 中的一行记录，11 个字段（见 Entry Schema） |
+| scope | dot-separated keypath（如 `Module.Class.method`），支持前缀匹配。概念域用 `methodology.*` 前缀 |
 | pipeline | 子命令对应的执行流程（learn/write/extract/review），由 workflow 文件定义 |
-| tier | entry 重要度：`1` = critical（缺失导致错误），`2` = memo（缺失浪费时间） |
-| tm | trigger mode：`active:defensive`（warn/block）、`active:directive`（suggest）、`passive`（不主动） |
+| tier | entry 重要度：`1` = critical（不知道会产出编译失败或数据丢失/损坏的代码），`2` = memo（不知道会走弯路但最终能发现） |
+| tm | trigger mode：`guard`（recall 时 warn/block）、`info`（recall 时 suggest） |
 
 ---
 
@@ -127,7 +127,7 @@ bash "$KNOW_CTL" query "{scope}"
 bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}"
 ```
 
-**Rank**: scope relevance → `active:defensive` > `active:directive` > `passive` → tier 1 before tier 2.
+**Rank**: scope relevance → `guard` > `info` → tier 1 before tier 2.
 
 **Select**: max 3 entries. 0 relevant → show nothing, no output.
 
@@ -135,11 +135,11 @@ bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}"
 
 | Action | Condition |
 |--------|-----------|
-| suggest | `tm=passive` or `tm=active:directive` |
-| warn | `tm=active:defensive` and `tier=2` |
-| block | `tm=active:defensive` and `tier=1` and scope exact match |
+| suggest | `tm=info` |
+| warn | `tm=guard` and `tier=2` |
+| block | `tm=guard` and `tier=1` and scope exact match |
 
-No exact match on `tier=1` + `active:defensive` → downgrade to warn. No match at all → suggest.
+No exact match on `tier=1` + `guard` → downgrade to warn. No match at all → suggest.
 
 **Output format**:
 ```
@@ -173,7 +173,6 @@ bash "$KNOW_CTL" decay
 |-----------|--------|
 | tier=2 (memo) + hits=0 + age > 30d | Delete |
 | tier=1 (critical) + hits=0 + age > 180d | Demote to memo |
-| tier=1 (critical) + revs > 3 | Demote to memo (unstable) |
 
 Output: `[decay] {N} deleted, {M} demoted` if any action taken. Silent if none.
 
@@ -227,7 +226,7 @@ Assemble into 6 sections. Use `[report]` marker.
   Never hit:  {count} entries (top 3: ...)
 
 --- 3. Recall ---
-  Defenses:   {defensive_hits}
+  Guards:     {guard_hits}
   Coverage:   {queried}/{total_scopes} ({pct}%)
   Queries:    {rq_total} (hit {rq_hit}/{pct}%, empty {rq_empty}/{pct}%)
   Blind spots: {scopes never queried}
@@ -276,17 +275,17 @@ Directory name is always `.know/`. Never use `knowledge/`, `know/`, or any other
     └── requirements/{req}/  # Requirement: prd.md, tech.md
 ```
 
-### Entry Schema (12 fields)
+### Entry Schema (11 fields)
 
 ```json
-{"tag":"...","tier":1,"scope":"...","tm":"...","summary":"≤80ch","path":"entries/{tag}/{slug}.md|null","hits":0,"revs":0,"last_hit":null,"source":"learn|extract","created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}
+{"tag":"...","tier":1,"scope":"...","tm":"...","summary":"≤80ch","path":"entries/{tag}/{slug}.md|null","hits":0,"revs":0,"source":"learn|extract","created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}
 ```
 
 | Field | Values |
 |-------|--------|
-| tag | `rationale` (选型), `constraint` (约束), `pitfall` (踩坑), `concept` (概念), `reference` (外部集成) |
-| tier | `1` = critical (缺失导致错误), `2` = memo (缺失浪费时间) |
-| tm | `active:defensive` (warn/block), `active:directive` (suggest), `passive` (不主动) |
+| tag | `insight` (决策原因+心智模型), `rule` (约束), `trap` (踩坑) |
+| tier | `1` = critical (不知道会产出编译失败或数据丢失/损坏的代码), `2` = memo (不知道会走弯路但最终能发现) |
+| tm | `guard` (recall 时 warn/block), `info` (recall 时 suggest) |
 | summary | `{结论} — {原因}`, ≤80 chars, must contain searchable anchor words |
 
 ### Document Types (10 types)

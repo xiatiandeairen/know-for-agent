@@ -46,7 +46,7 @@ emit_event() {
 
 # Ensure .know/ structure exists
 ensure_dirs() {
-    mkdir -p "$ENTRIES_DIR"/{rationale,constraint,pitfall,concept,reference}
+    mkdir -p "$ENTRIES_DIR"/{insight,rule,trap}
     [ -f "$INDEX_FILE" ] || touch "$INDEX_FILE"
 }
 
@@ -124,7 +124,7 @@ cmd_hit() {
     else
         match_filter="(.summary | test(\"$target\"; \"i\"))"
     fi
-    jq -c "if $match_filter then .hits += 1 | .updated = \"$today\" | .last_hit = \"$today\" else . end" "$INDEX_FILE" > "$tmpfile"
+    jq -c "if $match_filter then .hits += 1 | .updated = \"$today\" else . end" "$INDEX_FILE" > "$tmpfile"
     mv "$tmpfile" "$INDEX_FILE"
     # Emit hit event for matched entries
     jq -r "select($match_filter) | .summary" "$INDEX_FILE" 2>/dev/null | while IFS= read -r s; do
@@ -230,13 +230,6 @@ cmd_decay() {
             demoted=$((demoted + 1))
         fi
 
-        # revs > 3 + 重要 (tier 1) → demote to 备忘 (unstable)
-        if [ "$tier" -eq 1 ] && [ "$revs" -gt 3 ]; then
-            line=$(echo "$line" | jq -c '.tier = 2')
-            emit_event "demoted" "$summary"
-            demoted=$((demoted + 1))
-        fi
-
         echo "$line" >> "$tmpfile"
     done < "$INDEX_FILE"
 
@@ -285,7 +278,7 @@ cmd_metrics() {
     # --- Recall ---
     local defensive_hits=0
     if [ -f "$INDEX_FILE" ] && [ -s "$INDEX_FILE" ]; then
-        defensive_hits=$(jq -s '[.[] | select(.tm == "active:defensive") | .hits] | add // 0' "$INDEX_FILE")
+        defensive_hits=$(jq -s '[.[] | select(.tm == "guard") | .hits] | add // 0' "$INDEX_FILE")
     fi
 
     local queried_count total_scopes scope_pct=0
@@ -349,7 +342,7 @@ EOF
         suggestions+=("衰减率 ${decay_pct}%: 存入质量需关注，检查 learn filter 规则")
     fi
     if [ "$total" -gt 0 ] && [ "$defensive_hits" -eq 0 ]; then
-        suggestions+=("防御次数 0: 无 active:defensive 命中，检查 constraint 类知识或 scope 推断")
+        suggestions+=("防御次数 0: 无 guard 命中，检查 rule 类知识或 scope 推断")
     fi
     if [ "$total_scopes" -gt 0 ] && [ "$scope_pct" -lt 50 ]; then
         suggestions+=("覆盖率 ${scope_pct}%: 多数 scope 未被查询，检查 recall scope 推断规则")
@@ -427,29 +420,28 @@ cmd_self_test() {
     cmd_init > /dev/null
     _assert "directory created" '[ -d "$KNOW_DIR" ]'
     _assert "index.jsonl exists" '[ -f "$INDEX_FILE" ]'
-    _assert "entries/ exists" '[ -d "$ENTRIES_DIR/rationale" ]'
+    _assert "entries/ exists" '[ -d "$ENTRIES_DIR/insight" ]'
 
     # 2. append
     echo "append:"
-    cmd_append '{"tag":"constraint","tier":1,"scope":"Test.module","tm":"active:defensive","summary":"self-test constraint entry","path":"entries/constraint/self-test.md","hits":0,"revs":0,"created":"2026-01-01","updated":"2026-01-01"}' > /dev/null
+    cmd_append '{"tag":"rule","tier":1,"scope":"Test.module","tm":"guard","summary":"self-test rule entry","path":"entries/rule/self-test.md","hits":0,"revs":0,"source":"learn","created":"2026-01-01","updated":"2026-01-01"}' > /dev/null
     _assert "entry in index" '[ "$(wc -l < "$INDEX_FILE" | tr -d " ")" -eq 1 ]'
     _assert "total_created incremented" '[ "$(jq -r ".total_created" "$METRICS_FILE")" -eq 1 ]'
     _assert "created event logged" 'grep -q "\"created\"" "$EVENTS_FILE"'
 
     # 3. query
     echo "query:"
-    _assert "scope prefix match" 'cmd_query "Test.module" | grep -q "self-test constraint"'
+    _assert "scope prefix match" 'cmd_query "Test.module" | grep -q "self-test rule"'
     _assert "no false match" '[ -z "$(cmd_query "Nonexistent.scope" 2>/dev/null | head -1)" ]'
 
     # 4. search
     echo "search:"
-    _assert "regex match" 'cmd_search "self-test" | grep -q "constraint"'
+    _assert "regex match" 'cmd_search "self-test" | grep -q "rule"'
 
     # 5. hit
     echo "hit:"
     cmd_hit "self-test" > /dev/null
     _assert "hits incremented" '[ "$(jq -r ".hits" "$INDEX_FILE")" -eq 1 ]'
-    _assert "last_hit set" 'jq -e ".last_hit" "$INDEX_FILE"'
     _assert "hit event logged" 'grep -q "\"hit\"" "$EVENTS_FILE"'
 
     # 6. update
@@ -479,7 +471,7 @@ cmd_self_test() {
 
     # 10. decay (construct expired memo)
     echo "decay:"
-    cmd_append '{"tag":"concept","tier":2,"scope":"Test.decay","tm":"passive","summary":"decay test memo","path":null,"hits":0,"revs":0,"created":"2025-01-01","updated":"2025-01-01"}' > /dev/null
+    cmd_append '{"tag":"insight","tier":2,"scope":"Test.decay","tm":"info","summary":"decay test memo","path":null,"hits":0,"revs":0,"source":"learn","created":"2025-01-01","updated":"2025-01-01"}' > /dev/null
     local before_count
     before_count=$(wc -l < "$INDEX_FILE" | tr -d ' ')
     cmd_decay > /dev/null
@@ -590,7 +582,7 @@ cmd_init() {
     ensure_dirs
     echo "Initialized: $KNOW_DIR"
     echo "  index:   $INDEX_FILE"
-    echo "  entries: $ENTRIES_DIR/{rationale,constraint,pitfall,concept,reference}"
+    echo "  entries: $ENTRIES_DIR/{insight,rule,trap}"
 }
 
 # ─── Dispatch ───────────────────────────────────────────────

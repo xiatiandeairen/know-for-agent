@@ -49,13 +49,13 @@ Sort by lifecycle stage (most actionable first), then age desc within each stage
 
 ### Lifecycle stage
 
-Compute per entry using `created`, `hits`, `last_hit` (null = never hit):
+Compute per entry using `created`, `hits`:
 
 | Stage | Condition | Label |
 |-------|-----------|-------|
 | new | age < 7d AND hits = 0 | `[new]` |
-| active | last_hit is not null AND last_hit < 30d ago | `[active]` |
-| silent | last_hit is null or last_hit > 30d ago, AND age ≥ 7d | `[silent]` |
+| active | hits > 0 | `[active]` |
+| silent | hits = 0 AND age ≥ 7d | `[silent]` |
 | endangered | meets decay delete/demote criteria (→ SKILL.md Decay) | `[endangered]` |
 
 ### Display should highlight
@@ -72,8 +72,8 @@ Compute per entry using `created`, `hits`, `last_hit` (null = never hit):
 
 | # | tag | tier | scope | hits | age | summary | stage |
 |---|-----|------|-------|------|-----|---------|-------|
-| 1 | constraint | critical | Auth | 5 | 30d | Thresholds... | [active] |
-| 2 | rationale | memo | Auth | 0 | 15d | ... | [silent] |
+| 1 | rule | critical | Auth | 5 | 30d | Thresholds... | [active] |
+| 2 | insight | memo | Auth | 0 | 15d | ... | [silent] |
 
 All ok? Or enter numbers to process (e.g. "2" or "1,3"):
 ```

@@ -24,7 +24,7 @@ workflows/                     ← Pipeline definitions (loaded on demand by SKI
 scripts/
   know-ctl.sh                  ← CLI: 12 subcommands (append/query/hit/decay/metrics/history/self-test/check/...)
 .know/                         ← Project data (git-tracked)
-  index.jsonl                    Knowledge entries (JSONL, 12 fields per entry)
+  index.jsonl                    Knowledge entries (JSONL, 11 fields per entry)
   entries/{tag}/{slug}.md        Detail files (tier 1 only)
   events.jsonl                   Append-only lifecycle events
   metrics.json                   Aggregated counters
@@ -35,7 +35,7 @@ scripts/
 ## Key Commands
 
 ```bash
-bash scripts/know-ctl.sh self-test    # Run all 24 tests in /tmp isolation
+bash scripts/know-ctl.sh self-test    # Run all 23 tests in /tmp isolation
 bash scripts/know-ctl.sh stats        # Show entry counts by tier/tag/scope
 bash scripts/know-ctl.sh metrics      # Show learn/recall/write health indicators
 bash scripts/know-ctl.sh check        # Detect template-document structure deviations
