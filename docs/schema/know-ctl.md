@@ -1,197 +1,199 @@
-# know-ctl CLI 接口规范
+# know-ctl CLI 接口规范（v7）
 
 ## 1. 概述
 
 ### 范围
 
-know-ctl.sh 是 know 知识库的 CLI 管理接口，提供条目增删改查、命中追踪、衰减清理、质量度量，支持 `project` / `user` 双 level。
+know-ctl.sh 是 know 知识库的 CLI 管理接口，操作 8 字段 trigger schema 与 3 JSONL 文件布局。支持 `project` / `user` 双 level。
 
 ### 调用方
 
-- Claude Code agent（通过 workflow 文件中的 bash 命令调用）
+- Claude Code agent（通过 workflow）
 - 终端用户（手工运行 `bash scripts/know-ctl.sh <cmd>`）
 
 ### 协议类型
 
 CLI
 
-## 2. 路径与 Level
+## 2. 存储布局
 
-### 物理布局
+### 3 个文件
 
 ```
-$PROJECT_DIR/docs/                     文档（git 跟踪，由 write 管线生成）
-$XDG_DATA_HOME/know/projects/{id}/     level=project（按项目隔离）
-  ├── index.jsonl                      11 字段 JSONL
-  ├── entries/{tag}/{slug}.md          详情文件（tier=1 only）
-  ├── events.jsonl                     生命周期事件
-  └── metrics.json                     聚合计数
-$XDG_DATA_HOME/know/user/              level=user（跨项目共享，结构同上）
+<project>/docs/triggers.jsonl          project source（git-tracked）
+$XDG_CONFIG_HOME/know/triggers.jsonl   user source（默认 ~/.config/know/；dotfiles-git 可选）
+$XDG_DATA_HOME/know/events.jsonl       runtime events（默认 ~/.local/share/know/；per-machine）
 ```
-
-`{id}` = 项目绝对路径 `/` → `-`。`$XDG_DATA_HOME` 默认 `~/.local/share`。
 
 ### Level 语义
 
-| 值 | 适用 | 由什么决定 |
+| 值 | 存储位置 | 说明 |
 |---|---|---|
-| `project` | 项目专属知识（架构、约束、局部决策） | 默认写入目标；路径按项目 id 隔离 |
-| `user` | 跨项目方法论（编码风格、通用经验） | 通过 `--level user` 显式写入；workflow 层二次确认 |
+| `project` | `<project>/docs/triggers.jsonl` | 项目专属；随项目 git 走；团队共享 |
+| `user` | `$XDG_CONFIG_HOME/know/triggers.jsonl` | 跨项目通用；用户私有；可手动同步 |
 
 ## 3. 数据结构
 
-### Entry 字段（index.jsonl 每行一条 JSON）
+### Trigger Schema（8 字段）
 
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
-| tag | string | 是 | 枚举：`insight`（决策原因+心智模型）、`rule`（约束）、`trap`（踩坑） |
-| tier | int | 是 | `1`=critical（不知道会产出编译失败/数据丢失的代码）、`2`=memo（会走弯路但能发现） |
-| scope | string \| string[] | 是 | keypath，点分段（如 `Auth.session`、`methodology.general`），前缀匹配 |
-| tm | string | 是 | 枚举：`guard`（recall 时 warn/block）、`info`（recall 时 suggest） |
-| summary | string | 是 | `{结论} — {原因}`，≤80 字符，含可搜索锚词 |
-| path | string \| null | 否 | 详情文件相对路径 `entries/{tag}/{slug}.md`；memo 为 null |
-| hits | int | 否 | 被命中次数，默认 0 |
-| revs | int | 否 | 修订次数，默认 0 |
-| source | string | 否 | `learn` / `extract` |
-| created | string | 是 | 创建日期 `YYYY-MM-DD` |
-| updated | string | 是 | 最后更新日期 `YYYY-MM-DD` |
+| tag | string | 是 | 枚举：`insight`（决策/心智模型）、`rule`（约束）、`trap`（踩坑）。选择优先级：trap > rule > insight |
+| scope | string \| string[] | 是 | keypath（如 `Auth.session`）；支持前缀匹配 |
+| summary | string | 是 | ≤80 chars，`{结论} — {原因}` |
+| strict | bool \| null | 是 | `tag=rule` 时必须是 bool；其他 tag 必须 null |
+| ref | string \| null | 否 | context 引用：`docs/x.md#a` / `src/f:42` / `https://...` / null |
+| source | string | 是 | `learn` \| `extract` |
+| created | string | 是 | `YYYY-MM-DD` |
+| updated | string | 是 | `YYYY-MM-DD` |
 
-**Level 不在 entry 里**，由存储路径隐式决定；`query` / `search` 输出会补一个 `_level` 字段（`"project"` 或 `"user"`）供下游识别。
+### Event Schema（runtime, events.jsonl）
 
-## 4. 接口定义（13 子命令）
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| ts | string | `YYYY-MM-DD` |
+| project_id | string | `$PROJECT_DIR` 绝对路径 `/` → `-` |
+| level | string | `project` \| `user`（命中的 trigger 所属 level）|
+| event | string | `created` / `updated` / `deleted` / `hit` / `recall_query` |
+| summary | string | 触发 event 的 trigger summary |
+| scope | string | 仅 `recall_query` 事件 |
+| matched | int | 仅 `recall_query` 事件 |
 
-所有子命令接受 `--level project|user`。**读类**（query / search / stats / history / decay / init）不传 `--level` 时默认作用在两 level 合并；**写类**（append / update / delete / hit）不传 `--level` 时默认 project。
+## 4. 接口定义（14 子命令）
 
-### append
+所有子命令（除 `recall-log` / `decay` / `check` / `self-test` / `migrate-v7`）接受 `--level project|user`。
 
-- **路径**: `bash know-ctl.sh append '<json>' [--level L]`
-- **参数**:
+**读类**（`query` / `search` / `stats` / `history`）不传 `--level` 时默认扫两 level 合并。
 
-| 参数 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| json | string (JSON) | 是 | 完整 entry JSON（11 字段中至少 5 个必填） |
-| --level | enum | 否 | 默认 `project` |
-
-- **响应**: `Appended [project|user]: <summary>`
-- **错误**: exit 1（缺 tag/tier/scope/summary/updated 任一；JSON 解析失败）
-
-### query
-
-- **路径**: `bash know-ctl.sh query <scope> [--level L] [--tag t] [--tier n] [--tm m]`
-- **参数**:
-
-| 参数 | 类型 | 必填 | 说明 |
-|---|---|---|---|
-| scope | string | 是 | 前缀匹配；`project` 返回全部 |
-| --level | enum | 否 | 缺省时两 level 合并 |
-| --tag / --tier / --tm | | 否 | 精确过滤 |
-
-- **响应**：每行一条 JSON（带 `_level` 字段），无匹配时空输出
-
-### search
-
-- **路径**: `bash know-ctl.sh search <pattern> [--level L]`
-- **参数**: pattern 是 summary 字段的正则（大小写不敏感）；`--level` 缺省合并
-- **响应**: 同 query 输出格式
-
-### hit
-
-- **路径**: `bash know-ctl.sh hit <path-or-keyword> [--level L]`
-- **参数**: target 以 `entries/` 开头走 path 精确匹配，否则走 summary 正则；`--level` 缺省 project
-- **响应**: 无标准输出。副作用：hits +1、updated=今天、events 记录 hit 事件
-
-### delete
-
-- **路径**: `bash know-ctl.sh delete <keyword> [--level L]`
-- **响应**: `Deleted N entry [project|user]`；删除索引行 + 详情文件
-
-### update
-
-- **路径**: `bash know-ctl.sh update <keyword> '<json-patch>' [--level L]`
-- **响应**: `Updated N entry [project|user] (revs incremented)`
-
-### decay
-
-- **路径**: `bash know-ctl.sh decay [--level L]`
-- **行为**: 两 level 各自独立衰减
-- **策略**:
-
-| 条件 | 动作 |
-|---|---|
-| tier=2 + hits=0 + age>30d | 删除 |
-| tier=1 + hits=0 + age>180d | 降级为 tier=2 |
-
-- **响应**: `Decay [{level}]: {N} deleted, {M} demoted` 每 level 一行
-
-### stats
-
-- **路径**: `bash know-ctl.sh stats [--level L]`
-- **响应**: 两 level 分段输出；按 tier/tag/scope 计数
-
-### metrics
-
-- **路径**: `bash know-ctl.sh metrics [--level L]`
-- **响应**: 命中率 / 衰减率 / 防御次数 / 覆盖率 / 文档覆盖 / Recall Run 面板 + 建议；默认只看 project；跨 level 聚合视图尚未实现
-
-### history
-
-- **路径**: `bash know-ctl.sh history <keyword> [--level L]`
-- **响应**: `{date}  [{level}] {event}  {summary}`
-
-### recall-log
-
-- **路径**: `bash know-ctl.sh recall-log <scope> <matched>`
-- **行为**: 固定写入 project events.jsonl；不接受 `--level`
-- **响应**: 无输出
+**写类**（`append` / `update` / `delete` / `hit`）不传 `--level` 时默认 project。
 
 ### init
 
 - **路径**: `bash know-ctl.sh init [--level L]`
-- **行为**: 创建两 level 的目录骨架；检测到项目内残留 `.know/` 时打印迁移命令
-- **响应**: `Initialized [project|user]: <path>` 每 level 一行
+- **行为**: 创建 triggers.jsonl 空文件 + events.jsonl；检测 v6 数据时打印 migrate-v7 提示
+- **响应**: 每 level 一行 `Initialized [level]: <path>`
 
-### self-test
+### append
 
-- **路径**: `bash know-ctl.sh self-test`
-- **行为**: 在 `XDG_DATA_HOME=$TMPDIR` 隔离环境跑 29 项断言，覆盖两 level 隔离、合并查询、指定 level 写入
-- **响应**: `✓ All N tests passed` 或 `✗ N/M tests failed`
+- **路径**: `bash know-ctl.sh append '<json>' [--level L]`
+- **校验**: 必填 tag/scope/summary/source/created/updated；strict 规则（rule→bool；其他→null）
+- **副作用**: append 到 triggers.jsonl；emit `created` event
+- **响应**: `Appended [level]: {summary}`
+- **错误**: exit 1（schema 无效）
+
+### query
+
+- **路径**: `bash know-ctl.sh query <scope> [--level L] [--tag t]`
+- **响应**: JSONL，每行 trigger + `_level` 字段
+- **scope 值 "project"**: 返回全部（不做前缀匹配）
+
+### search
+
+- **路径**: `bash know-ctl.sh search <pattern> [--level L]`
+- **匹配**: summary 字段正则（大小写不敏感）
+
+### hit
+
+- **路径**: `bash know-ctl.sh hit <keyword> [--level L]`
+- **副作用**: 只 emit `hit` event；**不修改 triggers.jsonl**（hits 字段已移除）
+- **错误**: exit 1（无匹配）
+
+### update
+
+- **路径**: `bash know-ctl.sh update <keyword> '<json-patch>' [--level L]`
+- **副作用**: 改 triggers.jsonl + emit `updated` event + 更新 updated 字段为今天
+
+### delete
+
+- **路径**: `bash know-ctl.sh delete <keyword> [--level L]`
+- **副作用**: 删 triggers.jsonl 行 + emit `deleted` event
+
+### decay（v7: no-op）
+
+- **路径**: `bash know-ctl.sh decay`
+- **响应**: `[decay] 已推延到下个 sprint（v7 schema 简化完成，衰减策略将在 v7.x 重做）`
+
+### stats
+
+- **路径**: `bash know-ctl.sh stats [--level L]`
+- **响应**: 两 level 分段；每 level 按 tag / scope 计数 + rule 的 strict hard/soft 分布
+
+### metrics
+
+- **路径**: `bash know-ctl.sh metrics [--level L]`
+- **行为**: 从 events.jsonl 实时 derived
+- **输出**: 命中率、防御次数（hits on rule+strict=true）、Recall Run（recall_query 触发/命中/空查）+ 建议
+
+### history
+
+- **路径**: `bash know-ctl.sh history [keyword] [--level L]`
+- **响应**: `{date}  [{level}] {event}  {summary}` 每行
+- **过滤**: keyword 是 summary 正则；`--level` 限定 event 来源
+
+### recall-log
+
+- **路径**: `bash know-ctl.sh recall-log <scope> <matched> [--level L]`
+- **副作用**: emit `recall_query` event（带 scope + matched）；`--level` 默认 project
 
 ### check
 
 - **路径**: `bash know-ctl.sh check`
-- **行为**: 对 `$PROJECT_DIR/docs/` 每个 md 文件，按文件名匹配 `workflows/templates/{name}.md` 模板，对比 section 结构偏差
-- **响应**: 一致 / 偏差清单
+- **行为**: 扫 `<project>/docs/` 每个 md，对比 `workflows/templates/{name}.md` section 结构
+
+### self-test
+
+- **路径**: `bash know-ctl.sh self-test`
+- **行为**: `XDG_CONFIG_HOME` 和 `XDG_DATA_HOME` 都隔离到 tmpdir；跑 33+ 项断言
+- **覆盖**: init / append 合法+非法（8 字段 + strict 规则）/ query / search / hit / update / delete / stats / metrics / history / recall-log / decay no-op / event 含 project_id+level
+
+### migrate-v7
+
+- **路径**: `bash know-ctl.sh migrate-v7 [--dry-run]`
+- **行为**: 读 v6 `$XDG_DATA_HOME/know/projects/{id}/{index.jsonl,entries,events.jsonl}` 和 `/user/`：
+  1. Schema 转换：删 tier/tm/path/hits/revs；按规则填 strict；path→ref（归并 detail md 到 `docs/legacy-v6-details.md` 的 anchor 段）
+  2. 写入 `<project>/docs/triggers.jsonl` + `$XDG_CONFIG_HOME/know/triggers.jsonl`
+  3. 合并 events 到 `$XDG_DATA_HOME/know/events.jsonl`，每行补 project_id + level 字段
+  4. legacy 数据不自动删，脚本结束打印 `rm -rf` 命令让用户确认
 
 ## 5. 约束与规则
 
-- append 校验 5 个必填字段：tag / tier / scope / summary / updated，缺任一则 exit 1
-- 所有日期字段必须 `YYYY-MM-DD`
-- index.jsonl 每行必须是合法 compact JSON
-- scope 支持 string 或 string[]，query 前缀匹配
-- hit 的 target：`entries/` 开头走 path 精确，否则走 summary 正则（大小写不敏感）
-- decay：tier=2+hits=0+>30d 删除；tier=1+hits=0+>180d 降级
-- 写入 user level 不经 workflow 时不触发二次确认（CLI 直写保持幂等）；workflow 层（learn Step 8）必须先问确认
-- 旧 `.know/` 路径**不读**；`init` 检测到残留会打印迁移命令，do not auto-migrate
+- append 校验 6 必填字段（tag/scope/summary/source/created/updated）
+- strict 硬规则：`tag=rule` 必须 bool；`tag=insight|trap` 必须 null
+- ref 值必须是 string 或 null
+- 所有日期 `YYYY-MM-DD`
+- triggers.jsonl 每行必须合法 compact JSON
+- scope 前缀匹配（startsWith）
+- hit 只动 events.jsonl，不触碰 triggers.jsonl
+- decay 在 v7 为 no-op，命令存在但无动作
+- legacy v6 数据不读；`init` 检测到时提示 migrate-v7
 
 ## 6. 示例
 
-**写入项目级条目**
+**写入 project rule（硬约束）**
 
 ```bash
-bash know-ctl.sh append '{"tag":"rule","tier":1,"scope":"Auth.session","tm":"guard","summary":"session 过期必须触发刷新而非拒绝 — 避免用户静默登出","path":"entries/rule/session-refresh.md","hits":0,"revs":0,"source":"learn","created":"2026-04-22","updated":"2026-04-22"}'
-# → Appended [project]: session 过期必须触发刷新而非拒绝 — 避免用户静默登出
+bash know-ctl.sh append '{"tag":"rule","scope":"Auth.session","summary":"session 过期必须触发刷新而非拒绝 — 避免静默登出","strict":true,"ref":"docs/decision/auth.md#session-refresh","source":"learn","created":"2026-04-22","updated":"2026-04-22"}'
+# → Appended [project]: session 过期必须触发刷新而非拒绝 — 避免静默登出
 ```
 
-**写入用户级方法论**（需 workflow 层确认，CLI 直写演示）
+**写入 user insight（跨项目方法论）**
 
 ```bash
-bash know-ctl.sh append --level user '{"tag":"insight","tier":2,"scope":"methodology.general","tm":"info","summary":"PR 拆分应按可独立 review 的粒度 — 大 PR 降低 review 质量","path":null,"hits":0,"revs":0,"source":"learn","created":"2026-04-22","updated":"2026-04-22"}'
-# → Appended [user]: PR 拆分应按可独立 review 的粒度 — 大 PR 降低 review 质量
+bash know-ctl.sh append --level user '{"tag":"insight","scope":"methodology.general","summary":"PR 拆分按独立 review 粒度 — 大 PR 降低 review 质量","strict":null,"ref":null,"source":"learn","created":"2026-04-22","updated":"2026-04-22"}'
+# → Appended [user]: PR 拆分按独立 review 粒度 — 大 PR 降低 review 质量
+```
+
+**非法：rule 但 strict=null**
+
+```bash
+bash know-ctl.sh append '{"tag":"rule","scope":"X","summary":"bad","strict":null,"ref":null,"source":"learn","created":"2026-01-01","updated":"2026-01-01"}'
+# → Error: schema invalid (exit 1)
 ```
 
 **合并查询**
 
 ```bash
-bash know-ctl.sh query "methodology"
+bash know-ctl.sh query "Auth"
+# → {"tag":"rule",...,"_level":"project"}
 # → {"tag":"insight",...,"_level":"user"}
 ```

@@ -35,15 +35,21 @@
 | M12 | recall scope 匹配优化 | 6 个 scope 与文件路径对齐，覆盖率 50%（与 M11 合并完成） | 2025-04-16 |
 | M13 | recall 价值量化 | 未开始（需 2 周实际使用数据验证） | — |
 
-## v5 — recall 可观测（规划）
+## v5 — recall 可观测
 
 | # | 核心方向 | 结果 | 日期 |
 |---|---|---|---|
-| M14 | recall 事件采集 | 未开始 | — |
-| M15 | recall 数据消费 | 未开始 | — |
+| M14 | recall 事件采集 | `know-ctl recall-log` 写入 events.jsonl 的 `recall_query` 事件；SKILL.md recall Query 后调用；仅 project level（user 未覆盖） | 已完成 |
+| M15 | recall 数据消费 | `know-ctl metrics` 新增 Recall Run 面板：queries 总量 / 命中率 / 空查率 / scope 覆盖；`/know report` §3 Recall 段消费同一数据源 | 已完成 |
 
 ## v6 — 目录与作用域重构（2026-04-22）
 
 | # | 核心方向 | 结果 | 日期 |
 |---|---|---|---|
 | — | 将 `.know/` 拆为项目根 `docs/` + `$XDG_DATA_HOME/know/{projects/{id},user}/`；新增 `level` 维度（project/user）贯穿 CLI + workflow；learn 增 "Level" 步骤；user 写入二次确认 | 18/18 anchors + 29/29 self-test；sprint 20260422-134413-380 | 2026-04-22 |
+
+## v7 — Schema 简化 + 3 文件存储（2026-04-22）
+
+| # | 核心方向 | 结果 | 日期 |
+|---|---|---|---|
+| — | Schema 11→8 字段（删 tier/tm/path，加 strict/ref）；存储收敛到 3 JSONL（docs/triggers + XDG_CONFIG/triggers + XDG_DATA/events）；events 单文件带 project_id+level 字段；learn 10→9 步；recall 去 suggest/warn/block 分级；decay 临时 no-op；migrate-v7 一次性迁移 | 33/33 self-test；14/14 anchors；sprint 20260422-160156-242 | 2026-04-22 |

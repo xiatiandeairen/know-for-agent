@@ -127,59 +127,65 @@ Every entry is scoped (by module), tiered (critical vs memo), and automatically 
 | decision | Directory | Options comparison, impact analysis, status tracking |
 | ui | Directory | Layout, interaction flows, component states |
 
-## Storage
+## Storage (v7)
 
-Documents live at the project root; the knowledge base lives under `$XDG_DATA_HOME/know/` (default `~/.local/share/know/`) and is split into two levels:
+**3 JSONL files** — no per-project directories, no aggregate caches:
 
 ```
 <project>/
-└── docs/                         # Structured documents (git-tracked)
-    ├── roadmap.md                #   Product roadmap
-    ├── capabilities.md           #   Capability inventory
-    ├── ops.md                    #   Operations playbook
-    ├── marketing.md              #   Marketing plan
-    ├── arch/{topic}.md           #   Architecture per module
-    ├── schema/{topic}.md         #   Interface specs per topic
-    ├── decision/{topic}.md       #   Decision records per topic
-    ├── milestones/m{n}.md        #   Milestone details
-    └── requirements/{req}/       #   prd.md + tech.md per requirement
+└── docs/
+    ├── triggers.jsonl            # ← project source (git-tracked)
+    ├── roadmap.md / capabilities.md / ops.md / marketing.md
+    ├── arch/{topic}.md
+    ├── schema/{topic}.md
+    ├── decision/{topic}.md
+    ├── milestones/history.md
+    └── requirements/{req}/       # prd.md + tech.md
 
-$XDG_DATA_HOME/know/
-├── projects/{project-id}/        # level=project (one per project)
-│   ├── index.jsonl               # Knowledge entries (JSONL)
-│   ├── entries/{tag}/{slug}.md   # Detail files (critical tier only)
-│   ├── events.jsonl              # Lifecycle + recall query events
-│   └── metrics.json              # Aggregated counters
-└── user/                         # level=user (shared across projects)
-    ├── index.jsonl
-    ├── entries/{tag}/{slug}.md
-    ├── events.jsonl
-    └── metrics.json
+$XDG_CONFIG_HOME/know/            # default: ~/.config/know/
+└── triggers.jsonl                # ← user source (cross-project methodology;
+                                  #    users can dotfiles-git this independently)
+
+$XDG_DATA_HOME/know/              # default: ~/.local/share/know/
+└── events.jsonl                  # ← runtime: all events (created/updated/
+                                  #    deleted/hit/recall_query). Each line
+                                  #    carries project_id + level fields.
+                                  #    metrics/stats derive from this.
 ```
 
-`{project-id}` = absolute project path with `/` replaced by `-`.
+**Entry schema (8 fields)**: `tag / scope / summary / strict / ref / source / created / updated`.
+- `strict`: bool for `tag=rule` (true = hard constraint, false = advisory); null for `insight`/`trap`.
+- `ref`: `docs/xxx.md#anchor` | `src/file.ts:42` | URL | null.
 
-`--level project|user` controls read/write scope on every `know-ctl` subcommand. Read commands (query/search/stats/history/decay) default to both levels merged; write commands (append/update/delete/hit) default to project.
+`--level project|user` on every subcommand. Read commands default to both levels merged; write commands default to project.
 
-### Migration from legacy `.know/`
+### Migration from v6
 
-Pre-refactor installations stored everything in `<project>/.know/`. The new `know-ctl.sh` does not read that path — migrate manually:
+v6 stored per-project data under `$XDG_DATA_HOME/know/projects/{id}/` plus `user/`, with an 11-field schema and `entries/{tag}/{slug}.md` detail files. v7 replaces this with 3 files and 8-field schema.
+
+Run the built-in migrator:
 
 ```bash
-# Move documents to project root
-mv .know/docs docs
+# Preview changes (no writes)
+bash scripts/know-ctl.sh migrate-v7 --dry-run
 
-# Move knowledge base to XDG home (replace with your project path)
-PROJECT_ID=$(pwd | sed 's|/|-|g')
-mkdir -p ~/.local/share/know/projects/"$PROJECT_ID"
-mv .know/index.jsonl .know/entries .know/events.jsonl .know/metrics.json \
-   ~/.local/share/know/projects/"$PROJECT_ID"/
+# Execute
+bash scripts/know-ctl.sh migrate-v7
 
-# Drop the empty .know/ directory
-rmdir .know
+# Verify
+bash scripts/know-ctl.sh self-test
+bash scripts/know-ctl.sh stats
+
+# After confirming the migration looks correct, remove legacy data:
+rm -rf ~/.local/share/know/projects ~/.local/share/know/user
 ```
 
-Run `bash scripts/know-ctl.sh init` afterwards to verify the new layout. If `.know/` is still present, `init` prints a reminder with the exact `mv` commands.
+The migrator:
+1. Converts 11-field entries to 8-field (drops `tier` / `tm` / `path` / `hits` / `revs`; adds `strict` / `ref`).
+2. Consolidates `entries/{tag}/{slug}.md` detail files into `<project>/docs/legacy-v6-details.md` for manual review; each converted entry's `ref` points to the new section anchor.
+3. Merges per-project `events.jsonl` + `user/events.jsonl` into the single `$XDG_DATA_HOME/know/events.jsonl`, adding `project_id` and `level` fields to each record.
+
+Legacy data is **not** auto-deleted; inspect the output first.
 
 ## Contributing
 

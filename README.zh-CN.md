@@ -90,56 +90,65 @@ Know 捕获的是代码和 git 历史**无法表达**的知识：
 | 生命周期 | 手动维护 | 手动维护 | **自动衰减 + 指标** |
 | 限制 | ~200 行 | ~200 行 | **无硬性限制** |
 
-## 存储结构
+## 存储结构（v7）
 
-文档放项目根 `docs/`；知识库在 `$XDG_DATA_HOME/know/`（默认 `~/.local/share/know/`），分为项目级（project）和用户级（user）两层：
+**3 个 JSONL 文件**，不再按项目建目录，无聚合缓存：
 
 ```
 <project>/
-└── docs/                         # 结构化文档（git 跟踪）
+└── docs/
+    ├── triggers.jsonl            # ← project source（git 跟踪）
     ├── roadmap.md / capabilities.md / ops.md / marketing.md
     ├── arch/{topic}.md
     ├── schema/{topic}.md
     ├── decision/{topic}.md
-    ├── milestones/m{n}.md
+    ├── milestones/history.md
     └── requirements/{req}/       # prd.md + tech.md
 
-$XDG_DATA_HOME/know/
-├── projects/{project-id}/        # level=project（每个项目独立）
-│   ├── index.jsonl               # 条目（JSONL）
-│   ├── entries/{tag}/{slug}.md   # 详情文件（仅 critical）
-│   ├── events.jsonl              # 生命周期 + recall 事件
-│   └── metrics.json              # 质量指标
-└── user/                         # level=user（跨项目共享）
-    ├── index.jsonl
-    ├── entries/{tag}/{slug}.md
-    ├── events.jsonl
-    └── metrics.json
+$XDG_CONFIG_HOME/know/            # 默认 ~/.config/know/
+└── triggers.jsonl                # ← user source（跨项目方法论；用户可
+                                  #    独立放进自己的 dotfiles git）
+
+$XDG_DATA_HOME/know/              # 默认 ~/.local/share/know/
+└── events.jsonl                  # ← runtime：所有事件（created/updated/
+                                  #    deleted/hit/recall_query）；每行含
+                                  #    project_id + level 字段；metrics
+                                  #    / stats 从它实时派生
 ```
 
-`{project-id}` = 项目绝对路径的 `/` 全部替换成 `-`。
+**Schema 8 字段**：`tag / scope / summary / strict / ref / source / created / updated`。
+- `strict`：`tag=rule` 时为 bool（true=硬约束，false=建议）；`insight`/`trap` 必须 null。
+- `ref`：`docs/xxx.md#anchor` | `src/file.ts:42` | URL | null。
 
-`--level project|user` 在所有 `know-ctl` 子命令上控制读写范围。读类命令（query/search/stats/history/decay）默认合并两层；写类命令（append/update/delete/hit）默认写 project。
+`--level project|user` 覆盖所有子命令。读类命令默认两 level 合并；写类默认 project。
 
-### 从旧 `.know/` 迁移
+### 从 v6 迁移
 
-重构前的数据统一在 `<project>/.know/`。新 `know-ctl.sh` 不再读这个路径，请手动迁移：
+v6 的数据布局：`$XDG_DATA_HOME/know/projects/{id}/`（11 字段 schema + `entries/{tag}/{slug}.md` 散文件）+ `user/`。v7 改为 3 文件 + 8 字段 schema。
+
+内置迁移命令：
 
 ```bash
-# 文档迁到项目根
-mv .know/docs docs
+# 预览（不写入）
+bash scripts/know-ctl.sh migrate-v7 --dry-run
 
-# 知识库迁到 XDG
-PROJECT_ID=$(pwd | sed 's|/|-|g')
-mkdir -p ~/.local/share/know/projects/"$PROJECT_ID"
-mv .know/index.jsonl .know/entries .know/events.jsonl .know/metrics.json \
-   ~/.local/share/know/projects/"$PROJECT_ID"/
+# 执行
+bash scripts/know-ctl.sh migrate-v7
 
-# 删掉空的 .know/
-rmdir .know
+# 验证
+bash scripts/know-ctl.sh self-test
+bash scripts/know-ctl.sh stats
+
+# 确认无误后清理 v6 遗留
+rm -rf ~/.local/share/know/projects ~/.local/share/know/user
 ```
 
-之后运行 `bash scripts/know-ctl.sh init` 验证；若 `.know/` 还在，`init` 会提示一次迁移命令。
+迁移器做 3 件事：
+1. 11 字段 → 8 字段（删 `tier` / `tm` / `path` / `hits` / `revs`；加 `strict` / `ref`）
+2. `entries/{tag}/{slug}.md` 散文件合并到 `<project>/docs/legacy-v6-details.md` 的锚点段；每条 trigger 的 `ref` 指向对应锚点（用户 review 后可搬到其他 `docs/decision/` 等位置）
+3. 项目和 user 的 `events.jsonl` 合并到单个 `$XDG_DATA_HOME/know/events.jsonl`，每行补 `project_id` + `level` 字段
+
+v6 数据**不自动删除**，确认后手工 `rm -rf`。
 
 ## 参与贡献
 

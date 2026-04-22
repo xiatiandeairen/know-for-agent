@@ -1,130 +1,128 @@
-# Know 架构设计
+# Know 系统架构
 
 ## 1. 定位与边界
 
 ### 职责
 
-项目隐性知识的持久化与结构化文档生成，为 AI agent 提供跨会话、跨项目的知识记忆和文档编写能力。
+顶层整合架构：把 7 个子模块（learn / write / extract / review / recall / decay / storage）组合为"编辑前加载、对话后沉淀、代码可挖掘、定期审计"的知识闭环，为 AI agent 提供项目级 + 用户级双层记忆。
 
 ### 不负责
 
-- 代码修改与执行（→ agent 本身的 Edit/Bash 工具）
-- 任务调度与编排（→ sprint skill）
-- 知识条目的语义理解与推理（→ Claude 模型能力，know 只做存取和触发）
-- 持久进程或后台服务（→ 无，所有操作为无状态脚本调用）
+- 单个模块的内部组件设计（→ 各子模块独立 arch 文件）
+- 模块内部字段与接口（→ schema/know-ctl.md）
+- 产品需求与优先级（→ prd / roadmap）
+- 代码修改执行（→ agent 的 Edit/Bash 工具）
+
+### 子模块文件索引
+
+| 子模块 | 类型 | 架构文件 |
+|---|---|---|
+| Learn | Pipeline | [learn.md](learn.md) |
+| Write | Pipeline | [write.md](write.md) |
+| Extract | Pipeline | [extract.md](extract.md) |
+| Review | Pipeline | [review.md](review.md) |
+| Recall | Always-on | [recall.md](recall.md) |
+| Decay | Always-on | [decay.md](decay.md) |
+| Dual-level Storage | Infrastructure | [storage.md](storage.md) |
 
 ## 2. 结构与交互
 
 ### 组件图
 
 ```
-[SKILL.md 路由]  --dispatch--> [Workflow 文件]      [know-ctl.sh CLI]
-  解析 /know 命令                 5 个管线定义         13 个子命令
-  关键词匹配分发                  各含完整步骤链        --level project|user
-       |                              |                      |
-       |                              +--- # [RUN] ----------+
-       v                                                      v
-[Recall 系统]                                  [docs/ 项目根]（Git 跟踪）
-  编辑前自动触发                                  结构化文档（11 类）
-  两 level 合并查询                               roadmap/prd/tech/arch/...
-  [project]/[user] 标注
-                                                [$XDG_DATA_HOME/know/]
-[Decay 系统]                                    知识库（Git 外、按 user 隔离）
-  learn 入口时运行                                projects/{id}/  level=project
-  两 level 各自衰减                                 index.jsonl entries/
-                                                    events.jsonl metrics.json
-                                                user/             level=user
-                                                    （同上，跨项目共享）
+                      [SKILL.md 路由]
+                      /know {cmd} 分发
+                            │
+         ┌──────┬────────┬──┴───┬────────┬──────┐
+         ▼      ▼        ▼      ▼        ▼      ▼
+      [Learn][Write][Extract][Review] [Recall][Decay]
+        │      │       │       │         │      │
+        └──────┴───┬───┴───────┴─────┬───┘      │
+                   │                 │          │
+                   ▼                 ▼          ▼
+        [Storage: know-ctl.sh]  [Storage]  [Storage]
+        append/update/delete    query       decay
+                   │
+      ┌────────────┴────────────────────────┐
+      ▼                 ▼                     ▼
+[$PROJECT_DIR/docs/]   [$XDG_CONFIG/know/]   [$XDG_DATA/know/]
+  triggers.jsonl         triggers.jsonl       events.jsonl
+  结构化 md 文档          user source         runtime (全部)
+  (project source)       (跨项目共享)         带 project_id+level
+  git-tracked            用户 dotfiles        per-machine
 ```
 
 ### 组件表
 
 | 组件 | 职责 | 边界规则 |
-|------|------|---------|
-| SKILL.md 路由 | 解析 `/know` 输入并分发到对应 workflow | 禁止包含管线执行逻辑；通过关键词匹配或会话扫描决定目标 |
-| Workflow 文件 | 定义单个管线的完整步骤链（learn 10 步、write 8 步、review 3 步、extract 5 步） | 禁止跨管线调用；通过 `# [RUN]` 调用 know-ctl.sh；user 写入必须二次确认 |
-| know-ctl.sh | 对两 level 目录执行原子 CRUD（13 个子命令） | 禁止包含业务判断；读类命令默认两 level 合并（带 `_level` 字段），写类默认 project |
-| Recall 系统 | 编辑前自动查询相关知识并提示 | 两 level 合并查询；同 scope 匹配 project > user；max 3 条 |
-| Decay 系统 | 在 learn 入口清理过期条目 | 两 level 独立衰减；禁止删除 tier=1 且 age<180d 的条目 |
-| docs/ 文档层 | 项目结构化文档（随项目仓库版本化） | 位于项目根 `docs/`，git 跟踪；write 管线生成 |
-| 知识库层 | 项目级 + 用户级双存储 | 位于 `$XDG_DATA_HOME/know/`（不在项目树内）；按 project-id 隔离；user 跨项目共享 |
+|---|---|---|
+| SKILL.md 路由 | 解析 `/know` 命令分发到对应 workflow | 禁止包含管线执行逻辑；必须关键词匹配或会话扫描 |
+| 4 个 Pipeline（learn/write/extract/review） | 用户主动触发的结构化管线 | 各 pipeline 禁止跨调；必须通过 know-ctl 访问存储 |
+| 2 个 Always-on（recall/decay） | 事件触发的后台行为 | recall 在编辑前；decay v7 no-op；禁止独立 cron |
+| Storage (know-ctl.sh) | 所有模块的存储 I/O 唯一入口 | 禁止模块直访 triggers.jsonl；必须用 --level 参数显式 |
+| 文档层（$PROJECT_DIR/docs/） | 项目文档 + project triggers，git 跟踪 | write 唯一写入 md；triggers 由 know-ctl 维护 |
+| user source 层（$XDG_CONFIG/know/） | 用户跨项目 triggers | 只通过 know-ctl 访问 |
+| 运行时层（$XDG_DATA/know/events.jsonl） | 全部事件（per-machine） | append-only；metrics/stats 实时派生 |
 
 ### 数据流
 
 ```
-用户输入 --/know cmd--> SKILL.md --workflow--> Workflow
-                                                  |
-                               know-ctl append --level {project|user}
-                                                  |
-                                                  v
-                        $XDG_DATA_HOME/know/{projects/{id}|user}/index.jsonl
-                                                  |
-          know-ctl query <scope> <---recall触发---+ (两 level 合并扫描)
-                    |                              |
-           JSONL 行 (带 _level) --rank--> [recall] [project]/[user] 前缀输出
-                                                  |
-          know-ctl decay <---learn入口触发---------+ (两 level 各自)
-                    |
-           删除/降级 --> events.jsonl (append-only, 各 level 独立)
-                        metrics.json (各 level 独立计数)
+对话   --/know learn--> Learn   --append--> triggers.jsonl (project 或 user)
+对话   --/know write--> Write   --生成 md--> $PROJECT_DIR/docs/
+代码   --/know extract-> Extract --append--> triggers.jsonl (project)
+存量   --/know review--> Review  --delete/update--> triggers.jsonl
 
-write 管线 --> docs/{type}.md | docs/{type}/{topic}.md | docs/requirements/{req}/
-         （位于项目根，不在 XDG）
+编辑前 --hook--> Recall --query--> 两 level 合并 --rank--> 提示（⚠ if rule+strict=true）
+
+所有写操作 --> events.jsonl（带 project_id + level）
+
+learn 入口 --> Decay (v7 no-op)
 ```
 
 | 来源 | 目标 | 数据格式 | 类型 | 说明 |
-|------|------|---------|------|------|
-| Workflow | index.jsonl (对应 level) | JSONL (11 字段) | 强 | learn/extract 写入知识条目；--level 决定写哪个 |
-| index.jsonl (两 level) | Recall 系统 | JSONL + `_level` 字段 | 强 | 默认两 level 合并；无任一 index 静默跳过 |
-| Workflow | docs/ | Markdown | 强 | write 生成；位于项目根，随 git 版本化 |
-| know-ctl.sh | events.jsonl | JSONL 事件记录 | 弱 | append-only 审计；各 level 独立 |
-| know-ctl.sh | metrics.json | JSON 计数 | 弱 | 聚合指标；当前各 level 独立（跨 level 聚合未做） |
-| templates/ | Workflow | Markdown 模板 | 强 | write 依赖模板生成文档骨架 |
+|---|---|---|---|---|
+| 4 pipelines | Storage | JSONL CRUD + `--level` | 强 | 所有写入走同一个 CLI 入口 |
+| Storage | Recall | query 结果 + `_level` | 强 | recall 依赖 level 做 rank |
+| Storage | Decay | 按 level 读 index | 强 | decay 对每 level 独立运行 |
+| Write | 文档层 | Markdown | 强 | 不经 know-ctl，直写项目根 |
+| 各模块 | events.jsonl | append-only JSONL | 弱 | 缺失不影响业务结果 |
 
 ## 3. 设计决策
 
 ### 驱动因素
 
 | 因素 | 类型 | 对架构的影响 |
-|------|------|------------|
-| Claude Code skill 不支持持久进程 | 技术约束 | 所有状态持久化到文件，无后台服务 |
-| 知识跨会话存活 | 业务需求 | 文件级持久化层；不能依赖内存或会话上下文 |
-| 方法论跨项目复用 | 业务需求 | 引入 user level；XDG 存储位于项目外 |
-| Skill 上下文窗口有限 | 技术约束 | SKILL.md 只放路由和常驻定义，详细步骤按需加载到 workflow |
-| 知识召回不能阻断正常开发 | 质量要求 | recall 两 level 合并但"提示而非阻断"，max 3，降级（block→warn→suggest） |
-| 部署环境为纯文件系统 | 技术约束 | JSONL + Markdown，bash + jq，零外部依赖 |
-| 文档需随代码走 Git/IDE 工具链 | 业务需求 | `docs/` 放项目根（而非 XDG），git 跟踪；知识库不污染仓库 |
+|---|---|---|
+| Claude Code skill 不支持持久进程 | 技术约束 | 所有状态持久化到文件；每次调用无状态 |
+| 知识跨会话、跨项目复用 | 业务需求 | 双 level 存储 + XDG 外部路径 |
+| 文档走 Git / IDE 工具链 | 业务需求 | 文档放 `$PROJECT_DIR/docs/`（不在 XDG） |
+| Skill 上下文窗口有限 | 技术约束 | SKILL.md 只放路由；详细步骤按需加载到 workflow |
+| recall 不可阻断编辑 | 质量要求 | 最高 warn，不真 block；max 3 条 |
+| 部署环境纯文件系统 | 技术约束 | JSONL + Markdown + bash + jq，零依赖 |
 
 ### 关键选择
 
 | 决策 | 选择 | 被拒方案 | 为什么 |
-|------|------|---------|--------|
-| 存储格式 | JSONL 纯文本 | SQLite | SQLite 需要编译依赖；JSONL 可直接 grep，部署零依赖 |
-| 文档位置 | 项目根 `docs/` | `.know/docs/`（重构前） | docs 属于项目，应跟 git / IDE / PR diff 工具链；知识库缓存不属于 |
-| 知识库位置 | `$XDG_DATA_HOME/know/` | 项目内 `.know/` | 知识库是 per-user state，不应污染项目仓库；符合 XDG 规范 |
-| 作用域分层 | `level=project\|user`（物理目录分） | 在 index.jsonl 加 level 字段 | 物理隔离天然独立；查询/迁移/权限更清晰 |
-| 合并查询语义 | 默认 read 两 level 合并、write 只 project | 默认 project-only | 读场景希望所有知识都能帮到手；写场景安全默认（user 影响所有项目） |
-| user 写入保护 | workflow 层二次确认 | CLI 层阻塞 | CLI 要保持幂等可脚本化；workflow 知道语境，适合做交互 |
-| 管线定义方式 | 独立 workflow 文件 | 全写在 SKILL.md | SKILL.md 膨胀会占满上下文；按需加载控 token |
-| CLI 实现 | Bash 脚本 | Python/Node | Bash 原生可用，无运行时依赖 |
-| recall 触发 | 编辑前自动 | 用户手动 | "不知道自己不知道"必须主动提醒 |
+|---|---|---|---|
+| 管线定义方式 | 独立 workflow 文件 | 全在 SKILL.md | 上下文窗口有限，按需加载 |
+| 存储唯一入口 | know-ctl.sh CLI | 每模块直读 JSONL | 集中校验 / level 路由 / 事件记录 |
+| Always-on 触发 | 事件寄生（编辑前 / learn 入口） | 独立 cron 或守护 | 无持久进程，必须搭便车 |
+| 双层存储 | 物理目录隔离 | entry 加字段 | 物理边界最清晰（见 storage.md）|
+| 文档位置 | 项目根 docs/ | .know/docs/ | 工具链原生支持 |
 
 ### 约束
 
-- 禁止引入外部数据库或运行时依赖（仅 bash + jq）
-- 禁止 SKILL.md 包含管线执行逻辑（上下文窗口有限）
-- 必须所有操作幂等或 append-only（无持久进程，步骤可能中断后重试）
-- 禁止 recall 对同一 scope 在同一会话内重复查询
-- 写入 user level 必须经 workflow 层二次确认
-- 旧 `.know/` 目录不再读取；迁移由用户手工完成（`know-ctl init` 检测后提示）
+- 禁止子模块之间直接调用（必须通过 SKILL.md 路由或 know-ctl）
+- 禁止 SKILL.md 包含管线执行逻辑
+- 必须所有操作幂等或 append-only（无持久进程）
+- 必须 recall 对同 scope 同 session 不重复查询
+- 必须 write user level 经工作流二次确认
 
 ## 4. 质量要求
 
 | 属性 | 指标 | 目标 |
-|------|------|------|
-| 知识存活率 | 已创建条目中未被 decay 清除的比例 | >80%（当前实测：project 100%，user 未投入使用） |
-| recall 精准度 | 召回条目中与当前操作相关的比例 | >70%（目标值，待验证） |
-| 管线执行时间 | 单次 know-ctl 子命令耗时 | <500ms p95（目标值，待验证） |
-| 存储可读性 | index.jsonl 可直接用 grep/jq 查询 | 100%（设计保证） |
-| 文档覆盖率 | 里程碑中有配套 PRD 的比例 | >80%（目标值，待验证） |
-| 两 level 隔离 | self-test 中 append/delete 互不影响 | 100%（29/29 self-test 覆盖） |
+|---|---|---|
+| 模块独立性 | 子模块可单独替换不影响其他 | 7/7（各有独立 arch + 接口只走 SKILL.md/know-ctl） |
+| 存储一致性 | 两 level 隔离的 self-test 通过数 | 29/29（当前实测） |
+| 系统响应 | 单次 /know 命令端到端耗时 | <2s p95（目标值，待验证） |
+| 零依赖 | 运行时非 bash / jq / git 的外部依赖数 | 0（设计保证） |
