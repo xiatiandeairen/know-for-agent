@@ -229,6 +229,43 @@ Overflow: remove qualifiers → core conclusion only → still over → split in
 
 建议场景：tag=rule + strict=true 时最好有 ref；summary ≥60 字常意味着值得配 doc 段。
 
+### 4f: Keywords
+
+为 trigger 选 5-8 个 keywords，用于 recall 的语义匹配。
+
+**Hard rule（`know-ctl` 校验）**：每个 keyword 字符只允许 `[a-z0-9-]`，长度 2-40。
+
+- ✓ `webhook`、`signature-verification`、`api-v2`、`jwt`、`pii-protection`
+- ✗ `Webhook`（大写）、`web_hook`（下划线）、`签名`（中文）、`api design`（空格）
+
+**Soft convention（优先复用词表）**：
+
+```bash
+# [RUN] 获取当前动态词表
+bash "$KNOW_CTL" keywords
+```
+
+输出示例：
+```
+authentication (8)
+webhooks (5)
+signature-verification (3)
+idempotency (4)
+...
+```
+
+为这条 trigger 选 keywords：
+- **优先从词表复用**（一致性 > 个人偏好）
+- 新词直接加入即可（会自然扩展词表）
+
+**Prompt 示例**：
+
+```
+trigger: "session 过期必须触发刷新而非拒绝 — 避免静默登出"
+current vocabulary: [authentication(8), session-management(3), jwt(2), ...]
+→ selected keywords: [authentication, session-management, session-refresh]
+```
+
 ---
 
 ## Step 5: Conflict
@@ -386,7 +423,7 @@ Model: sonnet
 
 ```bash
 # [RUN] append takes a JSON string + optional --level. Level is stored by file location, not in JSON.
-TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append --level {level} '{"tag":"{tag}","scope":"{scope}","summary":"{summary}","strict":{strict_or_null},"ref":{ref_or_null},"source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"}'
+TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append --level {level} '{"tag":"{tag}","scope":"{scope}","summary":"{summary}","strict":{strict_or_null},"ref":{ref_or_null},"keywords":{keywords_array_or_null},"source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"}'
 ```
 
 `{level}` = value confirmed in Step 7 (`project` | `user`). Omit `--level` falls back to project.

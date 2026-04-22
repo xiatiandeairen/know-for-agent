@@ -2,8 +2,8 @@
 
 ## Progress
 
-Steps: 3
-Names: Load, Display, Process
+Steps: 4
+Names: Load, Display, Process, KeywordAudit
 
 Shared definitions (schema, decay, output markers) → SKILL.md.
 
@@ -150,6 +150,49 @@ Output: `[review] Merged into: {merged_summary}`
 Output: `[review] Kept: {summary}`
 
 After all processed: `[review] Done: {deleted} deleted, {updated} updated, {merged} merged, {kept} kept`
+
+---
+
+## Step 4: Keyword Vocabulary Audit（同义词归并）
+
+Model: sonnet
+
+Run after Step 3 finishes. Purpose: 词表健康治理——发现同义词、拼写变体、过泛词并建议合并。
+
+```bash
+# [RUN] 拉当前词表
+bash "$KNOW_CTL" keywords
+```
+
+输出每个 keyword 用使用次数。Claude 扫词表找**合并候选**：
+
+| 模式 | 例子 | 建议行动 |
+|---|---|---|
+| 同义词 | `webhook`, `webhook-handler`, `web-hook` | 合并到最精简词（`webhook`）|
+| 单复数 | `worker`, `workers` | 合并到单数 |
+| 拼写变体 | `auth`, `authentication` | 保留更完整的 |
+| 过泛词 | `code`, `bug`, `file` | 建议删除（无区分度）|
+| 低频孤词 | 仅 1 条 trigger 用 | review 是否值得保留 |
+
+每个合并建议呈现给用户：
+
+```
+[review] keyword audit:
+  webhook (5), webhook-handler (1) → merge to 'webhook'?  [y/N]
+  worker (8), workers (2) → merge to 'worker'?  [y/N]
+  code (3) → remove as overly generic?  [y/N]
+```
+
+用户选 `y` 后批量执行：
+
+```bash
+# [RUN] 对每条含旧 keyword 的 trigger 替换
+bash "$KNOW_CTL" update "<keyword-in-summary>" '{"keywords":[<新 keywords 数组>]}' --level <L>
+```
+
+Output: `[review] keyword audit: {N} merged, {M} removed`
+
+**治理节奏**：建议每 20-30 条新 trigger 后跑一次，或 `/know report` 发现词表膨胀时跑。
 
 ---
 

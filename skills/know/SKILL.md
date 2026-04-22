@@ -51,6 +51,7 @@ Semantic understanding recommends; explicit signals + user intent decide. Rules 
 | scope | dot-separated keypath（如 `Module.Class.method`），支持前缀匹配。概念域用 `methodology.*` 前缀 |
 | strict | `tag=rule` 时强制的 bool：`true`=硬约束（违反导致编译失败/数据损坏/安全问题），`false`=软约束（推荐）。其他 tag 必须 `null` |
 | ref | 指向完整 context 的引用：docs 段落 / 代码锚点 / URL / `null` |
+| keywords | `string[]` 或 `null`，每项匹配正则 `^[a-z0-9-]+$`。learn 时 Claude 从动态词表（`know-ctl keywords` 输出）选 5-8 个，优先复用。recall 时也从词表选 3-5 做查询匹配 |
 | level | 存储作用域：`project`（项目 git，per-project）或 `user`（跨项目共享）。由 `--level` 参数控制；读类默认两 level 合并，写类默认 project |
 | pipeline | 子命令对应的执行流程（learn/write/extract/review），由 workflow 文件定义 |
 
@@ -110,7 +111,7 @@ Before code-changing operations (Edit, Write, Bash that modifies files).
 ### Pipeline
 
 ```
-Scope Inference → Query (both levels) → Rank → Select (max 3) → Act
+Scope Inference → Keywords Inference → Query (scope + keywords) → Select (max 3) → Act
 ```
 
 **Scope inference** (from current file operation):
@@ -121,21 +122,32 @@ Scope Inference → Query (both levels) → Rank → Select (max 3) → Act
 | P2 | Last 10 tool call paths, ≥2 occurrences wins |
 | P3 | `"project"` fallback |
 
-**Query** (default: both levels merged; each entry carries `_level` field):
+**Keywords inference** (semantic signal, from current task):
+
+1. 拉动态词表：
+   ```bash
+   # [RUN]
+   bash "$KNOW_CTL" keywords
+   ```
+2. 从词表中选 3-5 个与当前任务（当前 file 类型、正在改的功能、task context）最相关的 keywords
+3. 只从词表选，**不要自由生成新 keywords**（新 keywords 只在 learn 时产生）
+
+**Query**（scope 双向前缀 + keywords 交集；know-ctl 自动按 keywords 命中数排序）：
+
 ```bash
 # [RUN]
-bash "$KNOW_CTL" query "{scope}"
+bash "$KNOW_CTL" query "{scope}" --keywords "{k1},{k2},{k3}"
 ```
 
-**Record query** (immediately after Query, before Rank):
+输出为 JSONL，每行一个 entry，附 `_level` 和 `_kw_hits`（keywords 命中数）字段，按 `_kw_hits` 降序排列。
+
+**Record query** (immediately after Query):
 ```bash
 # [RUN]
 bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}"
 ```
 
-**Rank**: scope exact > scope prefix → same scope layer prefer `_level=project` over `_level=user` (local wins on ties).
-
-**Select**: max 3 entries. 0 relevant → show nothing, no output.
+**Select**: 取 `_kw_hits` 降序前 3 条；同 `_kw_hits` 值内 `_level=project` 优先；0 相关 → 不输出。
 
 **Output format** — prefix level tag; `tag=rule && strict=true` 加 `⚠` 前缀；输出里补 ref（若非 null）：
 ```
@@ -282,10 +294,10 @@ $XDG_DATA_HOME/know/events.jsonl       # runtime: all events (project + user)
 
 Legacy v6 data at `$XDG_DATA_HOME/know/projects/{id}/` and `/user/` is migrated via `bash scripts/know-ctl.sh migrate-v7`.
 
-### Entry Schema (8 fields)
+### Entry Schema (8 core + 1 optional keywords)
 
 ```json
-{"tag":"rule|insight|trap","scope":"...","summary":"≤80ch","strict":true|false|null,"ref":"docs/x.md#a|src/f:42|https://...|null","source":"learn|extract","created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}
+{"tag":"rule|insight|trap","scope":"...","summary":"≤80ch","strict":true|false|null,"ref":"docs/x.md#a|src/f:42|https://...|null","keywords":["webhook","signature-verification"]|null,"source":"learn|extract","created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}
 ```
 
 | Field | Values |
@@ -295,6 +307,7 @@ Legacy v6 data at `$XDG_DATA_HOME/know/projects/{id}/` and `/user/` is migrated 
 | summary | `{结论} — {原因}`，≤80 chars，含可搜索锚词 |
 | strict | `tag=rule` 时必填 bool：`true`=硬约束，`false`=软约束；其他 tag 必须 `null` |
 | ref | 指向 context：docs 段 / 代码锚点 / URL / `null` |
+| **keywords** | **string[] 或 null；每项匹配 `^[a-z0-9-]+$`（长度 2-40）；learn 时从 `know-ctl keywords` 词表优先选；既有 trigger 可 null（向后兼容）** |
 | source | `learn` \| `extract` |
 | created / updated | `YYYY-MM-DD` |
 
