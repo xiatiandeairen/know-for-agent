@@ -2,8 +2,8 @@
 
 ## Progress
 
-Steps: 9
-Names: Detect, Extract, Filter, Assess, Generate, Conflict, Challenge, Confirm, Write
+Steps: 10
+Names: Detect, Extract, Filter, Assess, Generate, Conflict, Challenge, Level, Confirm, Write
 
 Core infrastructure (paths, schema, recall, markers) → SKILL.md.
 
@@ -60,10 +60,10 @@ Semantic similarity can find candidates, but final classification must also cons
 
 ## Decay
 
-Run at Step 1 entry, before signal detection. Skip if `.know/index.jsonl` does not exist.
+Run at Step 1 entry, before signal detection. Skip if neither `$PROJECT_KNOW_DIR/index.jsonl` nor `$USER_KNOW_DIR/index.jsonl` exists.
 
 ```bash
-# [RUN]
+# [RUN] decay runs on both levels by default
 bash "$KNOW_CTL" decay
 ```
 
@@ -357,11 +357,60 @@ Surviving entries ({M}/{N}):
 持久化？ [all / 选编号 / skip]
 ```
 
-[STOP:choose] User selects → each surviving entry processed through Steps 8-9.
+[STOP:choose] User selects → each surviving entry processed through Steps 8-10.
 
 ---
 
-## Step 8: Confirm [STOP:confirm]
+## Step 8: Level
+
+Model: sonnet
+
+Decide storage level for each surviving entry: `project` (default) or `user` (cross-project).
+
+### Inference (default suggestion)
+
+| Signal in scope or summary | Suggest |
+|---|---|
+| Scope starts with `methodology.*` | user |
+| Summary is domain-agnostic (generic engineering lesson, no project-specific identifier) | user |
+| Scope names a project-local module (e.g. `Auth.session`, `Search.reranker`) | project |
+| References project-specific file/class/config | project |
+
+When uncertain → suggest `project` (safe default; upgrade later via `know-ctl delete` + append `--level user`).
+
+### Interaction
+
+```
+[learn] step: level
+{N} 条待持久化知识的 level 归属：
+
+1. [{tag}] {summary}
+   建议: {project|user} — {reason}
+2. ...
+
+确认？回复 "ok" 接受全部建议；或 "1:user, 3:user" 覆盖特定编号；或 "all user" 全改 user。
+```
+
+[STOP:choose]
+
+### User-level write confirmation
+
+任何被标 `user` 的条目 → Step 10 写入前再确认一次：
+
+```
+[learn] 即将写入 user 级，跨所有项目生效。确认以下 {M} 条？
+
+1. [{tag}] {summary}
+2. ...
+
+回复 "y" 确认；或 "1:project, 3:project" 降回 project；或 "cancel" 撤销这部分。
+```
+
+[STOP:confirm] Default on silence: treat as confirm after explicit `y`; any other single word → re-ask with options.
+
+---
+
+## Step 9: Confirm [STOP:confirm]
 
 Show complete entry for user review.
 
@@ -373,14 +422,16 @@ If user is repeatedly uncertain → suggest downgrading to memo.
 
 ---
 
-## Step 9: Write
+## Step 10: Write
 
 Model: sonnet
 
 ```bash
-# [RUN] append accepts exactly 1 argument: a complete JSON string. No positional args.
-TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append '{"tag":"{tag}","tier":{tier},"scope":"{scope}","tm":"{tm}","summary":"{summary}","path":{path_or_null},"hits":0,"revs":0,"source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"}'
+# [RUN] append takes a JSON string + optional --level. level is stored by directory, not in JSON.
+TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append --level {level} '{"tag":"{tag}","tier":{tier},"scope":"{scope}","tm":"{tm}","summary":"{summary}","path":{path_or_null},"hits":0,"revs":0,"source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"}'
 ```
+
+`{level}` is the value confirmed in Step 8 (`project` or `user`). Omit `--level` falls back to project (CLI default).
 
 **Slug**: summary → 2-4 English keywords → hyphenated lowercase → `[a-z0-9-]` → max 50 chars.
 
@@ -397,8 +448,8 @@ TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append '{"tag":"{tag}","tier":{tier}
 
 ## Completion
 
-- All selected claims processed through Steps 2-9
-- Each persisted entry has: valid index line + detail file (if critical)
+- All selected claims processed through Steps 2-10
+- Each persisted entry has: valid index line (in the correct level) + detail file (if critical)
 - User saw `[persisted]` or `[skipped]` for every claim
 
 ## Recovery

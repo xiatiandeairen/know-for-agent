@@ -14,16 +14,20 @@ Shared definitions (schema, tiers, decay, output markers) → SKILL.md.
 Model: sonnet
 
 ```
-/know review          → scope = "project"
-/know review <scope>  → scope = argument
+/know review                      → scope = "project", level = both
+/know review <scope>              → scope = argument, level = both
+/know review --level user         → scope = "project", level = user only
+/know review <scope> --level user → scope = argument, level = user only
 ```
 
 ```bash
-# [RUN]
-bash "$KNOW_CTL" query "{scope}"
+# [RUN] pass-through --level to know-ctl; omitted = both levels merged
+bash "$KNOW_CTL" query "{scope}" {--level {level} if provided}
 ```
 
 0 results → `[review] No entries found.` → exit.
+
+Each result carries `_level` field. Display the level in the table (see Step 2).
 
 Parse each result line, compute age in days from `created` field.
 
@@ -70,10 +74,10 @@ Compute per entry using `created`, `hits`:
 ```
 [review] {N} entries found:
 
-| # | tag | tier | scope | hits | age | summary | stage |
-|---|-----|------|-------|------|-----|---------|-------|
-| 1 | rule | critical | Auth | 5 | 30d | Thresholds... | [active] |
-| 2 | insight | memo | Auth | 0 | 15d | ... | [silent] |
+| # | level | tag | tier | scope | hits | age | summary | stage |
+|---|-------|-----|------|-------|------|-----|---------|-------|
+| 1 | project | rule | critical | Auth | 5 | 30d | Thresholds... | [active] |
+| 2 | user | insight | memo | methodology.general | 0 | 15d | ... | [silent] |
 
 All ok? Or enter numbers to process (e.g. "2" or "1,3"):
 ```
@@ -103,7 +107,7 @@ Only delete clearly low-value, outdated, duplicate entries with no preservation 
 
 ```bash
 # [RUN]
-bash "$KNOW_CTL" delete "{summary_keyword}"
+bash "$KNOW_CTL" delete "{summary_keyword}" --level {entry._level}
 ```
 
 Output: `[review] Deleted: {summary}`
@@ -114,7 +118,7 @@ User describes change → re-generate summary (+ detail file if critical) → sh
 
 ```bash
 # [RUN]
-bash "$KNOW_CTL" update "{old_summary_keyword}" '{"summary":"{new_summary}"}'
+bash "$KNOW_CTL" update "{old_summary_keyword}" '{"summary":"{new_summary}"}' --level {entry._level}
 ```
 
 Updatable fields: summary, scope, tag, tier, tm, detail file content.
@@ -135,8 +139,8 @@ When two entries are complementary (same topic, different angle):
 
 ```bash
 # [RUN]
-bash "$KNOW_CTL" update "{target_keyword}" '{"summary":"{merged_summary}"}'
-bash "$KNOW_CTL" delete "{source_keyword}"
+bash "$KNOW_CTL" update "{target_keyword}" '{"summary":"{merged_summary}"}' --level {target._level}
+bash "$KNOW_CTL" delete "{source_keyword}" --level {source._level}
 ```
 
 Output: `[review] Merged into: {merged_summary}`
