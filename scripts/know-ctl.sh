@@ -474,9 +474,184 @@ cmd_check() {
     fi
 }
 
+_convert_v6_entry_to_v7() {
+    # $1 = v6 JSON line  $2 = old dir (for reading detail md)  $3 = legacy md out path
+    local old_line="$1" old_dir="$2" legacy_md="$3"
+
+    local tag summary source created updated old_tm old_path
+    tag=$(echo "$old_line" | jq -r '.tag')
+    summary=$(echo "$old_line" | jq -r '.summary')
+    source=$(echo "$old_line" | jq -r '.source // "learn"')
+    created=$(echo "$old_line" | jq -r '.created')
+    updated=$(echo "$old_line" | jq -r '.updated')
+    old_tm=$(echo "$old_line" | jq -r '.tm // empty')
+    old_path=$(echo "$old_line" | jq -r '.path // empty')
+    local scope_json
+    scope_json=$(echo "$old_line" | jq -c '.scope')
+
+    # strict: rule + guard → true; rule + other → false; non-rule → null
+    local strict_json
+    if [ "$tag" = "rule" ]; then
+        if [ "$old_tm" = "guard" ]; then strict_json=true; else strict_json=false; fi
+    else
+        strict_json=null
+    fi
+
+    # ref: migrate detail md to legacy file, set ref to anchor
+    local ref_json=null
+    if [ -n "$old_path" ] && [ -f "$old_dir/$old_path" ]; then
+        local anchor
+        anchor=$(basename "$old_path" .md)
+        mkdir -p "$(dirname "$legacy_md")"
+        if [ ! -f "$legacy_md" ]; then
+            cat > "$legacy_md" <<'HEADER'
+# 遗留详情（v6 迁移）
+
+本文件由 `bash scripts/know-ctl.sh migrate-v7` 自动生成。每节对应一条原 v6 critical entry 的详情。请 review 后手工搬迁到对应 `docs/decision/` 或 `docs/arch/` 位置，然后用 `know-ctl update` 改 trigger 的 `ref` 字段指向新位置。
+HEADER
+        fi
+        {
+            echo ""
+            echo "## $anchor"
+            echo ""
+            cat "$old_dir/$old_path"
+            echo ""
+        } >> "$legacy_md"
+        local rel_legacy
+        rel_legacy="docs/$(basename "$legacy_md")"
+        ref_json="\"$rel_legacy#$anchor\""
+    fi
+
+    jq -cn --arg tag "$tag" \
+           --argjson scope "$scope_json" \
+           --arg summary "$summary" \
+           --argjson strict "$strict_json" \
+           --argjson ref "$ref_json" \
+           --arg source "$source" \
+           --arg created "$created" \
+           --arg updated "$updated" \
+           '{tag:$tag, scope:$scope, summary:$summary, strict:$strict, ref:$ref, source:$source, created:$created, updated:$updated}'
+}
+
 cmd_migrate_v7() {
-    # Stub: full implementation in T2
-    echo "migrate-v7: implementation in T2 (this is T1 stub)"
+    local DRY_RUN=0
+    if [ "${1:-}" = "--dry-run" ]; then DRY_RUN=1; fi
+
+    echo "=== migrate-v7${DRY_RUN:+ (dry-run)} ==="
+    echo ""
+
+    local old_projects="$LEGACY_XDG_DATA/projects"
+    local old_user="$LEGACY_XDG_DATA/user"
+    local old_project_dir="$old_projects/$PROJECT_ID"
+
+    # ─── project level ───
+    if [ -d "$old_project_dir" ] && [ -f "$old_project_dir/index.jsonl" ]; then
+        local idx="$old_project_dir/index.jsonl"
+        local legacy_md="$DOCS_DIR/legacy-v6-details.md"
+        local n_entries n_details
+        n_entries=$(wc -l < "$idx" | tr -d ' ')
+        n_details=$(find "$old_project_dir/entries" -name "*.md" 2>/dev/null | wc -l | tr -d ' ')
+        echo "[project] $idx"
+        echo "  entries: $n_entries (detail files: $n_details)"
+        if [ "$DRY_RUN" = 1 ]; then
+            echo "  → would write $PROJECT_TRIGGERS"
+            [ "$n_details" -gt 0 ] && echo "  → would generate $legacy_md with detail sections"
+        else
+            ensure_triggers_file project
+            local count=0
+            while IFS= read -r line; do
+                local new_entry
+                new_entry=$(_convert_v6_entry_to_v7 "$line" "$old_project_dir" "$legacy_md")
+                echo "$new_entry" >> "$PROJECT_TRIGGERS"
+                count=$((count + 1))
+            done < "$idx"
+            echo "  ✓ migrated $count entries → $PROJECT_TRIGGERS"
+            [ "$n_details" -gt 0 ] && echo "  ✓ detail sections → $legacy_md"
+        fi
+    else
+        echo "[project] no v6 data at $old_project_dir (skip)"
+    fi
+
+    # project events merge
+    if [ -f "$old_project_dir/events.jsonl" ]; then
+        local n_events
+        n_events=$(wc -l < "$old_project_dir/events.jsonl" | tr -d ' ')
+        echo "  events: $n_events"
+        if [ "$DRY_RUN" = 1 ]; then
+            echo "  → would merge into $EVENTS_FILE (with project_id + level)"
+        else
+            ensure_events_file
+            jq -c --arg pid "$PROJECT_ID" --arg lvl "project" \
+                '. + {project_id: $pid, level: $lvl}' \
+                "$old_project_dir/events.jsonl" >> "$EVENTS_FILE"
+            echo "  ✓ events merged"
+        fi
+    fi
+
+    echo ""
+
+    # ─── user level ───
+    if [ -d "$old_user" ] && [ -f "$old_user/index.jsonl" ]; then
+        local idx="$old_user/index.jsonl"
+        local legacy_md_user="${XDG_CONFIG_HOME:-$HOME/.config}/know/legacy-v6-details.md"
+        local n_entries
+        n_entries=$(wc -l < "$idx" | tr -d ' ')
+        echo "[user] $idx"
+        echo "  entries: $n_entries"
+        if [ "$DRY_RUN" = 1 ]; then
+            echo "  → would write $USER_TRIGGERS"
+        else
+            ensure_triggers_file user
+            local count=0
+            while IFS= read -r line; do
+                local new_entry
+                new_entry=$(_convert_v6_entry_to_v7 "$line" "$old_user" "$legacy_md_user")
+                echo "$new_entry" >> "$USER_TRIGGERS"
+                count=$((count + 1))
+            done < "$idx"
+            echo "  ✓ migrated $count entries → $USER_TRIGGERS"
+        fi
+    else
+        echo "[user] no v6 data at $old_user (skip)"
+    fi
+
+    if [ -f "$old_user/events.jsonl" ]; then
+        local n_events
+        n_events=$(wc -l < "$old_user/events.jsonl" | tr -d ' ')
+        echo "  events: $n_events"
+        if [ "$DRY_RUN" = 1 ]; then
+            echo "  → would merge user events"
+        else
+            ensure_events_file
+            jq -c --arg lvl "user" \
+                '. + {project_id: null, level: $lvl}' \
+                "$old_user/events.jsonl" >> "$EVENTS_FILE"
+            echo "  ✓ user events merged"
+        fi
+    fi
+
+    echo ""
+    if [ "$DRY_RUN" = 1 ]; then
+        echo "Dry-run complete. Re-run without --dry-run to execute."
+    else
+        cat <<EOF
+Migration complete.
+
+Schema changes:
+  tier / tm / path → removed
+  strict (bool for rule, null for insight/trap) added
+  ref (replaces path) added
+  hits / revs → removed (runtime now derived from events)
+
+Legacy detail files consolidated to:
+  docs/legacy-v6-details.md
+Review and move content into proper docs/decision/ or docs/arch/; update
+trigger refs with: bash scripts/know-ctl.sh update <kw> '{"ref":"docs/xxx.md#anchor"}'
+
+To remove v6 data after verification:
+  rm -rf "$old_projects" "$old_user"
+EOF
+    fi
 }
 
 # ─── self-test ───────────────────────────────────────────────────────
