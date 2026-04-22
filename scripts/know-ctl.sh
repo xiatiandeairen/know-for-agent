@@ -455,18 +455,43 @@ cmd_history() {
 }
 
 cmd_recall_log() {
-    # recall-log <scope> <matched> [--level L]
+    # recall-log <scope> <matched> [--level L] [--keywords k1,k2,k3] [--kw-hits N]
     parse_level "$@"
     set -- "${REMAINING_ARGS[@]+"${REMAINING_ARGS[@]}"}"
-    local scope="${1:?Usage: recall-log <scope> <matched> [--level L]}"
-    local matched="${2:?Usage: recall-log <scope> <matched> [--level L]}"
+    local scope="" matched="" keywords_csv="" kw_hits=""
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --keywords) keywords_csv="$2"; shift 2 ;;
+            --kw-hits)  kw_hits="$2"; shift 2 ;;
+            *)
+                if [ -z "$scope" ]; then scope="$1"; shift
+                elif [ -z "$matched" ]; then matched="$1"; shift
+                else shift
+                fi
+                ;;
+        esac
+    done
+    [ -z "$scope" ] && { echo "Usage: recall-log <scope> <matched> [--level L] [--keywords k1,k2,k3] [--kw-hits N]" >&2; exit 1; }
+    [ -z "$matched" ] && { echo "Usage: recall-log <scope> <matched> [--level L] [--keywords k1,k2,k3] [--kw-hits N]" >&2; exit 1; }
+
     local level="${LEVEL_ARG:-project}"
     ensure_events_file
     local ts
     ts=$(date +%Y-%m-%d)
+
+    # Build keywords JSON array (null if not provided)
+    local kw_json="null"
+    if [ -n "$keywords_csv" ]; then
+        kw_json=$(echo "$keywords_csv" | tr ',' '\n' | awk 'NF>0' | jq -R . | jq -s -c)
+    fi
+
+    # kw_hits default 0 if not provided
+    local kh="${kw_hits:-0}"
+
     jq -cn --arg ts "$ts" --arg pid "$PROJECT_ID" --arg lvl "$level" \
            --arg sc "$scope" --argjson m "$matched" \
-           '{ts:$ts, project_id:$pid, level:$lvl, event:"recall_query", scope:$sc, matched:$m}' \
+           --argjson kws "$kw_json" --argjson kh "$kh" \
+           '{ts:$ts, project_id:$pid, level:$lvl, event:"recall_query", scope:$sc, matched:$m, keywords:$kws, kw_hits:$kh}' \
         >> "$EVENTS_FILE"
 }
 
@@ -887,6 +912,9 @@ cmd_self_test() {
     echo "recall-log:"
     cmd_recall_log "Auth.session" "1"
     _assert "recall_query event emitted" 'grep -q "\"event\":\"recall_query\"" "$EVENTS_FILE"'
+    cmd_recall_log "Payment.webhook" "2" --keywords "webhook,signature-verification" --kw-hits "2"
+    _assert "recall_query with keywords field" 'grep -q "\"keywords\":\[\"webhook\",\"signature-verification\"\]" "$EVENTS_FILE"'
+    _assert "recall_query with kw_hits field" 'grep -q "\"kw_hits\":2" "$EVENTS_FILE"'
 
     # 13. decay no-op
     echo "decay:"
