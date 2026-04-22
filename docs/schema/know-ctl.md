@@ -39,10 +39,11 @@ $XDG_DATA_HOME/know/events.jsonl       runtime events（默认 ~/.local/share/kn
 | 字段 | 类型 | 必填 | 说明 |
 |---|---|---|---|
 | tag | string | 是 | 枚举：`insight`（决策/心智模型）、`rule`（约束）、`trap`（踩坑）。选择优先级：trap > rule > insight |
-| scope | string \| string[] | 是 | keypath（如 `Auth.session`）；支持前缀匹配 |
+| scope | string \| string[] | 是 | keypath（如 `Auth.session`）；支持**双向前缀匹配**（entry.scope startsWith query OR query startsWith entry.scope）|
 | summary | string | 是 | ≤80 chars，`{结论} — {原因}` |
 | strict | bool \| null | 是 | `tag=rule` 时必须是 bool；其他 tag 必须 null |
 | ref | string \| null | 否 | context 引用：`docs/x.md#a` / `src/f:42` / `https://...` / null |
+| **keywords** | **string[] \| null** | 否 | **语义匹配用；每项 `^[a-z0-9-]+$`（长度 2-40）；learn 从动态词表选；既有可为 null（兼容）** |
 | source | string | 是 | `learn` \| `extract` |
 | created | string | 是 | `YYYY-MM-DD` |
 | updated | string | 是 | `YYYY-MM-DD` |
@@ -83,9 +84,26 @@ $XDG_DATA_HOME/know/events.jsonl       runtime events（默认 ~/.local/share/kn
 
 ### query
 
-- **路径**: `bash know-ctl.sh query <scope> [--level L] [--tag t]`
-- **响应**: JSONL，每行 trigger + `_level` 字段
-- **scope 值 "project"**: 返回全部（不做前缀匹配）
+- **路径**: `bash know-ctl.sh query <scope> [--level L] [--tag t] [--keywords k1,k2,k3]`
+- **响应**: JSONL，每行 trigger + `_level` + `_kw_hits`（keywords 命中数）字段；按 `_kw_hits` 降序排列
+- **匹配**:
+  - Scope 双向前缀（v7.3）：entry.scope startsWith query OR query startsWith entry.scope
+  - Keywords 交集（若传 `--keywords`）：trigger.keywords ∩ query_keywords ≥ 1 → 命中
+  - 两者 OR 关系（任一命中即进候选）；同时 tag 过滤（若传 `--tag`）
+- **注意**: `scope="project"` 不再是特例（v7.3 删除），按字面前缀匹配（实际无 trigger 以 "project" 为 scope，故一般返空）
+
+### keywords（新增 v7.3）
+
+- **路径**: `bash know-ctl.sh keywords [--level L]`
+- **响应**: 动态词表——聚合所有 triggers 的 keywords 字段，按使用次数降序输出
+- **格式**: 每行 `{keyword} ({count})`
+- **用途**: learn 时 Claude 先查词表优先复用；recall 时 Claude 从词表选 task keywords
+
+### retag-keywords（新增 v7.3）
+
+- **路径**: `bash know-ctl.sh retag-keywords [--level L]`
+- **响应**: 列出所有 `keywords=null` 或空的既有 triggers；提示手动补 keywords 的命令
+- **用途**: 旧 v7.x 数据逐条回补 keywords
 
 ### search
 

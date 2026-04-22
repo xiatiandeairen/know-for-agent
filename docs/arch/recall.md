@@ -18,15 +18,19 @@
 ### 组件图
 
 ```
-[编辑前 Hook] ─trigger─> [Scope 推断] ─scope─> [合并查询]
-  Edit/Write/Bash         P1 当前文件路径        know-ctl query
-  触发时机判断             P2 最近 10 次调用      两 level 扫描
-  Read/Glob 跳过           P3 project 兜底       _level 标注
-                                                       │
-                                                       ▼
-[输出格式化] <─max 3─ [Rank / Select] <──jsonl─ [Record Query]
-  [project]/[user]       scope exact>prefix        recall-log
-  ⚠ rule+strict=true     project>user (tie)        events.jsonl
+[编辑前 Hook] ─trigger─> [Scope 推断]    ┐
+  Edit/Write/Bash         P1 path→module │
+  触发时机判断             P2 call history │   ┌─> [合并查询 know-ctl query]
+  Read/Glob 跳过           P3 project     │   │     - scope 双向前缀
+                                          ├───>    - keywords 交集（≥1 命中）
+                        [Keywords 推断]   │     - 两 level 扫描
+                          动态词表        │     - 输出含 _level + _kw_hits
+                          know-ctl keywords │
+                          选 3-5 词       ┘         │
+                                                    ▼
+[输出格式化] <─max 3─ [Rank by _kw_hits] <── jsonl ── [Record Query]
+  [project]/[user]      交集词数降序                  recall-log
+  ⚠ rule+strict=true    同值 project > user          events.jsonl
   hit 记录
 ```
 
@@ -36,9 +40,10 @@
 |---|---|---|
 | 编辑前 Hook | 判断当前操作是否需要触发 recall | 禁止对 Read/Glob/Grep 触发；必须避免同 scope 同 session 重复查询 |
 | Scope 推断 | 从当前文件路径或最近调用推导 scope | 禁止凭空生成；必须按 P1→P2→P3 优先级降级 |
-| 合并查询 | 通过 know-ctl query 扫描两 level | 禁止绕过 know-ctl 直访 triggers.jsonl；必须将 `_level` 字段原样保留 |
+| **Keywords 推断（v7.3）** | **从动态词表（`know-ctl keywords`）选 3-5 个 task-relevant keywords** | **禁止自由生成新词（新词只在 learn 时产生）；必须从现有词表选** |
+| 合并查询 | 通过 know-ctl query 扫描两 level；scope 双向前缀 ∪ keywords 交集 | 禁止绕过 know-ctl 直访 triggers.jsonl；必须保留 `_level` + `_kw_hits` 字段 |
 | Record Query | 记录查询事件供 metrics 分析 | 禁止失败阻塞主流程；event 含 project_id + level 字段 |
-| Rank / Select | 按 scope 匹配精度挑 max 3 条 | 禁止返回 >3 条；同 scope 精度下 project > user |
+| Rank / Select | 按 `_kw_hits` 降序挑 max 3 条；同值 project > user | 禁止返回 >3 条；由 know-ctl query 已排好序 |
 | 输出格式化 | 渲染 `[recall] [level] {⚠ if rule+strict=true} ...` 给用户 | 禁止输出机制细节；必须带 Why + Ref（若非 null） |
 
 ### 数据流
