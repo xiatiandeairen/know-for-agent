@@ -13,18 +13,22 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 ## Session Init
 
-On first load per session, run silently and output 1 line:
+On first load per session, run silently and output 1 line per non-empty level:
 
 ```bash
 # [RUN]
-bash "$KNOW_CTL" stats 2>/dev/null | head -1
+bash "$KNOW_CTL" stats --level project 2>/dev/null | grep -E '^Total:' | head -1
+bash "$KNOW_CTL" stats --level user 2>/dev/null | grep -E '^Total:' | head -1
 ```
 
-Output: `[know] {total} entries | last updated: {date}`
+Output: `[know] [project] {total} entries | [user] {total} entries | last updated: {date}`
 
-Where `{date}` comes from: `jq -sr 'sort_by(.updated) | last | .updated' "$KNOW_DIR/index.jsonl" 2>/dev/null`
+Where `{date}` comes from the project level:
+```bash
+jq -sr 'sort_by(.updated) | last | .updated' "$PROJECT_KNOW_DIR/index.jsonl" 2>/dev/null
+```
 
-No output if index file missing or empty (new project). Run once per session, do not repeat.
+No output if both indexes missing or empty (new project + no user-level data). Run once per session, do not repeat.
 
 ---
 
@@ -44,6 +48,7 @@ Semantic understanding recommends; explicit signals + user intent decide. Rules 
 |------|---------|
 | entry | index.jsonl 中的一行记录，11 个字段（见 Entry Schema） |
 | scope | dot-separated keypath（如 `Module.Class.method`），支持前缀匹配。概念域用 `methodology.*` 前缀 |
+| level | 存储作用域：`project`（项目专属，XDG 下按项目 ID 隔离）或 `user`（跨项目共享）。由 `--level` 参数控制；读类默认两 level 合并，写类默认 project |
 | pipeline | 子命令对应的执行流程（learn/write/extract/review），由 workflow 文件定义 |
 | tier | entry 重要度：`1` = critical（不知道会产出编译失败或数据丢失/损坏的代码），`2` = memo（不知道会走弯路但最终能发现） |
 | tm | trigger mode：`guard`（recall 时 warn/block）、`info`（recall 时 suggest） |
@@ -97,14 +102,14 @@ Goal: remind, not block. Help system, not enforcement.
 Before code-changing operations (Edit, Write, Bash that modifies files).
 
 **Skip when any**:
-1. No index file exists
+1. Both project and user index files missing
 2. Same scope already queried this session
 3. Current operation is Read/Glob/Grep (no Edit/Write/Bash write)
 
 ### Pipeline
 
 ```
-Scope Inference → Query → Rank → Select (max 3) → Act
+Scope Inference → Query (both levels) → Rank → Select (max 3) → Act
 ```
 
 **Scope inference** (from current file operation):
@@ -115,7 +120,7 @@ Scope Inference → Query → Rank → Select (max 3) → Act
 | P2 | Last 10 tool call paths, ≥2 occurrences wins |
 | P3 | `"project"` fallback |
 
-**Query**:
+**Query** (default: both levels merged; each entry carries `_level` field):
 ```bash
 # [RUN]
 bash "$KNOW_CTL" query "{scope}"
@@ -127,7 +132,7 @@ bash "$KNOW_CTL" query "{scope}"
 bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}"
 ```
 
-**Rank**: scope relevance → `guard` > `info` → tier 1 before tier 2.
+**Rank**: scope relevance → `guard` > `info` → tier 1 before tier 2 → same tier/tm prefer `_level=project` over `_level=user` (local wins on ties).
 
 **Select**: max 3 entries. 0 relevant → show nothing, no output.
 
@@ -141,11 +146,15 @@ bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}"
 
 No exact match on `tier=1` + `guard` → downgrade to warn. No match at all → suggest.
 
-**Output format**:
+**Output format** — prefix each entry with `[project]` or `[user]` from `_level`:
 ```
-[recall] {summary}
+[recall] [project] {summary}
 Why: {one-line relevance to current operation}
 Action: suggest | warn | block
+
+[recall] [user] {summary}
+Why: {one-line relevance to current operation}
+Action: suggest
 ```
 
 **Record hit**: `bash "$KNOW_CTL" hit "{keyword}"`
@@ -194,17 +203,17 @@ Then gather additional data with inline commands:
 
 ```bash
 # [RUN] recent activity (7 days)
-jq -s --arg since "$(date -v-7d +%Y-%m-%d 2>/dev/null || date -d '7 days ago' +%Y-%m-%d)" '[.[] | select(.ts >= $since)]' "$KNOW_DIR/events.jsonl" 2>/dev/null | jq '{created: [.[] | select(.event=="created")] | length, hit: [.[] | select(.event=="hit")] | length, decay: [.[] | select(.event=="decay_delete" or .event=="decay_demote")] | length, recall_query: [.[] | select(.event=="recall_query")] | length}'
+jq -s --arg since "$(date -v-7d +%Y-%m-%d 2>/dev/null || date -d '7 days ago' +%Y-%m-%d)" '[.[] | select(.ts >= $since)]' "$PROJECT_KNOW_DIR/events.jsonl" 2>/dev/null | jq '{created: [.[] | select(.event=="created")] | length, hit: [.[] | select(.event=="hit")] | length, decay: [.[] | select(.event=="decay_delete" or .event=="decay_demote")] | length, recall_query: [.[] | select(.event=="recall_query")] | length}'
 ```
 
 ```bash
 # [RUN] top never-hit entries
-jq -r 'select(.hits == 0) | "\(.scope) | \(.summary[0:60])"' "$KNOW_DIR/index.jsonl" | head -5
+jq -r 'select(.hits == 0) | "\(.scope) | \(.summary[0:60])"' "$PROJECT_KNOW_DIR/index.jsonl" | head -5
 ```
 
 ```bash
 # [RUN] document inventory
-find "$KNOW_DIR/docs" -name "*.md" -not -path "*/milestones/*" | wc -l
+find "$DOCS_DIR" -name "*.md" -not -path "*/milestones/*" | wc -l
 ```
 
 ### Output Format
@@ -261,19 +270,34 @@ Assemble into 6 sections. Use `[report]` marker.
 
 ## Storage
 
-Directory name is always `.know/`. Never use `knowledge/`, `know/`, or any other variant.
+Two storage homes — split by concern:
+
+- **Documents**: project root `docs/` (under the working tree; git-tracked)
+- **Knowledge base**: `$XDG_DATA_HOME/know/` (outside working tree; per-user)
 
 ```
-.know/
-├── index.jsonl              # One entry per line (JSONL)
-├── entries/{tag}/{slug}.md  # Detail files (tier 1 only)
-├── events.jsonl             # Append-only event log
-├── metrics.json             # Aggregated counters
-└── docs/                    # Structured documents
-    ├── {type}.md            # Project single: roadmap, capabilities, ops, marketing
-    ├── {type}/{topic}.md    # Project directory: arch, ui, schema, decision
-    └── requirements/{req}/  # Requirement: prd.md, tech.md
+$PROJECT_DIR/
+└── docs/                           # Structured documents
+    ├── {type}.md                   # Project single: roadmap, capabilities, ops, marketing
+    ├── {type}/{topic}.md           # Project directory: arch, ui, schema, decision
+    └── requirements/{req}/         # Requirement: prd.md, tech.md
+
+$XDG_DATA_HOME/know/                # Default: ~/.local/share/know/
+├── projects/{project-id}/          # level=project (one per project, isolated)
+│   ├── index.jsonl                 # One entry per line (JSONL)
+│   ├── entries/{tag}/{slug}.md     # Detail files (tier 1 only)
+│   ├── events.jsonl                # Append-only event log
+│   └── metrics.json                # Aggregated counters
+└── user/                           # level=user (shared across projects)
+    ├── index.jsonl
+    ├── entries/{tag}/{slug}.md
+    ├── events.jsonl
+    └── metrics.json
 ```
+
+`{project-id}` = absolute project path with `/` replaced by `-` (e.g. `-Users-alice-work-myapp`).
+
+Legacy `.know/` directory (pre-refactor) is not read. `bash know-ctl.sh init` detects it and prints a manual `mv` migration command.
 
 ### Entry Schema (11 fields)
 
@@ -314,13 +338,15 @@ Document hierarchy: `roadmap → prd → tech`. All other types are independent.
 From `"Base directory for this skill: {path}"`, strip `skills/know/` to get project root.
 
 ```
-KNOW_CTL     = {project_root}/scripts/know-ctl.sh
-KNOW_DIR     = .know
-INDEX_FILE   = .know/index.jsonl
-ENTRIES_DIR  = .know/entries
-DOCS_DIR     = .know/docs/
-TEMPLATES_DIR = {project_root}/workflows/templates/
+KNOW_CTL          = {project_root}/scripts/know-ctl.sh
+KNOW_HOME         = ${XDG_DATA_HOME:-~/.local/share}/know
+PROJECT_KNOW_DIR  = $KNOW_HOME/projects/{project-id}
+USER_KNOW_DIR     = $KNOW_HOME/user
+DOCS_DIR          = $PROJECT_DIR/docs
+TEMPLATES_DIR     = {project_root}/workflows/templates
 ```
+
+`{project-id}` is derived by `know-ctl.sh` from `$CLAUDE_PROJECT_DIR` (or `pwd`) with `/` → `-`.
 
 ### Execution Control
 
@@ -366,7 +392,7 @@ Flow markers never appear in user-facing output.
 
 | Situation | Behavior |
 |-----------|----------|
-| No `.know/` directory | Create on first write operation |
+| No `$PROJECT_KNOW_DIR` directory | Create on first write operation |
 | No `index.jsonl` | Create on first append. Skip recall/review/decay silently |
 | `/know write` with <3 messages | Warn insufficient context, ask user to specify content |
 | `/know learn` with 0 signals | `[learn] No high-value knowledge detected.` |
