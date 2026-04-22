@@ -13,20 +13,20 @@ Shared definitions (output blocks, paths) → SKILL.md.
 
 ### Path Resolution (single source of truth)
 
-All steps reference this table for path generation. `DOCS = .know/docs`.
+All steps reference this table for path generation. `DOCS = docs` (project root).
 
 | Type | Level | Full Path | Example |
 |------|-------|-----------|---------|
-| roadmap | 项目单文件 | `DOCS/roadmap.md` | `.know/docs/roadmap.md` |
-| capabilities | 项目单文件 | `DOCS/capabilities.md` | `.know/docs/capabilities.md` |
-| ops | 项目单文件 | `DOCS/ops.md` | `.know/docs/ops.md` |
-| marketing | 项目单文件 | `DOCS/marketing.md` | `.know/docs/marketing.md` |
-| arch | 项目目录 | `DOCS/arch/{topic}.md` | `.know/docs/arch/know-ctl.md` |
-| ui | 项目目录 | `DOCS/ui/{topic}.md` | `.know/docs/ui/index-page.md` |
-| schema | 项目目录 | `DOCS/schema/{topic}.md` | `.know/docs/schema/jsonl-index.md` |
-| decision | 项目目录 | `DOCS/decision/{topic}.md` | `.know/docs/decision/storage-format.md` |
-| prd | 需求 | `DOCS/requirements/{req}/prd.md` | `.know/docs/requirements/know-learn/prd.md` |
-| tech | 需求 | `DOCS/requirements/{req}/tech.md` | `.know/docs/requirements/know-learn/tech.md` |
+| roadmap | 项目单文件 | `DOCS/roadmap.md` | `docs/roadmap.md` |
+| capabilities | 项目单文件 | `DOCS/capabilities.md` | `docs/capabilities.md` |
+| ops | 项目单文件 | `DOCS/ops.md` | `docs/ops.md` |
+| marketing | 项目单文件 | `DOCS/marketing.md` | `docs/marketing.md` |
+| arch | 项目目录 | `DOCS/arch/{topic}.md` | `docs/arch/know-ctl.md` |
+| ui | 项目目录 | `DOCS/ui/{topic}.md` | `docs/ui/index-page.md` |
+| schema | 项目目录 | `DOCS/schema/{topic}.md` | `docs/schema/jsonl-index.md` |
+| decision | 项目目录 | `DOCS/decision/{topic}.md` | `docs/decision/storage-format.md` |
+| prd | 需求 | `DOCS/requirements/{req}/prd.md` | `docs/requirements/know-learn/prd.md` |
+| tech | 需求 | `DOCS/requirements/{req}/tech.md` | `docs/requirements/know-learn/tech.md` |
 
 Variables:
 - `{req}` — requirement slug, kebab-case (e.g. `know-learn`)
@@ -146,7 +146,7 @@ Resolve full path from Path Resolution table, then show:
 
 ```
 [write] Inferred from conversation:
-Type: arch | Path: .know/docs/arch/know-ctl.md | Mode: create | Parent: none
+Type: arch | Path: docs/arch/know-ctl.md | Mode: create | Parent: none
 Correct?
 ```
 
@@ -241,7 +241,7 @@ Continue with missing sections marked TBD?
 
 **Create mode**:
 ```
-[write] Preview: .know/docs/requirements/know-learn/tech.md
+[write] Preview: docs/requirements/know-learn/tech.md
 
 {full document content}
 
@@ -250,7 +250,7 @@ Write?
 
 **Update mode** — changed sections as diff:
 ```
-[write] Update preview: .know/docs/roadmap.md
+[write] Update preview: docs/roadmap.md
 
 ## {Section A}
 - {old content summary}
@@ -275,7 +275,7 @@ Write file using Write tool to the resolved path.
 File already exists in create mode → switch to update mode (re-enter Step 4 with `mode=update`).
 
 ```
-[written] .know/docs/requirements/know-learn/tech.md
+[written] docs/requirements/know-learn/tech.md
 ```
 
 **Update mode**:
@@ -285,7 +285,7 @@ Use Edit tool to replace each changed section individually.
 For tech docs: prepend new entry to §4 迭代记录.
 
 ```
-[written] .know/docs/roadmap.md (updated 2 sections)
+[written] docs/roadmap.md (updated 2 sections)
 ```
 
 ---
@@ -370,12 +370,12 @@ Progress update uses Edit tool on the parent document. Only update the progress 
 
 ```
 [write] Inferred from conversation:
-Type: prd | Path: .know/docs/requirements/know-write/prd.md | Mode: create | Parent: roadmap
+Type: prd | Path: docs/requirements/know-write/prd.md | Mode: create | Parent: roadmap
 Correct?
 ```
 
 ```
 [write] Inferred from conversation:
-Type: ui | Path: .know/docs/ui/index-page.md | Mode: create | Parent: none
+Type: ui | Path: docs/ui/index-page.md | Mode: create | Parent: none
 Correct?
 ```

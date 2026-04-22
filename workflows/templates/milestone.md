@@ -139,7 +139,7 @@
   - 预期外新增的标注"计划外新增"
   - 禁止: 与预期交付物无法对照的抽象描述（"完成了主要功能"）
   - ❌ "完成了主要功能"
-  - ✅ "代码: know-ctl append/query/hit/delete 命令 ✓ / 文档: learn.md workflow ✓ / 数据: .know/index.jsonl ✓" -->
+  - ✅ "代码: know-ctl append/query/hit/delete 命令 ✓ / 文档: learn.md workflow ✓ / 数据: $XDG_DATA_HOME/know/projects/{id}/index.jsonl ✓" -->
 
 - {类型}: {具体产物}
 

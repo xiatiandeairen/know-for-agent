@@ -72,7 +72,7 @@ A) 补充信息后重新创建  B) 降级为 {降级目标}
 - **判定**: 实现是否涉及多个文件/模块的协作，而非单文件内修改
 - **no →**: 降级到 prd 任务追踪备注列
 - ❌ "在 know-ctl.sh 里加一个子命令" — 单文件修改
-- ✅ "learn 管线涉及 SKILL.md 路由 + learn.md 流程 + know-ctl.sh 命令 + .know/ 存储"
+- ✅ "learn 管线涉及 SKILL.md 路由 + learn.md 流程 + know-ctl.sh 命令 + XDG 存储"
 
 ### arch
 
@@ -88,7 +88,7 @@ A) 补充信息后重新创建  B) 降级为 {降级目标}
 - **判定**: 组件间是否有非平凡的数据传递/调用关系
 - **no →**: 降级到 tech §2 方案
 - ❌ "几个独立的工具函数" — 无组件间交互
-- ✅ "SKILL.md 路由到 workflow → workflow 调用 know-ctl → know-ctl 操作 .know/"
+- ✅ "SKILL.md 路由到 workflow → workflow 调用 know-ctl → know-ctl 操作 XDG 存储"
 
 ### schema
 
