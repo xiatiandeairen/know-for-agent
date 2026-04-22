@@ -76,7 +76,7 @@
   - 类型: 枚举 强（缺失不可用）/ 弱（缺失可降级）
   - 禁止: 无标注的裸箭头；省略数据格式
   - ❌ "A --> B"
-  - ✅ "know-ctl --JSONL--> index.jsonl --grep--> recall" -->
+  - ✅ "know-ctl --JSONL--> triggers.jsonl --grep--> recall" -->
 
 ```
 {ASCII 数据流图}

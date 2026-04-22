@@ -62,13 +62,15 @@ levels_to_use() {
 # ─── Schema validation ───────────────────────────────────────────────
 
 validate_entry() {
-    # validate JSON: 8 fields + strict rules
+    # validate JSON: 8 fields + strict rules + ref type + source enum
     local json="$1"
     echo "$json" | jq -e '
         (.tag and .scope and .summary and .source and .created and .updated) and
+        (.tag == "rule" or .tag == "insight" or .tag == "trap") and
         (if .tag == "rule" then ((.strict | type) == "boolean")
-         elif (.tag == "insight" or .tag == "trap") then (.strict == null)
-         else false end)
+         else (.strict == null) end) and
+        (.ref == null or (.ref | type) == "string") and
+        (.source == "learn" or .source == "extract")
     ' > /dev/null 2>&1
 }
 
@@ -263,9 +265,16 @@ cmd_update() {
     > "$tmp"
     while IFS= read -r line; do
         if echo "$line" | jq -e "select(.summary | test(\"$keyword\"; \"i\"))" > /dev/null 2>&1; then
-            local s
+            local s new_line
             s=$(echo "$line" | jq -r '.summary')
-            line=$(echo "$line" | jq -c ". * $patch | .updated = \"$today\"")
+            new_line=$(echo "$line" | jq -c ". * $patch | .updated = \"$today\"")
+            # Re-validate: patch might violate strict rule (rule + strict=null, etc.)
+            if ! validate_entry "$new_line"; then
+                rm -f "$tmp"
+                echo "Error: patch breaks schema (e.g. tag=rule requires strict bool)" >&2
+                exit 1
+            fi
+            line="$new_line"
             emit_event "$level" "updated" "$s"
             matched=$((matched + 1))
         fi
@@ -540,6 +549,19 @@ cmd_migrate_v7() {
     echo "=== migrate-v7${DRY_RUN:+ (dry-run)} ==="
     echo ""
 
+    # Idempotency guard: refuse if target triggers.jsonl is non-empty
+    # (re-running would duplicate entries). Skip in dry-run.
+    if [ "$DRY_RUN" = 0 ]; then
+        for tf in "$PROJECT_TRIGGERS" "$USER_TRIGGERS"; do
+            if [ -f "$tf" ] && [ -s "$tf" ]; then
+                echo "Error: $tf already has data. Re-running would duplicate." >&2
+                echo "       If you intend to re-migrate, remove or back up the file first:" >&2
+                echo "           mv \"$tf\" \"$tf.bak\"" >&2
+                exit 1
+            fi
+        done
+    fi
+
     local old_projects="$LEGACY_XDG_DATA/projects"
     local old_user="$LEGACY_XDG_DATA/user"
     local old_project_dir="$old_projects/$PROJECT_ID"
@@ -719,6 +741,9 @@ cmd_self_test() {
     _assert "rule + strict=null fails" '! ( cmd_append "{\"tag\":\"rule\",\"scope\":\"X\",\"summary\":\"bad\",\"strict\":null,\"ref\":null,\"source\":\"learn\",\"created\":\"2026-01-01\",\"updated\":\"2026-01-01\"}" ) 2>/dev/null'
     _assert "insight + strict=true fails" '! ( cmd_append "{\"tag\":\"insight\",\"scope\":\"X\",\"summary\":\"bad\",\"strict\":true,\"ref\":null,\"source\":\"learn\",\"created\":\"2026-01-01\",\"updated\":\"2026-01-01\"}" ) 2>/dev/null'
     _assert "missing summary fails" '! ( cmd_append "{\"tag\":\"rule\",\"scope\":\"X\",\"strict\":true,\"ref\":null,\"source\":\"learn\",\"created\":\"2026-01-01\",\"updated\":\"2026-01-01\"}" ) 2>/dev/null'
+    _assert "invalid tag fails" '! ( cmd_append "{\"tag\":\"bogus\",\"scope\":\"X\",\"summary\":\"bad\",\"strict\":null,\"ref\":null,\"source\":\"learn\",\"created\":\"2026-01-01\",\"updated\":\"2026-01-01\"}" ) 2>/dev/null'
+    _assert "invalid source fails" '! ( cmd_append "{\"tag\":\"insight\",\"scope\":\"X\",\"summary\":\"bad\",\"strict\":null,\"ref\":null,\"source\":\"bogus\",\"created\":\"2026-01-01\",\"updated\":\"2026-01-01\"}" ) 2>/dev/null'
+    _assert "ref as number fails" '! ( cmd_append "{\"tag\":\"insight\",\"scope\":\"X\",\"summary\":\"bad\",\"strict\":null,\"ref\":42,\"source\":\"learn\",\"created\":\"2026-01-01\",\"updated\":\"2026-01-01\"}" ) 2>/dev/null'
 
     # 5. query
     echo "query:"
@@ -744,6 +769,8 @@ cmd_self_test() {
     cmd_update "project rule" '{"scope":"Auth.session.refresh"}' > /dev/null
     _assert "scope updated in triggers" 'grep -q "Auth.session.refresh" "$PROJECT_TRIGGERS"'
     _assert "updated event emitted" 'grep -q "\"event\":\"updated\"" "$EVENTS_FILE"'
+    # update that breaks schema must fail
+    _assert "update breaking schema fails" '! ( cmd_update "project rule" "{\"strict\":null}" ) 2>/dev/null'
 
     # 9. stats
     echo "stats:"
@@ -787,6 +814,13 @@ cmd_self_test() {
     _assert "project entry removed" '[ "$(wc -l < "$PROJECT_TRIGGERS" | tr -d " ")" -eq 0 ]'
     _assert "user entry remains" '[ "$(wc -l < "$USER_TRIGGERS" | tr -d " ")" -eq 1 ]'
     _assert "deleted event emitted" 'grep -q "\"event\":\"deleted\"" "$EVENTS_FILE"'
+
+    # 15. migrate-v7 idempotency: existing non-empty triggers → refuse
+    echo "migrate-v7 idempotency:"
+    # setup: leave user trigger non-empty
+    _assert "migrate-v7 refuses non-empty triggers" '! ( cmd_migrate_v7 ) 2>/dev/null'
+    # but dry-run should work regardless
+    _assert "migrate-v7 --dry-run works on non-empty" 'cmd_migrate_v7 --dry-run 2>&1 | grep -q "dry-run"'
 
     # Cleanup
     rm -rf "$TMPDIR_TEST"

@@ -15,7 +15,7 @@
 - **格式**: `组件A --{数据格式}--> 组件B`，每条流向独立一行
 - **禁止**: 无标注的裸箭头；省略数据格式
 - ❌ `A --> B`
-- ✅ `know-ctl --JSONL--> index.jsonl --grep--> recall`
+- ✅ `know-ctl --JSONL--> triggers.jsonl --grep--> recall`
 
 ### 依赖图
 

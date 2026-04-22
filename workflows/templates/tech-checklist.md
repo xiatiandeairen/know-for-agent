@@ -56,7 +56,7 @@
 - **省略**: 不可
 - **数据**: —
 - ❌ "首先解析参数，然后调用函数处理，最后输出结果"
-- ✅ "1. CLI 解析子命令 → 路由到 handler\n2. handler 读取 index.jsonl → 筛选匹配条目\n3. 格式化输出 → stdout"
+- ✅ "1. CLI 解析子命令 → 路由到 handler\n2. handler 读取 triggers.jsonl → 筛选匹配条目\n3. 格式化输出 → stdout"
 
 #### 数据结构
 

@@ -79,7 +79,7 @@
 - **省略**: <2 组件有数据传递时可省
 - **数据**: —
 - ❌ `A --> B`
-- ✅ `know-ctl --JSONL--> index.jsonl --grep--> recall`
+- ✅ `know-ctl --JSONL--> triggers.jsonl --grep--> recall`
 
 #### 数据流表.类型
 
