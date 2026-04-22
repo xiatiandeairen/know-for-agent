@@ -62,16 +62,34 @@ levels_to_use() {
 # ─── Schema validation ───────────────────────────────────────────────
 
 validate_entry() {
-    # validate JSON: 8 fields + strict rules + ref type + source enum
+    # validate JSON: 8 fields + strict rules + ref type + source enum + keywords format
     local json="$1"
+    # structural
     echo "$json" | jq -e '
         (.tag and .scope and .summary and .source and .created and .updated) and
         (.tag == "rule" or .tag == "insight" or .tag == "trap") and
         (if .tag == "rule" then ((.strict | type) == "boolean")
          else (.strict == null) end) and
         (.ref == null or (.ref | type) == "string") and
-        (.source == "learn" or .source == "extract")
-    ' > /dev/null 2>&1
+        (.source == "learn" or .source == "extract") and
+        (.keywords == null or (.keywords | type) == "array")
+    ' > /dev/null 2>&1 || return 1
+    # keywords each must match regex (hard contract)
+    local kw
+    while IFS= read -r kw; do
+        [ -z "$kw" ] && continue
+        validate_keyword "$kw" || return 1
+    done < <(echo "$json" | jq -r '.keywords[]? // empty')
+    return 0
+}
+
+validate_keyword() {
+    # Hard rule: keyword must be lowercase kebab-case, 2-40 chars
+    local kw="$1"
+    [[ "$kw" =~ ^[a-z0-9-]+$ ]] || return 1
+    [ "${#kw}" -ge 2 ] || return 1
+    [ "${#kw}" -le 40 ] || return 1
+    return 0
 }
 
 # ─── Event emit (single file, all runtime) ───────────────────────────
@@ -154,35 +172,59 @@ cmd_append() {
 cmd_query() {
     parse_level "$@"
     set -- "${REMAINING_ARGS[@]+"${REMAINING_ARGS[@]}"}"
-    local scope="${1:?Usage: query <scope> [--level L] [--tag t]}"
+    local scope="${1:?Usage: query <scope> [--level L] [--tag t] [--keywords k1,k2,k3]}"
     shift
-    local tag=""
+    local tag="" keywords_csv=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --tag) tag="$2"; shift 2 ;;
-            *) shift ;;
+            --tag)      tag="$2"; shift 2 ;;
+            --keywords) keywords_csv="$2"; shift 2 ;;
+            *)          shift ;;
         esac
     done
 
-    local filter
-    if [ "$scope" = "project" ]; then
-        filter='true'
-    else
-        filter="(
-            if (.scope | type) == \"array\"
-            then any(.[]; startswith(\"$scope\"))
-            else (.scope | startswith(\"$scope\"))
-            end
-        )"
+    # Build keywords JSON array for jq (may be empty)
+    local kw_json="[]"
+    if [ -n "$keywords_csv" ]; then
+        kw_json=$(echo "$keywords_csv" | tr ',' '\n' | awk 'NF>0' | jq -R . | jq -s -c)
     fi
-    [ -n "$tag" ] && filter="$filter and .tag == \"$tag\""
+
+    # Combined filter: scope bidirectional prefix OR keyword intersection OR (if tag set) match tag
+    local combined_filter='
+        . as $e |
+        (
+            (
+                ($e.scope | type) == "string" and
+                (($e.scope | startswith($scope)) or ($scope | startswith($e.scope) and ($e.scope | length) > 0))
+            )
+            or
+            (
+                ($e.scope | type) == "array" and
+                ($e.scope | any(. as $s | ($s | startswith($scope)) or ($scope | startswith($s) and ($s | length) > 0)))
+            )
+            or
+            (
+                (($query_kw | length) > 0) and (($e.keywords // []) | any(. as $k | $query_kw | index($k)))
+            )
+        )
+    '
+    [ -n "$tag" ] && combined_filter="$combined_filter and (\$e.tag == \"$tag\")"
 
     while IFS= read -r level; do
         local tf
         tf=$(level_to_triggers "$level")
         [ -f "$tf" ] || continue
-        jq -c --arg lv "$level" "select($filter) | . + {_level: \$lv}" "$tf" 2>/dev/null || true
-    done < <(levels_to_use both)
+        jq -c --arg lv "$level" --arg scope "$scope" --argjson query_kw "$kw_json" "
+            select($combined_filter) |
+            . + {_level: \$lv, _kw_hits: ((.keywords // []) | map(select(. as \$k | \$query_kw | index(\$k))) | length)}
+        " "$tf" 2>/dev/null || true
+    done < <(levels_to_use both) | sort_by_kw_hits
+}
+
+# Sort query output by _kw_hits descending (portable, uses jq).
+sort_by_kw_hits() {
+    # Slurp all JSONL lines; sort by _kw_hits desc; emit JSONL.
+    jq -sc 'sort_by(-(._kw_hits // 0)) | .[]'
 }
 
 cmd_search() {
@@ -676,6 +718,51 @@ EOF
     fi
 }
 
+cmd_keywords() {
+    # Output unique keywords with usage counts, sorted by count desc.
+    # Aggregates across both levels.
+    parse_level "$@"
+    local all_kws=""
+    while IFS= read -r level; do
+        local tf
+        tf=$(level_to_triggers "$level")
+        [ -f "$tf" ] || continue
+        all_kws=$(printf '%s\n%s' "$all_kws" "$(jq -r '.keywords[]? // empty' "$tf" 2>/dev/null)")
+    done < <(levels_to_use both)
+    if [ -z "$all_kws" ]; then
+        echo "(keyword vocabulary empty)"
+        return
+    fi
+    echo "$all_kws" | awk 'NF>0' | sort | uniq -c | sort -rn | awk '{printf "%s (%d)\n", $2, $1}'
+}
+
+cmd_retag_keywords() {
+    # Interactive stub: prints each trigger with empty keywords and
+    # suggests user run /know learn or update --keywords manually.
+    # (Claude can drive the interaction from its context.)
+    parse_level "$@"
+    local found=0
+    while IFS= read -r level; do
+        local tf
+        tf=$(level_to_triggers "$level")
+        [ -f "$tf" ] || continue
+        jq -c 'select(.keywords == null or (.keywords | length) == 0)' "$tf" 2>/dev/null | while IFS= read -r line; do
+            summary=$(echo "$line" | jq -r '.summary')
+            scope=$(echo "$line" | jq -r '.scope')
+            tag=$(echo "$line" | jq -r '.tag')
+            echo "[$level] [$tag] $scope :: $summary"
+            found=1
+        done
+    done < <(levels_to_use both)
+    if [ "$found" = 0 ]; then
+        echo "All triggers have keywords. Nothing to retag."
+    else
+        echo ""
+        echo "For each entry above, suggest keywords and run:"
+        echo "  bash know-ctl.sh update \"<keyword-in-summary>\" '{\"keywords\":[\"k1\",\"k2\",...]}' --level <L>"
+    fi
+}
+
 # ─── self-test ───────────────────────────────────────────────────────
 
 cmd_self_test() {
@@ -822,6 +909,57 @@ cmd_self_test() {
     # but dry-run should work regardless
     _assert "migrate-v7 --dry-run works on non-empty" 'cmd_migrate_v7 --dry-run 2>&1 | grep -q "dry-run"'
 
+    # 16. keyword validation (hard contract)
+    echo "keyword validation:"
+    _assert "lowercase-kebab ok" 'validate_keyword "webhook"'
+    _assert "multi-word kebab ok" 'validate_keyword "signature-verification"'
+    _assert "with digits ok" 'validate_keyword "api-v2"'
+    _assert "reject uppercase" '! validate_keyword "Webhook"'
+    _assert "reject underscore" '! validate_keyword "web_hook"'
+    _assert "reject space" '! validate_keyword "api design"'
+    _assert "reject chinese" '! validate_keyword "签名"'
+    _assert "reject single char" '! validate_keyword "a"'
+    _assert "reject empty" '! validate_keyword ""'
+
+    # 17. append with keywords: valid + invalid
+    echo "append with keywords:"
+    # user entries were removed, project empty; setup a fresh one
+    cmd_append '{"tag":"rule","scope":"Auth.session","summary":"kw test","strict":true,"ref":null,"keywords":["authentication","session-management"],"source":"learn","created":"2026-04-22","updated":"2026-04-22"}' > /dev/null
+    _assert "append with valid keywords accepts" 'grep -q "\"authentication\"" "$PROJECT_TRIGGERS"'
+    _assert "append with invalid keyword rejects" '! ( cmd_append "{\"tag\":\"insight\",\"scope\":\"X\",\"summary\":\"bad\",\"strict\":null,\"ref\":null,\"keywords\":[\"Bad_Name\"],\"source\":\"learn\",\"created\":\"2026-04-22\",\"updated\":\"2026-04-22\"}" ) 2>/dev/null'
+
+    # 18. keywords subcommand: output vocabulary
+    echo "keywords subcommand:"
+    local kwout
+    kwout=$(cmd_keywords 2>&1)
+    _assert "keywords lists authentication" 'echo "$kwout" | grep -q authentication'
+    _assert "keywords lists session-management" 'echo "$kwout" | grep -q session-management'
+
+    # 19. query --keywords: intersection match
+    echo "query --keywords:"
+    local qout
+    qout=$(cmd_query "NoSuchScope" --keywords authentication,session-management)
+    _assert "query --keywords hits by keyword alone" 'echo "$qout" | grep -q "kw test"'
+    qout=$(cmd_query "NoSuchScope" --keywords unrelated-kw)
+    _assert "query --keywords misses when keywords absent" '[ -z "$qout" ]'
+
+    # 20. scope bidirectional prefix: parent scope call matches child trigger AND vice versa
+    echo "scope bidirectional:"
+    cmd_append '{"tag":"rule","scope":"Auth.session.refresh","summary":"child scope entry","strict":false,"ref":null,"keywords":null,"source":"learn","created":"2026-04-22","updated":"2026-04-22"}' > /dev/null
+    # query with parent scope should also match child entry
+    qout=$(cmd_query "Auth.session" --level project)
+    _assert "parent-scope query matches parent entry" 'echo "$qout" | grep -q "kw test"'
+    _assert "parent-scope query matches child entry" 'echo "$qout" | grep -q "child scope entry"'
+    # query with child scope should also match parent entry (bidirectional)
+    qout=$(cmd_query "Auth.session.refresh.deep" --level project)
+    _assert "deep-child query matches parent (bidirectional)" 'echo "$qout" | grep -q "kw test"'
+
+    # 21. scope="project" no longer returns all (special case removed)
+    echo "scope project no-special-case:"
+    qout=$(cmd_query "project" --level project)
+    # "project" as a literal scope prefix matches no trigger whose scope starts with "project" (none of ours do)
+    _assert "scope=project no longer returns all" '[ -z "$(echo "$qout" | grep -v "^$")" ]'
+
     # Cleanup
     rm -rf "$TMPDIR_TEST"
     if [ -n "$ORIG_XDG_CONFIG_HOME" ]; then export XDG_CONFIG_HOME="$ORIG_XDG_CONFIG_HOME"; else unset XDG_CONFIG_HOME; fi
@@ -861,6 +999,8 @@ case "$CMD" in
     recall-log)  cmd_recall_log "$@" ;;
     check)       cmd_check ;;
     migrate-v7)  cmd_migrate_v7 "$@" ;;
+    keywords)    cmd_keywords "$@" ;;
+    retag-keywords) cmd_retag_keywords "$@" ;;
     self-test)   cmd_self_test ;;
     help|*)
         cat <<'EOF'
