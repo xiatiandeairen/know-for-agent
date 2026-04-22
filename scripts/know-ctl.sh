@@ -372,6 +372,7 @@ cmd_metrics() {
     [ -f "$tf" ] && total=$(wc -l < "$tf" | tr -d ' ')
 
     local hit_count=0 defensive_hits=0 rq_total=0 rq_hit=0 rq_empty=0
+    local rq_with_kw=0 avg_kw_hits="0.0" top_kw=""
     if [ -f "$EVENTS_FILE" ] && [ -s "$EVENTS_FILE" ]; then
         hit_count=$(jq -s --arg lv "$level" \
             '[.[] | select(.level==$lv and .event=="hit") | .summary] | unique | length' \
@@ -393,6 +394,20 @@ cmd_metrics() {
             '[.[] | select(.level==$lv and .event=="recall_query" and .matched>0)] | length' \
             "$EVENTS_FILE")
         rq_empty=$((rq_total - rq_hit))
+        rq_with_kw=$(jq -s --arg lv "$level" \
+            '[.[] | select(.level==$lv and .event=="recall_query" and (.keywords // null) != null and ((.keywords|length) > 0))] | length' \
+            "$EVENTS_FILE")
+        avg_kw_hits=$(jq -s -r --arg lv "$level" \
+            '[.[] | select(.level==$lv and .event=="recall_query") | (.kw_hits // 0)] as $xs
+             | if ($xs|length) == 0 then "0.0"
+               else (([$xs[]] | add) / ($xs|length) | . * 10 | round / 10 | tostring)
+               end' \
+            "$EVENTS_FILE")
+        top_kw=$(jq -s -r --arg lv "$level" \
+            '[.[] | select(.level==$lv and .event=="recall_query") | (.keywords // [])[] ]
+             | group_by(.) | map({k:.[0], n:length}) | sort_by(-.n) | .[0:5]
+             | map("\(.k)(\(.n))") | join(", ")' \
+            "$EVENTS_FILE")
     fi
 
     local hit_pct=0 rq_hit_pct=0 rq_empty_pct=0
@@ -413,6 +428,11 @@ EOF
     if [ "$rq_total" -gt 0 ]; then
         printf '\nRecall Run\n'
         printf '  queries:   %s (hit %s/%s%%, empty %s/%s%%)\n' "$rq_total" "$rq_hit" "$rq_hit_pct" "$rq_empty" "$rq_empty_pct"
+        printf '  with kw:   %s queries carry keywords\n' "$rq_with_kw"
+        printf '  avg kw_hits: %s\n' "$avg_kw_hits"
+        if [ -n "$top_kw" ] && [ "$top_kw" != "null" ]; then
+            printf '  top keywords: %s\n' "$top_kw"
+        fi
     fi
 
     echo ""
@@ -493,6 +513,62 @@ cmd_recall_log() {
            --argjson kws "$kw_json" --argjson kh "$kh" \
            '{ts:$ts, project_id:$pid, level:$lvl, event:"recall_query", scope:$sc, matched:$m, keywords:$kws, kw_hits:$kh}' \
         >> "$EVENTS_FILE"
+}
+
+cmd_report_recall() {
+    parse_level "$@"
+    set -- "${REMAINING_ARGS[@]+"${REMAINING_ARGS[@]}"}"
+    local days=7
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            --days) days="$2"; shift 2 ;;
+            *) shift ;;
+        esac
+    done
+    [ -f "$EVENTS_FILE" ] && [ -s "$EVENTS_FILE" ] || { echo "[report-recall] no events"; return 0; }
+
+    local since
+    since=$(date -v-"${days}"d +%Y-%m-%d 2>/dev/null || date -d "${days} days ago" +%Y-%m-%d)
+    local level="${LEVEL_ARG:-project}"
+
+    local filter
+    filter="select(.event==\"recall_query\" and .level==\"$level\" and .project_id==\"$PROJECT_ID\" and .ts>=\"$since\")"
+
+    local total hit empty with_kw avg_kh top_kw top_scope
+    total=$(jq -s "[.[] | $filter] | length" "$EVENTS_FILE")
+    [ "$total" -eq 0 ] && { echo "# Recall Report (last ${days}d)"; echo ""; echo "No recall_query events in window."; return 0; }
+
+    hit=$(jq -s "[.[] | $filter | select(.matched>0)] | length" "$EVENTS_FILE")
+    empty=$((total - hit))
+    with_kw=$(jq -s "[.[] | $filter | select((.keywords // null) != null and ((.keywords|length)>0))] | length" "$EVENTS_FILE")
+    avg_kh=$(jq -s -r "[.[] | $filter | (.kw_hits // 0)] as \$xs | if (\$xs|length)==0 then \"0.0\" else (([\$xs[]]|add)/(\$xs|length) | .*10|round/10|tostring) end" "$EVENTS_FILE")
+    top_kw=$(jq -s -r "[.[] | $filter | (.keywords // [])[]] | group_by(.) | map({k:.[0],n:length}) | sort_by(-.n) | .[0:5] | map(\"- \(.k) (\(.n))\") | join(\"\n\")" "$EVENTS_FILE")
+    top_scope=$(jq -s -r "[.[] | $filter | .scope] | group_by(.) | map({s:.[0],n:length}) | sort_by(-.n) | .[0:5] | map(\"- \(.s) (\(.n))\") | join(\"\n\")" "$EVENTS_FILE")
+
+    local hit_pct=0 empty_pct=0
+    [ "$total" -gt 0 ] && hit_pct=$((hit * 100 / total)) && empty_pct=$((empty * 100 / total))
+
+    cat <<EOF
+# Recall Report (last ${days}d, level=${level})
+
+## Summary
+
+| Metric | Value |
+|---|---|
+| Total queries | $total |
+| Hit | $hit ($hit_pct%) |
+| Empty | $empty ($empty_pct%) |
+| With keywords | $with_kw |
+| Avg kw_hits | $avg_kh |
+
+## Top scopes
+
+${top_scope:-_none_}
+
+## Top keywords
+
+${top_kw:-_none_}
+EOF
 }
 
 cmd_check() {
@@ -915,6 +991,13 @@ cmd_self_test() {
     cmd_recall_log "Payment.webhook" "2" --keywords "webhook,signature-verification" --kw-hits "2"
     _assert "recall_query with keywords field" 'grep -q "\"keywords\":\[\"webhook\",\"signature-verification\"\]" "$EVENTS_FILE"'
     _assert "recall_query with kw_hits field" 'grep -q "\"kw_hits\":2" "$EVENTS_FILE"'
+    local metrics_out
+    metrics_out=$(cmd_metrics 2>&1)
+    _assert "metrics shows avg kw_hits" 'echo "$metrics_out" | grep -q "avg kw_hits"'
+    _assert "metrics shows top keywords" 'echo "$metrics_out" | grep -q "top keywords"'
+    local rr_out
+    rr_out=$(cmd_report_recall --days 30 2>&1)
+    _assert "report-recall outputs markdown header" 'echo "$rr_out" | grep -q "# Recall Report"'
 
     # 13. decay no-op
     echo "decay:"
@@ -1025,6 +1108,7 @@ case "$CMD" in
     metrics)     cmd_metrics "$@" ;;
     history)     cmd_history "$@" ;;
     recall-log)  cmd_recall_log "$@" ;;
+    report-recall) cmd_report_recall "$@" ;;
     check)       cmd_check ;;
     migrate-v7)  cmd_migrate_v7 "$@" ;;
     keywords)    cmd_keywords "$@" ;;
@@ -1061,7 +1145,8 @@ Commands:
   stats [--level L]                   Counts by tag/scope/strict
   metrics [--level L]                 Hit rate + defensive count (derived from events)
   history [keyword] [--level L]       Event lifecycle
-  recall-log <scope> <matched> [--level L]
+  recall-log <scope> <matched> [--level L] [--keywords k1,k2,k3] [--kw-hits N]
+  report-recall [--days N] [--level L]  Recall query window report (markdown)
   check                               Template-doc structure consistency
   migrate-v7 [--dry-run]              v6 → v7 data migration (T2 impl)
   self-test                           Run 29+ assertions in isolated XDG
