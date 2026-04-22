@@ -144,8 +144,10 @@ bash "$KNOW_CTL" query "{scope}" --keywords "{k1},{k2},{k3}"
 **Record query** (immediately after Query):
 ```bash
 # [RUN]
-bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}"
+bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}" --keywords "{k1},{k2},{k3}" --kw-hits "{total_kw_hits}"
 ```
+
+`{total_kw_hits}` = sum of `_kw_hits` across matched entries（没匹配就传 0）。
 
 **Select**: 取 `_kw_hits` 降序前 3 条；同 `_kw_hits` 值内 `_level=project` 优先；0 相关 → 不输出。
 

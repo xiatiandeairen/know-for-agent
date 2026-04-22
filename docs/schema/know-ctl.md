@@ -59,6 +59,8 @@ $XDG_DATA_HOME/know/events.jsonl       runtime events（默认 ~/.local/share/kn
 | summary | string | 触发 event 的 trigger summary |
 | scope | string | 仅 `recall_query` 事件 |
 | matched | int | 仅 `recall_query` 事件 |
+| keywords | array\|null | 仅 `recall_query`；查询传入的关键词；旧事件为 null |
+| kw_hits | int | 仅 `recall_query`；匹配 entries 的 `_kw_hits` 总和；旧事件为 0 |
 
 ## 4. 接口定义（14 子命令）
 
@@ -150,8 +152,15 @@ $XDG_DATA_HOME/know/events.jsonl       runtime events（默认 ~/.local/share/kn
 
 ### recall-log
 
-- **路径**: `bash know-ctl.sh recall-log <scope> <matched> [--level L]`
-- **副作用**: emit `recall_query` event（带 scope + matched）；`--level` 默认 project
+- **路径**: `bash know-ctl.sh recall-log <scope> <matched> [--level L] [--keywords k1,k2,k3] [--kw-hits N]`
+- **副作用**: emit `recall_query` event（带 scope / matched / keywords / kw_hits）；`--level` 默认 project
+- **向后兼容**: 不传 `--keywords` → `keywords=null`；不传 `--kw-hits` → `kw_hits=0`
+
+### report-recall
+
+- **路径**: `bash know-ctl.sh report-recall [--days N] [--level L]`
+- **行为**: 按 `--days`（默认 7）窗口 + 当前 project_id + level 过滤 recall_query events，输出 markdown
+- **字段**: Summary 表（total/hit/empty/with-kw/avg kw_hits）+ Top scopes + Top keywords
 
 ### check
 

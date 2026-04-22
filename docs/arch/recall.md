@@ -30,8 +30,15 @@
                                                     ▼
 [输出格式化] <─max 3─ [Rank by _kw_hits] <── jsonl ── [Record Query]
   [project]/[user]      交集词数降序                  recall-log
-  ⚠ rule+strict=true    同值 project > user          events.jsonl
-  hit 记录
+  ⚠ rule+strict=true    同值 project > user          --keywords + --kw-hits
+  hit 记录                                            events.jsonl
+                                                      （project_id + level
+                                                       + keywords[] + kw_hits）
+                                                              │
+                                                              ▼
+                                                      [metrics / report-recall]
+                                                      avg kw_hits / top kw /
+                                                      with-kw 比例 / --days 窗口
 ```
 
 ### 组件表
@@ -42,7 +49,8 @@
 | Scope 推断 | 从当前文件路径或最近调用推导 scope | 禁止凭空生成；必须按 P1→P2→P3 优先级降级 |
 | **Keywords 推断（v7.3）** | **从动态词表（`know-ctl keywords`）选 3-5 个 task-relevant keywords** | **禁止自由生成新词（新词只在 learn 时产生）；必须从现有词表选** |
 | 合并查询 | 通过 know-ctl query 扫描两 level；scope 双向前缀 ∪ keywords 交集 | 禁止绕过 know-ctl 直访 triggers.jsonl；必须保留 `_level` + `_kw_hits` 字段 |
-| Record Query | 记录查询事件供 metrics 分析 | 禁止失败阻塞主流程；event 含 project_id + level 字段 |
+| Record Query | 记录查询事件供 metrics 分析 | 禁止失败阻塞主流程；event 含 project_id + level + keywords[] + kw_hits 字段 |
+| **Metrics 观测层（v7.4）** | **metrics Recall 面板 + report-recall 窗口报告；消费 events.jsonl 的 keywords/kw_hits 字段** | **只读消费；旧事件缺字段时按 null/0 兜底** |
 | Rank / Select | 按 `_kw_hits` 降序挑 max 3 条；同值 project > user | 禁止返回 >3 条；由 know-ctl query 已排好序 |
 | 输出格式化 | 渲染 `[recall] [level] {⚠ if rule+strict=true} ...` 给用户 | 禁止输出机制细节；必须带 Why + Ref（若非 null） |
 
