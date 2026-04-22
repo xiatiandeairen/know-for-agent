@@ -28,7 +28,7 @@ AI coding agents forget everything between sessions. They repeat the same mistak
 |:---|:---|
 | AI makes the same architectural mistake for the 3rd time | `[recall]` fires before the mistake happens |
 | "Why did we choose X over Y?" — no one remembers | Rationale entry retrieved automatically by scope |
-| Design discussion results vanish after the session | Structured docs persisted in `.know/docs/` |
+| Design discussion results vanish after the session | Structured docs persisted in `docs/` |
 | Generated docs are thin and inconsistent | Template + checklist + update rules enforce quality |
 
 ## Install
@@ -46,7 +46,7 @@ Requires `jq` and `git`. Restart Claude Code after install.
 curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/uninstall.sh | bash
 ```
 
-Your `.know/` project data is preserved. Delete it manually if needed.
+Your knowledge data at `$XDG_DATA_HOME/know/` is preserved. Delete it manually if needed.
 </details>
 
 ## Usage
@@ -129,28 +129,57 @@ Every entry is scoped (by module), tiered (critical vs memo), and automatically 
 
 ## Storage
 
+Documents live at the project root; the knowledge base lives under `$XDG_DATA_HOME/know/` (default `~/.local/share/know/`) and is split into two levels:
+
 ```
-.know/
-├── index.jsonl              # Knowledge entries (12 fields per line)
-├── entries/                 # Detail files (critical tier only)
-│   ├── rationale/
-│   ├── constraint/
-│   ├── pitfall/
-│   ├── concept/
-│   └── reference/
-├── events.jsonl             # Lifecycle + recall query events
-├── metrics.json             # Aggregated counters
-└── docs/                    # Structured documents
-    ├── roadmap.md           #   Product roadmap
-    ├── capabilities.md      #   Capability inventory
-    ├── ops.md               #   Operations playbook
-    ├── marketing.md         #   Marketing plan
-    ├── arch/{topic}.md      #   Architecture per module
-    ├── schema/{topic}.md    #   Interface specs per topic
-    ├── decision/{topic}.md  #   Decision records per topic
-    ├── milestones/m{n}.md   #   Milestone details
-    └── requirements/{req}/  #   prd.md + tech.md per requirement
+<project>/
+└── docs/                         # Structured documents (git-tracked)
+    ├── roadmap.md                #   Product roadmap
+    ├── capabilities.md           #   Capability inventory
+    ├── ops.md                    #   Operations playbook
+    ├── marketing.md              #   Marketing plan
+    ├── arch/{topic}.md           #   Architecture per module
+    ├── schema/{topic}.md         #   Interface specs per topic
+    ├── decision/{topic}.md       #   Decision records per topic
+    ├── milestones/m{n}.md        #   Milestone details
+    └── requirements/{req}/       #   prd.md + tech.md per requirement
+
+$XDG_DATA_HOME/know/
+├── projects/{project-id}/        # level=project (one per project)
+│   ├── index.jsonl               # Knowledge entries (JSONL)
+│   ├── entries/{tag}/{slug}.md   # Detail files (critical tier only)
+│   ├── events.jsonl              # Lifecycle + recall query events
+│   └── metrics.json              # Aggregated counters
+└── user/                         # level=user (shared across projects)
+    ├── index.jsonl
+    ├── entries/{tag}/{slug}.md
+    ├── events.jsonl
+    └── metrics.json
 ```
+
+`{project-id}` = absolute project path with `/` replaced by `-`.
+
+`--level project|user` controls read/write scope on every `know-ctl` subcommand. Read commands (query/search/stats/history/decay) default to both levels merged; write commands (append/update/delete/hit) default to project.
+
+### Migration from legacy `.know/`
+
+Pre-refactor installations stored everything in `<project>/.know/`. The new `know-ctl.sh` does not read that path — migrate manually:
+
+```bash
+# Move documents to project root
+mv .know/docs docs
+
+# Move knowledge base to XDG home (replace with your project path)
+PROJECT_ID=$(pwd | sed 's|/|-|g')
+mkdir -p ~/.local/share/know/projects/"$PROJECT_ID"
+mv .know/index.jsonl .know/entries .know/events.jsonl .know/metrics.json \
+   ~/.local/share/know/projects/"$PROJECT_ID"/
+
+# Drop the empty .know/ directory
+rmdir .know
+```
+
+Run `bash scripts/know-ctl.sh init` afterwards to verify the new layout. If `.know/` is still present, `init` prints a reminder with the exact `mv` commands.
 
 ## Contributing
 
