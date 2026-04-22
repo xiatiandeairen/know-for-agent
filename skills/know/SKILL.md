@@ -23,12 +23,12 @@ bash "$KNOW_CTL" stats --level user 2>/dev/null | grep -E '^Total:' | head -1
 
 Output: `[know] [project] {total} entries | [user] {total} entries | last updated: {date}`
 
-Where `{date}` comes from the project level:
+Where `{date}` comes from project triggers:
 ```bash
-jq -sr 'sort_by(.updated) | last | .updated' "$PROJECT_KNOW_DIR/index.jsonl" 2>/dev/null
+jq -sr 'sort_by(.updated) | last | .updated' "$PROJECT_TRIGGERS" 2>/dev/null
 ```
 
-No output if both indexes missing or empty (new project + no user-level data). Run once per session, do not repeat.
+No output if both triggers files missing or empty. Run once per session, do not repeat.
 
 ---
 
@@ -46,12 +46,13 @@ Semantic understanding recommends; explicit signals + user intent decide. Rules 
 
 | Term | Meaning |
 |------|---------|
-| entry | index.jsonl 中的一行记录，11 个字段（见 Entry Schema） |
+| entry | triggers.jsonl 中的一行记录，8 个字段（见 Entry Schema） |
+| tag | 分类：`insight`（决策/心智模型）、`rule`（约束）、`trap`（踩坑）。选择优先级：trap > rule > insight |
 | scope | dot-separated keypath（如 `Module.Class.method`），支持前缀匹配。概念域用 `methodology.*` 前缀 |
-| level | 存储作用域：`project`（项目专属，XDG 下按项目 ID 隔离）或 `user`（跨项目共享）。由 `--level` 参数控制；读类默认两 level 合并，写类默认 project |
+| strict | `tag=rule` 时强制的 bool：`true`=硬约束（违反导致编译失败/数据损坏/安全问题），`false`=软约束（推荐）。其他 tag 必须 `null` |
+| ref | 指向完整 context 的引用：docs 段落 / 代码锚点 / URL / `null` |
+| level | 存储作用域：`project`（项目 git，per-project）或 `user`（跨项目共享）。由 `--level` 参数控制；读类默认两 level 合并，写类默认 project |
 | pipeline | 子命令对应的执行流程（learn/write/extract/review），由 workflow 文件定义 |
-| tier | entry 重要度：`1` = critical（不知道会产出编译失败或数据丢失/损坏的代码），`2` = memo（不知道会走弯路但最终能发现） |
-| tm | trigger mode：`guard`（recall 时 warn/block）、`info`（recall 时 suggest） |
 
 ---
 
@@ -102,7 +103,7 @@ Goal: remind, not block. Help system, not enforcement.
 Before code-changing operations (Edit, Write, Bash that modifies files).
 
 **Skip when any**:
-1. Both project and user index files missing
+1. Both project and user triggers files missing
 2. Same scope already queried this session
 3. Current operation is Read/Glob/Grep (no Edit/Write/Bash write)
 
@@ -132,32 +133,24 @@ bash "$KNOW_CTL" query "{scope}"
 bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}"
 ```
 
-**Rank**: scope relevance → `guard` > `info` → tier 1 before tier 2 → same tier/tm prefer `_level=project` over `_level=user` (local wins on ties).
+**Rank**: scope exact > scope prefix → same scope layer prefer `_level=project` over `_level=user` (local wins on ties).
 
 **Select**: max 3 entries. 0 relevant → show nothing, no output.
 
-**Act** (based on entry fields):
-
-| Action | Condition |
-|--------|-----------|
-| suggest | `tm=info` |
-| warn | `tm=guard` and `tier=2` |
-| block | `tm=guard` and `tier=1` and scope exact match |
-
-No exact match on `tier=1` + `guard` → downgrade to warn. No match at all → suggest.
-
-**Output format** — prefix each entry with `[project]` or `[user]` from `_level`:
+**Output format** — prefix level tag; `tag=rule && strict=true` 加 `⚠` 前缀；输出里补 ref（若非 null）：
 ```
-[recall] [project] {summary}
-Why: {one-line relevance to current operation}
-Action: suggest | warn | block
+[recall] [project] ⚠ {summary}
+Why:  {one-line relevance to current operation}
+Ref:  {ref or "—"}
 
 [recall] [user] {summary}
-Why: {one-line relevance to current operation}
-Action: suggest
+Why:  {one-line relevance}
+Ref:  {ref or "—"}
 ```
 
-**Record hit**: `bash "$KNOW_CTL" hit "{keyword}"`
+AI 自行根据 tag、strict、⚠ 判断处理强度（rule+strict=true 应严格遵守；insight/trap 参考）。不做机械 block/warn/suggest 分级。
+
+**Record hit**: `bash "$KNOW_CTL" hit "{summary-keyword}" --level {entry._level}`
 
 **Learn hint** (once per session, only when ≥5 user messages in conversation and not yet hinted):
 
@@ -171,19 +164,14 @@ Conditions: ≥5 user messages AND learn hint not yet shown this session AND rec
 
 ## Decay
 
-Runs once at learn pipeline entry. Skip if no index file.
+**v7: no-op**（策略重做在下个 sprint）。命令保留可调用性；learn 管线入口仍调，但不会有删除/降级动作。
 
 ```bash
 # [RUN]
 bash "$KNOW_CTL" decay
 ```
 
-| Condition | Action |
-|-----------|--------|
-| tier=2 (memo) + hits=0 + age > 30d | Delete |
-| tier=1 (critical) + hits=0 + age > 180d | Demote to memo |
-
-Output: `[decay] {N} deleted, {M} demoted` if any action taken. Silent if none.
+Output: `[decay] 已推延到下个 sprint（v7 schema 简化完成，衰减策略将在 v7.x 重做）`。
 
 ---
 
@@ -202,13 +190,19 @@ bash "$KNOW_CTL" stats
 Then gather additional data with inline commands:
 
 ```bash
-# [RUN] recent activity (7 days)
-jq -s --arg since "$(date -v-7d +%Y-%m-%d 2>/dev/null || date -d '7 days ago' +%Y-%m-%d)" '[.[] | select(.ts >= $since)]' "$PROJECT_KNOW_DIR/events.jsonl" 2>/dev/null | jq '{created: [.[] | select(.event=="created")] | length, hit: [.[] | select(.event=="hit")] | length, decay: [.[] | select(.event=="decay_delete" or .event=="decay_demote")] | length, recall_query: [.[] | select(.event=="recall_query")] | length}'
+# [RUN] recent activity (7 days, current project)
+jq -s --arg since "$(date -v-7d +%Y-%m-%d 2>/dev/null || date -d '7 days ago' +%Y-%m-%d)" --arg pid "$PROJECT_ID" '[.[] | select(.ts >= $since and .project_id == $pid)]' "$EVENTS_FILE" 2>/dev/null | jq '{created: [.[] | select(.event=="created")] | length, hit: [.[] | select(.event=="hit")] | length, recall_query: [.[] | select(.event=="recall_query")] | length}'
 ```
 
 ```bash
-# [RUN] top never-hit entries
-jq -r 'select(.hits == 0) | "\(.scope) | \(.summary[0:60])"' "$PROJECT_KNOW_DIR/index.jsonl" | head -5
+# [RUN] top never-hit entries (current project)
+# "never-hit" = summary never appears as hit event for this project
+TRIGGERS="$PROJECT_TRIGGERS"
+jq -r '.summary' "$TRIGGERS" 2>/dev/null | while read -r s; do
+  if ! jq -e --arg s "$s" --arg pid "$PROJECT_ID" 'select(.event=="hit" and .summary==$s and .project_id==$pid)' "$EVENTS_FILE" > /dev/null 2>&1; then
+    echo "$s"
+  fi
+done | head -5
 ```
 
 ```bash
@@ -224,19 +218,18 @@ Assemble into 6 sections. Use `[report]` marker.
 [report] know health report
 
 --- 1. Overview ---
-  Entries:    {total} (tier1: {n}, tier2: {n})
-  Tags:       {tag1} {n}, {tag2} {n}, ...
+  Entries:    {total} (rule: {n_rule}, insight: {n_insight}, trap: {n_trap})
+  Strict:     {hard_count} hard + {soft_count} soft (rule only)
   Scopes:     {n} ({largest}: {n} entries)
-  Last 7d:    +{created} new, -{decayed} decayed, -{deleted} deleted
+  Last 7d:    +{created} new, -{deleted} deleted
 
 --- 2. Knowledge Value ---
   Hit rate:   {hit_count}/{total} ({pct}%)
-  Last hit:   "{summary}" — {hits} hits
+  Last hit:   "{summary}"
   Never hit:  {count} entries (top 3: ...)
 
 --- 3. Recall ---
-  Guards:     {guard_hits}
-  Coverage:   {queried}/{total_scopes} ({pct}%)
+  Defensive:  {strict_hits}     (hits on rule+strict=true)
   Queries:    {rq_total} (hit {rq_hit}/{pct}%, empty {rq_empty}/{pct}%)
   Blind spots: {scopes never queried}
 
@@ -270,47 +263,48 @@ Assemble into 6 sections. Use `[report]` marker.
 
 ## Storage
 
-Two storage homes — split by concern:
-
-- **Documents**: project root `docs/` (under the working tree; git-tracked)
-- **Knowledge base**: `$XDG_DATA_HOME/know/` (outside working tree; per-user)
+**Three JSONL files**, split by source vs runtime and by level:
 
 ```
-$PROJECT_DIR/
-└── docs/                           # Structured documents
-    ├── {type}.md                   # Project single: roadmap, capabilities, ops, marketing
-    ├── {type}/{topic}.md           # Project directory: arch, ui, schema, decision
-    └── requirements/{req}/         # Requirement: prd.md, tech.md
+<project>/docs/triggers.jsonl          # project source (git-tracked)
+                                       # also hosts narrative docs:
+                                       #   {type}.md (roadmap/capabilities/ops/marketing)
+                                       #   {type}/{topic}.md (arch/ui/schema/decision)
+                                       #   requirements/{req}/prd.md + tech.md
 
-$XDG_DATA_HOME/know/                # Default: ~/.local/share/know/
-├── projects/{project-id}/          # level=project (one per project, isolated)
-│   ├── index.jsonl                 # One entry per line (JSONL)
-│   ├── entries/{tag}/{slug}.md     # Detail files (tier 1 only)
-│   ├── events.jsonl                # Append-only event log
-│   └── metrics.json                # Aggregated counters
-└── user/                           # level=user (shared across projects)
-    ├── index.jsonl
-    ├── entries/{tag}/{slug}.md
-    ├── events.jsonl
-    └── metrics.json
+$XDG_CONFIG_HOME/know/triggers.jsonl   # user source (user's dotfiles git optional)
+                                       # default: ~/.config/know/
+
+$XDG_DATA_HOME/know/events.jsonl       # runtime: all events (project + user)
+                                       # each event has project_id + level fields
+                                       # default: ~/.local/share/know/
 ```
 
-`{project-id}` = absolute project path with `/` replaced by `-` (e.g. `-Users-alice-work-myapp`).
+Legacy v6 data at `$XDG_DATA_HOME/know/projects/{id}/` and `/user/` is migrated via `bash scripts/know-ctl.sh migrate-v7`.
 
-Legacy `.know/` directory (pre-refactor) is not read. `bash know-ctl.sh init` detects it and prints a manual `mv` migration command.
-
-### Entry Schema (11 fields)
+### Entry Schema (8 fields)
 
 ```json
-{"tag":"...","tier":1,"scope":"...","tm":"...","summary":"≤80ch","path":"entries/{tag}/{slug}.md|null","hits":0,"revs":0,"source":"learn|extract","created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}
+{"tag":"rule|insight|trap","scope":"...","summary":"≤80ch","strict":true|false|null,"ref":"docs/x.md#a|src/f:42|https://...|null","source":"learn|extract","created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}
 ```
 
 | Field | Values |
 |-------|--------|
-| tag | `insight` (决策原因+心智模型), `rule` (约束), `trap` (踩坑) |
-| tier | `1` = critical (不知道会产出编译失败或数据丢失/损坏的代码), `2` = memo (不知道会走弯路但最终能发现) |
-| tm | `guard` (recall 时 warn/block), `info` (recall 时 suggest) |
-| summary | `{结论} — {原因}`, ≤80 chars, must contain searchable anchor words |
+| tag | `rule` (约束)、`insight` (决策/心智模型)、`trap` (踩坑)；选择优先级 trap > rule > insight |
+| scope | dot-separated keypath；支持前缀匹配 |
+| summary | `{结论} — {原因}`，≤80 chars，含可搜索锚词 |
+| strict | `tag=rule` 时必填 bool：`true`=硬约束，`false`=软约束；其他 tag 必须 `null` |
+| ref | 指向 context：docs 段 / 代码锚点 / URL / `null` |
+| source | `learn` \| `extract` |
+| created / updated | `YYYY-MM-DD` |
+
+### Event Schema (runtime, `$XDG_DATA_HOME/know/events.jsonl`)
+
+```json
+{"ts":"YYYY-MM-DD","project_id":"-Users-x-proj","level":"project|user","event":"created|updated|deleted|hit|recall_query","summary":"...","scope":"...","matched":N}
+```
+
+`scope` and `matched` 仅在 `event=recall_query` 时存在。`project_id` 即便对 `level=user` 条目的 hit 也记录（表明"在哪个项目里命中"），用于跨项目分析。
 
 ### Document Types (10 types)
 
@@ -339,14 +333,15 @@ From `"Base directory for this skill: {path}"`, strip `skills/know/` to get proj
 
 ```
 KNOW_CTL          = {project_root}/scripts/know-ctl.sh
-KNOW_HOME         = ${XDG_DATA_HOME:-~/.local/share}/know
-PROJECT_KNOW_DIR  = $KNOW_HOME/projects/{project-id}
-USER_KNOW_DIR     = $KNOW_HOME/user
+PROJECT_TRIGGERS  = $PROJECT_DIR/docs/triggers.jsonl
+USER_TRIGGERS     = ${XDG_CONFIG_HOME:-~/.config}/know/triggers.jsonl
+EVENTS_FILE       = ${XDG_DATA_HOME:-~/.local/share}/know/events.jsonl
 DOCS_DIR          = $PROJECT_DIR/docs
 TEMPLATES_DIR     = {project_root}/workflows/templates
+PROJECT_ID        = pwd | sed 's|/|-|g'
 ```
 
-`{project-id}` is derived by `know-ctl.sh` from `$CLAUDE_PROJECT_DIR` (or `pwd`) with `/` → `-`.
+**3 files** — source split from runtime by XDG semantics (CONFIG = user declarations, DATA = derived state).
 
 ### Execution Control
 
@@ -392,8 +387,8 @@ Flow markers never appear in user-facing output.
 
 | Situation | Behavior |
 |-----------|----------|
-| No `$PROJECT_KNOW_DIR` directory | Create on first write operation |
-| No `index.jsonl` | Create on first append. Skip recall/review/decay silently |
+| No `$PROJECT_TRIGGERS` file | Create on first write operation |
+| No triggers entries | Skip recall/review silently |
 | `/know write` with <3 messages | Warn insufficient context, ask user to specify content |
 | `/know learn` with 0 signals | `[learn] No high-value knowledge detected.` |
 | `/know review` with empty index | `[review] No entries to review.` |
