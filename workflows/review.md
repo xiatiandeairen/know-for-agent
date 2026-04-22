@@ -5,7 +5,7 @@
 Steps: 3
 Names: Load, Display, Process
 
-Shared definitions (schema, tiers, decay, output markers) → SKILL.md.
+Shared definitions (schema, decay, output markers) → SKILL.md.
 
 ---
 
@@ -41,43 +41,46 @@ Pre-display: show review summary from metrics:
 
 ```bash
 # [RUN]
-bash "$KNOW_CTL" metrics 2>/dev/null | grep -E "命中率|衰减率|覆盖率"
+bash "$KNOW_CTL" metrics 2>/dev/null | grep -E "命中率|防御次数"
 ```
 
 Sort by lifecycle stage (most actionable first), then age desc within each stage:
 
-1. `[endangered]` — most urgent, about to be decayed
-2. `[silent]` — cleanup candidates
-3. `[new]` — recently added, not yet validated
-4. `[active]` — healthy, lowest priority
+1. `[silent]` — no hit yet, candidate for pruning
+2. `[new]` — recently added, not yet validated
+3. `[active]` — has hit events
 
-### Lifecycle stage
+### Lifecycle stage (v7)
 
-Compute per entry using `created`, `hits`:
+Compute per entry from **events.jsonl** (hits are derived, no stored field):
+
+- Count hit events for this entry (match by summary in events where `level` matches `_level`)
+- Age = today − `created`
 
 | Stage | Condition | Label |
 |-------|-----------|-------|
-| new | age < 7d AND hits = 0 | `[new]` |
-| active | hits > 0 | `[active]` |
-| silent | hits = 0 AND age ≥ 7d | `[silent]` |
-| endangered | meets decay delete/demote criteria (→ SKILL.md Decay) | `[endangered]` |
+| new | age < 7d AND hit_count = 0 | `[new]` |
+| active | hit_count > 0 | `[active]` |
+| silent | hit_count = 0 AND age ≥ 7d | `[silent]` |
+
+Note: v7 decay is no-op; no `[endangered]` stage (decay 重做后可能恢复)。
 
 ### Display should highlight
 
 - Duplicate entries (similar summary/scope)
-- Outdated entries
+- Outdated entries (ref 指向已删除的 docs 段)
 - Scope too wide or too narrow
 - Unclear summary
-- Unreasonable tier
+- Wrong strict value (rule 应硬但标 soft，或反之)
 - Mergeable entries
 
 ```
 [review] {N} entries found:
 
-| # | level | tag | tier | scope | hits | age | summary | stage |
-|---|-------|-----|------|-------|------|-----|---------|-------|
-| 1 | project | rule | critical | Auth | 5 | 30d | Thresholds... | [active] |
-| 2 | user | insight | memo | methodology.general | 0 | 15d | ... | [silent] |
+| # | level | tag | strict | scope | ref | hits | age | summary | stage |
+|---|-------|-----|--------|-------|-----|------|-----|---------|-------|
+| 1 | project | rule | ⚠ hard | Auth.session | docs/decision/auth.md#refresh | 5 | 30d | session 过期必须刷新... | [active] |
+| 2 | user | insight | — | methodology.general | — | 0 | 15d | 单一来源原则... | [silent] |
 
 All ok? Or enter numbers to process (e.g. "2" or "1,3"):
 ```
@@ -97,7 +100,7 @@ For each selected entry:
 
 ```
 [review] #{N}: {summary}
-Tag: {tag} | Tier: {tier} | Hits: {hits} | Age: {age}d
+Tag: {tag} | Strict: {strict or "—"} | Ref: {ref or "—"} | Hits: {hits} | Age: {age}d
 Action? A) Delete  B) Update  C) Merge  D) Keep
 ```
 
@@ -114,16 +117,14 @@ Output: `[review] Deleted: {summary}`
 
 ### B) Update
 
-User describes change → re-generate summary (+ detail file if critical) → show updated entry [STOP:confirm] → on confirm:
+User describes change → re-generate summary → show updated entry [STOP:confirm] → on confirm:
 
 ```bash
 # [RUN]
 bash "$KNOW_CTL" update "{old_summary_keyword}" '{"summary":"{new_summary}"}' --level {entry._level}
 ```
 
-Updatable fields: summary, scope, tag, tier, tm, detail file content.
-
-If critical: overwrite detail file with new content.
+Updatable fields: summary, scope, tag, strict (rule only), ref.
 
 Output: `[review] Updated: {new_summary}`
 
@@ -133,9 +134,8 @@ When two entries are complementary (same topic, different angle):
 
 1. User selects target entry to merge into
 2. Combine summaries — keep the clearer one, append missing context
-3. Merge detail files if both critical
+3. If both have ref pointing to different docs, keep the one user selects; other's content can be referenced in a separate anchor
 4. Delete the source entry
-5. Update hits/revs/updated on target
 
 ```bash
 # [RUN]
@@ -156,7 +156,7 @@ After all processed: `[review] Done: {deleted} deleted, {updated} updated, {merg
 ## Completion
 
 - All selected entries processed with `[review]` confirmation each
-- Index and detail files consistent with actions taken
+- triggers.jsonl consistent with actions taken (v7: no detail files)
 
 ## Recovery
 

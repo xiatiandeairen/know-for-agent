@@ -2,8 +2,8 @@
 
 ## Progress
 
-Steps: 10
-Names: Detect, Extract, Filter, Assess, Generate, Conflict, Challenge, Level, Confirm, Write
+Steps: 9
+Names: Detect, Extract, Filter, Generate, Conflict, Challenge, Level, Confirm, Write
 
 Core infrastructure (paths, schema, recall, markers) → SKILL.md.
 
@@ -21,19 +21,14 @@ These definitions are used by learn, extract, and review pipelines.
 | rule | Must/must-not constraints, ordering, boundaries | "Webhook signature must be verified before parsing body" |
 | trap | Bugs, root causes, easy-to-repeat mistakes | "DataEngine singleton leaks state across test targets" |
 
-### Tier definitions
+### Strict definition (rule only)
 
-| Tier | Name | When to use |
-|------|------|-------------|
-| 1 | critical | Not knowing this causes AI to produce code that fails to compile or causes data loss/corruption. Must be confirmed knowledge. |
-| 2 | memo | Worth noting, helps avoid wasted time, but AI would eventually discover the issue through tests/review. |
+| Value | When to use | Recall behavior |
+|-------|-------------|-----------------|
+| `true` | Hard constraint: violating causes compile failure, data corruption, security hole, or must-not-violate rule | Prefixed with ⚠ in recall output |
+| `false` | Soft constraint: recommended practice, style convention, advisory rule | No prefix; informational |
 
-### Trigger mode definitions
-
-| tm | When to use | Recall behavior |
-|----|-------------|-----------------|
-| `guard` | Important rules, known traps, easily violated during code changes | Prioritize; warn or block |
-| `info` | Background knowledge, insights, recommended practices | Suggest when relevant |
+`strict` is **required** for `tag=rule` and **must be `null`** for `tag=insight|trap`.
 
 ### Scope guidelines
 
@@ -60,15 +55,14 @@ Semantic similarity can find candidates, but final classification must also cons
 
 ## Decay
 
-Run at Step 1 entry, before signal detection. Skip if neither `$PROJECT_KNOW_DIR/index.jsonl` nor `$USER_KNOW_DIR/index.jsonl` exists.
+Run at Step 1 entry, before signal detection. Skip if neither `$PROJECT_TRIGGERS` nor `$USER_TRIGGERS` exists.
 
 ```bash
-# [RUN] decay runs on both levels by default
+# [RUN] v7: decay is a no-op (deferred); command remains callable
 bash "$KNOW_CTL" decay
 ```
 
-- Output `[decay] {N} deleted, {M} demoted` if any action taken.
-- Silent if no entries affected.
+Output: `[decay] 已推延到下个 sprint（v7 schema 简化完成，衰减策略将在 v7.x 重做）`。
 
 ---
 
@@ -118,7 +112,7 @@ Output a structured conversation value summary before listing claims:
 
 ---
 
-## Step 2: Extract
+## Step 2: Extract（原步骤不变）
 
 Model: opus
 
@@ -180,78 +174,44 @@ Reason: {drop reason}
 
 ---
 
-## Step 4: Assess
+## Step 4: Generate
 
 Model: opus
 
-Determine tier: `critical`, `memo`, or `drop`.
+Convert claim into a formal entry. Sub-steps in order: **tag → scope → (if rule) strict → summary → ref**.
 
-### critical
+### 4a: Tag
 
-Suitable when:
-- Missing this knowledge easily leads to wrong implementation
-- Causes obvious error, failure, or rework
-- Is an important rule, basically confirmed
-- Has strong protective value for code changes
+**Selection priority (tie-breaker rule)**: trap > rule > insight.
 
-### memo
-
-Suitable when:
-- Has reuse value, saves understanding cost
-- Helps reduce repeated discussion or low-level mistakes
-- Not a hard rule, but worth preserving
-
-### drop
-
-Suitable when:
-- Low reuse, unconverged, weak value
-
-### Signals to consider
-
-- Did user explicitly say "must"/"cannot"/"reason is"?
-- Is there verification, reproduction, test, or clear experience conclusion?
-- Is it related to a critical implementation path?
-- Would it protect against mistakes during future code changes?
-
-### Output per claim
-
-- tier + brief reason
-- If downgraded from critical to memo: explain why (e.g. insufficient confirmation)
-
----
-
-## Step 5: Generate
-
-Model: opus
-
-Convert claim into a formal entry. Execute sub-steps in order: tag → scope → tm → summary → detail file.
-
-### 5a: Tag
+- 有"历史犯错"的根因（踩过且易再踩） → **trap**
+- 是明确约束（必须/禁止做 X，含外部 API 约束等） → **rule**
+- 否则（决策、心智模型、背景事实） → **insight**
 
 | Pattern | Tag |
 |---------|-----|
 | Choice/comparison ("chose X over Y") | insight |
 | Prohibition ("must not", "forbidden", "always") | rule |
+| External API / SDK hard constraint (header required, version pinned) | rule（防错优先于解释） |
 | Bug/error/root-cause discovery | trap |
 | Flow/algorithm/architecture/business-rule | insight |
-| Integration/API/SDK/config | insight |
 
-≥2 tags equally likely → ask user.
+≥2 tags仍等价 → ask user（优先级规则已打破多数绑带情况）。
 
-### 5b: Scope
+### 4b: Scope
 
 Generate using SKILL.md Scope Guidelines. Scope should be stable, reusable, and hittable.
 
-### 5c: Trigger Mode
+### 4c: Strict (tag=rule only)
 
-| Claim type | Suggested tm |
-|-----------|--------------|
-| rule + high risk | `guard` |
-| rule + advisory | `info` |
-| trap + easy to repeat | `guard` |
-| insight | `info` |
+**仅 tag=rule 时执行**；tag=insight|trap 跳过此步（strict 固定为 null）。
 
-### 5d: Summary
+| Condition | strict |
+|---|---|
+| 违反会导致编译失败 / 数据损坏 / 安全漏洞 / 外部 API 硬要求 | `true` |
+| 推荐实践 / 风格约定 / 建议性规则 | `false` |
+
+### 4d: Summary
 
 Format: `{conclusion} — {key reason/context}`
 
@@ -259,19 +219,19 @@ Requirements: concise, readable, ≤80 chars, real information density, not an e
 
 Overflow: remove qualifiers → core conclusion only → still over → split into two entries.
 
-### 5e: Detail File (critical only)
+### 4e: Ref (optional)
 
-| Tag | Recommended sections |
-|-----|---------------------|
-| insight | Why → Rejected alternatives → Constraints |
-| rule | Rule → Why → How to check |
-| trap | Symptoms → Root cause → Lesson |
+指向该条目的完整 context 所在。值域：
+- `"docs/decision/xxx.md#anchor"` — 项目文档段落
+- `"src/auth/session.ts:42"` — 代码锚点
+- `"https://..."` — 外部链接
+- `null` — 无引用（summary 已足够）
 
-No frontmatter — all metadata in index.jsonl.
+建议场景：tag=rule + strict=true 时最好有 ref；summary ≥60 字常意味着值得配 doc 段。
 
 ---
 
-## Step 6: Conflict
+## Step 5: Conflict
 
 Model: sonnet
 
@@ -292,7 +252,7 @@ Extract keywords from summary (scope module names → proper nouns → action ve
 bash "$KNOW_CTL" search "<kw1>|<kw2>"
 ```
 
-0 results → skip Phase 2, proceed to Step 8.
+0 results → skip Phase 2, proceed to Step 7.
 
 ### Phase 2: Relationship classification
 
@@ -300,7 +260,7 @@ Compare each candidate against new claim. Classify as:
 
 | Relationship | Action |
 |-------------|--------|
-| unrelated | → Step 8 |
+| unrelated | → Step 7 |
 | merge (complementary) | → suggest merge [STOP:choose] |
 | duplicate (same conclusion) | → suggest skip or merge [STOP:choose] |
 | conflict (opposite conclusion) | → must show, user decides [STOP:choose] |
@@ -318,7 +278,7 @@ Do not classify based on semantic similarity alone. Also consider: scope, conclu
 
 ---
 
-## Step 7: Challenge
+## Step 6: Challenge
 
 Model: opus
 
@@ -329,7 +289,7 @@ Adversarial review of each generated entry before user sees it. Goal: catch weak
 | # | Challenge question | Fail action |
 |---|-------------------|-------------|
 | 1 | Is the conclusion falsifiable? Can you construct a scenario where it's wrong? | If trivially falsifiable → drop or narrow scope |
-| 2 | Would a different AI, without this knowledge, actually produce broken code? | If no → demote tier 1 to tier 2 |
+| 2 | Would a different AI, without this knowledge, actually produce broken code? | If no → for tag=rule demote strict=true→false; for others consider drop |
 | 3 | Is this a fact that can be derived by reading the code? | If yes → drop (code is the source of truth) |
 | 4 | Does the summary capture the "why", not just the "what"? | If no → rewrite summary to include reason |
 | 5 | Is the scope precise enough for recall to hit it, but not so narrow it's useless? | If too broad or too narrow → adjust scope |
@@ -351,17 +311,17 @@ Adversarial review of each generated entry before user sees it. Goal: catch weak
   ✗ {summary}                          — dropped: {reason}
 
 Surviving entries ({M}/{N}):
-1. [{tag}] {summary} — tier {tier}, tm {tm}, scope {scope}
+1. [{tag}{⚠ if rule+strict=true}] {summary} — scope {scope}{ref: ... if not null}
 2. ...
 
 持久化？ [all / 选编号 / skip]
 ```
 
-[STOP:choose] User selects → each surviving entry processed through Steps 8-10.
+[STOP:choose] User selects → each surviving entry processed through Steps 7-9.
 
 ---
 
-## Step 8: Level
+## Step 7: Level
 
 Model: sonnet
 
@@ -395,7 +355,7 @@ When uncertain → suggest `project` (safe default; upgrade later via `know-ctl 
 
 ### User-level write confirmation
 
-任何被标 `user` 的条目 → Step 10 写入前再确认一次：
+任何被标 `user` 的条目 → Step 9 写入前再确认一次：
 
 ```
 [learn] 即将写入 user 级，跨所有项目生效。确认以下 {M} 条？
@@ -410,46 +370,47 @@ When uncertain → suggest `project` (safe default; upgrade later via `know-ctl 
 
 ---
 
-## Step 9: Confirm [STOP:confirm]
+## Step 8: Confirm [STOP:confirm]
 
 Show complete entry for user review.
 
 Max 3 edit rounds. After 3rd edit: `A) Confirm current  B) Cancel entry`.
 
-User can: confirm, edit summary/scope/tag/tier/tm, merge with existing, skip, cancel.
-
-If user is repeatedly uncertain → suggest downgrading to memo.
+User can: confirm, edit summary/scope/tag/strict/ref, merge with existing, skip, cancel.
 
 ---
 
-## Step 10: Write
+## Step 9: Write
 
 Model: sonnet
 
 ```bash
-# [RUN] append takes a JSON string + optional --level. level is stored by directory, not in JSON.
-TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append --level {level} '{"tag":"{tag}","tier":{tier},"scope":"{scope}","tm":"{tm}","summary":"{summary}","path":{path_or_null},"hits":0,"revs":0,"source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"}'
+# [RUN] append takes a JSON string + optional --level. Level is stored by file location, not in JSON.
+TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append --level {level} '{"tag":"{tag}","scope":"{scope}","summary":"{summary}","strict":{strict_or_null},"ref":{ref_or_null},"source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"}'
 ```
 
-`{level}` is the value confirmed in Step 8 (`project` or `user`). Omit `--level` falls back to project (CLI default).
+`{level}` = value confirmed in Step 7 (`project` | `user`). Omit `--level` falls back to project.
 
-**Slug**: summary → 2-4 English keywords → hyphenated lowercase → `[a-z0-9-]` → max 50 chars.
+**Field values per tag**:
 
-| Tier | Write |
-|------|-------|
-| critical | Index entry + `$ENTRIES_DIR/{tag}/{slug}.md` |
-| memo | Index entry only (`path: null`) |
+| Tag | strict | ref |
+|-----|--------|-----|
+| rule | true or false | optional string |
+| insight | null (required) | optional string |
+| trap | null (required) | optional string |
+
+**Note**: v7 has no separate `entries/{tag}/{slug}.md` detail file. The `ref` field points to an existing paragraph in `docs/` (decision/arch/schema) or code/URL; context lives where humans browse.
 
 ```
-[persisted] entries/rule/pressure-thresholds.md (critical)
+[persisted] Auth.session :: session 过期必须触发刷新（project, strict=true, ref=docs/decision/auth.md#refresh）
 ```
 
 ---
 
 ## Completion
 
-- All selected claims processed through Steps 2-10
-- Each persisted entry has: valid index line (in the correct level) + detail file (if critical)
+- All selected claims processed through Steps 2-9
+- Each persisted entry has valid 8-field JSON line in the correct level's triggers.jsonl
 - User saw `[persisted]` or `[skipped]` for every claim
 
 ## Recovery
@@ -458,6 +419,5 @@ TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append --level {level} '{"tag":"{tag
 |-------|----------|
 | `know-ctl.sh` fails on append | Show error message. Do not retry silently. |
 | User cancels mid-batch | Remaining claims discarded. Already-persisted entries kept. |
-| Detail file write fails | Remove corresponding index entry. Report error. |
 | Single claim fails in batch | Skip to next claim. Continue processing. Report skipped count at end. |
 | Conflict check fails | Treat as no conflict, proceed to confirm. |

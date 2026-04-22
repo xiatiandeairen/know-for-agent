@@ -5,7 +5,7 @@
 Steps: 6
 Names: Scope, Scan, Extract, Filter, Confirm, Write
 
-Shared definitions (schema, tiers, scope, output markers) → SKILL.md.
+Shared definitions (schema, scope, output markers) → SKILL.md.
 
 ---
 
@@ -111,7 +111,7 @@ This is stricter than learn's "code-derivable" rule because extract starts from 
 - Involves external systems, timing, ordering, idempotency, config coupling
 - Has long-term protective value even if single-file
 
-After filtering, apply learn.md Step 4 Assess to assign tier.
+After filtering, proceed to Step 5 (no separate tier assignment in v7; strict is only for rule and decided in Write step).
 
 ```
 [skipped] {summary}
@@ -130,9 +130,9 @@ If 0 claims survived → `[extract] All items filtered (code-obvious or low impa
 [extract] step: confirm
 Found {N} knowledge items from {M} files:
 
-1. [{tag}] {summary} (tier: {tier})
+1. [{tag}] {summary}
    Source: {file_path}
-2. [{tag}] {summary} (tier: {tier})
+2. [{tag}] {summary}
    Source: {file_path}
 
 Persist? [all / select numbers / skip]
@@ -144,15 +144,17 @@ Persist? [all / select numbers / skip]
 
 Model: sonnet
 
-For each selected claim, execute learn.md Steps 5-8:
+For each selected claim, execute learn.md Steps 4-9 (v7):
 
-1. **Generate** (learn.md Step 5): tag already assigned. Generate remaining fields (tm, detail file if critical). Set `source: "extract"`.
-2. **Conflict** (learn.md Step 6): check for duplicates against existing index.
-3. **Per-entry confirm** (learn.md Step 7): show complete entry for final review.
-4. **Write** (learn.md Step 8): append to index, write detail file if critical.
+1. **Generate** (learn.md Step 4): tag already assigned. Compute strict (if tag=rule), scope, summary. ref defaults to the source file path with line number (`src/file:42`). Set `source: "extract"`.
+2. **Conflict** (learn.md Step 5): check duplicates.
+3. **Challenge** (learn.md Step 6): 5 adversarial questions.
+4. **Level** (learn.md Step 7): extract defaults to project (source files are project-local).
+5. **Confirm** (learn.md Step 8): user reviews final entry.
+6. **Write** (learn.md Step 9): append to triggers.jsonl via `know-ctl append --level project`.
 
 ```
-[persisted] entries/{tag}/{slug}.md (critical)
+[persisted] {scope} :: {summary} (project, strict={bool|null}, ref={file:line})
 ```
 
 ---
