@@ -94,8 +94,8 @@ REPORT_TMP=$(mktemp)
     echo ""
     echo "## Per scenario detail"
     echo ""
-    echo "| id | type | task (trimmed) | A scope | A actual | B actual | A R@must | B R@must | A R@should | B R@should | A penalty | B penalty |"
-    echo "|----|------|-----|---------|----------|----------|----------|----------|-----------|-----------|-----------|-----------|"
+    echo "| id | type | task (trimmed) | A scope | A actual | B actual | A R@must | B R@must | A R@should | B R@should | A P@3 | B P@3 | A pen | B pen |"
+    echo "|----|------|-----|---------|----------|----------|----------|----------|-----------|-----------|-------|-------|-------|-------|"
 } > "$REPORT_TMP"
 
 # per-type accumulators — use plain vars with type in name since macOS bash 3.2 lacks assoc arrays
@@ -134,9 +134,9 @@ while IFS= read -r scenario; do
         actual_A=$(bash "$KNOW_CTL" query "$scope_A" 2>/dev/null | jq -r '._id // empty' | grep -v '^$' || true)
     fi
 
-    # Strategy B: concept overlap (≥1 required ∈ trigger._concepts)
+    # Strategy B: (concepts ∪ synonyms) overlap with required (≥1 match)
     actual_B=$(jq -r --argjson req "$required_concepts" \
-        'select((._concepts // []) as $c | any($c[]; . as $x | $req | index($x))) | ._id' \
+        'select(((._concepts // []) + (._synonyms // [])) as $c | any($c[]; . as $x | $req | index($x))) | ._id' \
         "$FIXTURE" | grep -v '^$' || true)
 
     n_must=$(count_items "$must")
@@ -151,6 +151,13 @@ while IFS= read -r scenario; do
     mustnot_A=$(count_intersection "$actual_A" "$must_not")
     mustnot_B=$(count_intersection "$actual_B" "$must_not")
 
+    # top3 precision — know-ctl query already sorts by _kw_hits desc
+    top3_A=$(echo "$actual_A" | awk 'NF>0' | head -3)
+    top3_B=$(echo "$actual_B" | awk 'NF>0' | head -3)
+    tp3_A=$(count_intersection "$top3_A" "$must")
+    tp3_B=$(count_intersection "$top3_B" "$must")
+    if [ "$n_must" -eq 0 ]; then p3_A=100; p3_B=100; else p3_A=$((tp3_A * 100 / 3)); p3_B=$((tp3_B * 100 / 3)); fi
+
     if [ "$n_must" -eq 0 ]; then rmust_A=100; rmust_B=100; else rmust_A=$((tp_must_A * 100 / n_must)); rmust_B=$((tp_must_B * 100 / n_must)); fi
     if [ "$n_should" -eq 0 ]; then rshould_A=100; rshould_B=100; else rshould_A=$((tp_should_A * 100 / n_should)); rshould_B=$((tp_should_B * 100 / n_should)); fi
     if [ "$n_actual_A" -eq 0 ]; then pen_A=0; else pen_A=$((mustnot_A * 100 / n_actual_A)); fi
@@ -159,12 +166,26 @@ while IFS= read -r scenario; do
     actual_A_compact=$(echo "$actual_A" | tr '\n' ',' | sed 's/,$//; s/^$/—/')
     actual_B_compact=$(echo "$actual_B" | tr '\n' ',' | sed 's/,$//; s/^$/—/')
 
-    printf "| %s | %s | %s | %s | %s | %s | %d%% | %d%% | %d%% | %d%% | %d%% | %d%% |\n" \
+    printf "| %s | %s | %s | %s | %s | %s | %d%% | %d%% | %d%% | %d%% | %d%% | %d%% | %d%% | %d%% |\n" \
         "$id" "$type" "$task" "$scope_A" "$actual_A_compact" "$actual_B_compact" \
-        "$rmust_A" "$rmust_B" "$rshould_A" "$rshould_B" "$pen_A" "$pen_B" \
+        "$rmust_A" "$rmust_B" "$rshould_A" "$rshould_B" "$p3_A" "$p3_B" "$pen_A" "$pen_B" \
         >> "$REPORT_TMP"
 
-    # accumulate per type
+    # init accumulator lazily if unseen
+    eval ": \${TYPE_${type_var}_COUNT:=0}"
+    eval ": \${TYPE_${type_var}_N_MUST:=0}"
+    eval ": \${TYPE_${type_var}_N_SHOULD:=0}"
+    eval ": \${TYPE_${type_var}_TP_MUST_A:=0}"
+    eval ": \${TYPE_${type_var}_TP_MUST_B:=0}"
+    eval ": \${TYPE_${type_var}_TP_SHOULD_A:=0}"
+    eval ": \${TYPE_${type_var}_TP_SHOULD_B:=0}"
+    eval ": \${TYPE_${type_var}_N_ACTUAL_A:=0}"
+    eval ": \${TYPE_${type_var}_N_ACTUAL_B:=0}"
+    eval ": \${TYPE_${type_var}_MUSTNOT_A:=0}"
+    eval ": \${TYPE_${type_var}_MUSTNOT_B:=0}"
+    eval ": \${TYPE_${type_var}_TP3_A:=0}"
+    eval ": \${TYPE_${type_var}_TP3_B:=0}"
+
     eval "TYPE_${type_var}_N_MUST=\$((TYPE_${type_var}_N_MUST + n_must))"
     eval "TYPE_${type_var}_N_SHOULD=\$((TYPE_${type_var}_N_SHOULD + n_should))"
     eval "TYPE_${type_var}_TP_MUST_A=\$((TYPE_${type_var}_TP_MUST_A + tp_must_A))"
@@ -175,6 +196,8 @@ while IFS= read -r scenario; do
     eval "TYPE_${type_var}_N_ACTUAL_B=\$((TYPE_${type_var}_N_ACTUAL_B + n_actual_B))"
     eval "TYPE_${type_var}_MUSTNOT_A=\$((TYPE_${type_var}_MUSTNOT_A + mustnot_A))"
     eval "TYPE_${type_var}_MUSTNOT_B=\$((TYPE_${type_var}_MUSTNOT_B + mustnot_B))"
+    eval "TYPE_${type_var}_TP3_A=\$((TYPE_${type_var}_TP3_A + tp3_A))"
+    eval "TYPE_${type_var}_TP3_B=\$((TYPE_${type_var}_TP3_B + tp3_B))"
     eval "TYPE_${type_var}_COUNT=\$((TYPE_${type_var}_COUNT + 1))"
 done < "$SCENARIOS"
 
@@ -184,39 +207,39 @@ done < "$SCENARIOS"
     echo ""
     echo "## By type — Strategy A (current string-match)"
     echo ""
-    echo "| type | n | recall@must | recall@should | precision_penalty |"
-    echo "|------|---|-------------|---------------|-------------------|"
+    echo "| type | n | recall@must | recall@should | precision@3 | precision_penalty |"
+    echo "|------|---|-------------|---------------|-------------|-------------------|"
 
-    for type in concept-match cross-cutting analogy risk-domain intent-gap; do
+    for type in concept-match cross-cutting analogy risk-domain intent-gap synonym-gap ranking pure-noise; do
         tv="${type//-/_}"
         eval "c=\$TYPE_${tv}_COUNT"
         [ "$c" -eq 0 ] && continue
         eval "nm=\$TYPE_${tv}_N_MUST; ns=\$TYPE_${tv}_N_SHOULD"
         eval "tpm=\$TYPE_${tv}_TP_MUST_A; tps=\$TYPE_${tv}_TP_SHOULD_A"
-        eval "na=\$TYPE_${tv}_N_ACTUAL_A; mn=\$TYPE_${tv}_MUSTNOT_A"
-        if [ "$nm" -eq 0 ]; then rm=100; else rm=$((tpm * 100 / nm)); fi
+        eval "na=\$TYPE_${tv}_N_ACTUAL_A; mn=\$TYPE_${tv}_MUSTNOT_A; tp3=\$TYPE_${tv}_TP3_A"
+        if [ "$nm" -eq 0 ]; then rm=100; p3=100; else rm=$((tpm * 100 / nm)); p3=$((tp3 * 100 / (c * 3) )); fi
         if [ "$ns" -eq 0 ]; then rs=100; else rs=$((tps * 100 / ns)); fi
         if [ "$na" -eq 0 ]; then pp=0; else pp=$((mn * 100 / na)); fi
-        printf "| %s | %d | %d%% | %d%% | %d%% |\n" "$type" "$c" "$rm" "$rs" "$pp"
+        printf "| %s | %d | %d%% | %d%% | %d%% | %d%% |\n" "$type" "$c" "$rm" "$rs" "$p3" "$pp"
     done
 
     echo ""
-    echo "## By type — Strategy B (concept-match upper bound)"
+    echo "## By type — Strategy B (concept ∪ synonyms upper bound)"
     echo ""
-    echo "| type | n | recall@must | recall@should | precision_penalty |"
-    echo "|------|---|-------------|---------------|-------------------|"
+    echo "| type | n | recall@must | recall@should | precision@3 | precision_penalty |"
+    echo "|------|---|-------------|---------------|-------------|-------------------|"
 
-    for type in concept-match cross-cutting analogy risk-domain intent-gap; do
+    for type in concept-match cross-cutting analogy risk-domain intent-gap synonym-gap ranking pure-noise; do
         tv="${type//-/_}"
         eval "c=\$TYPE_${tv}_COUNT"
         [ "$c" -eq 0 ] && continue
         eval "nm=\$TYPE_${tv}_N_MUST; ns=\$TYPE_${tv}_N_SHOULD"
         eval "tpm=\$TYPE_${tv}_TP_MUST_B; tps=\$TYPE_${tv}_TP_SHOULD_B"
-        eval "na=\$TYPE_${tv}_N_ACTUAL_B; mn=\$TYPE_${tv}_MUSTNOT_B"
-        if [ "$nm" -eq 0 ]; then rm=100; else rm=$((tpm * 100 / nm)); fi
+        eval "na=\$TYPE_${tv}_N_ACTUAL_B; mn=\$TYPE_${tv}_MUSTNOT_B; tp3=\$TYPE_${tv}_TP3_B"
+        if [ "$nm" -eq 0 ]; then rm=100; p3=100; else rm=$((tpm * 100 / nm)); p3=$((tp3 * 100 / (c * 3) )); fi
         if [ "$ns" -eq 0 ]; then rs=100; else rs=$((tps * 100 / ns)); fi
         if [ "$na" -eq 0 ]; then pp=0; else pp=$((mn * 100 / na)); fi
-        printf "| %s | %d | %d%% | %d%% | %d%% |\n" "$type" "$c" "$rm" "$rs" "$pp"
+        printf "| %s | %d | %d%% | %d%% | %d%% | %d%% |\n" "$type" "$c" "$rm" "$rs" "$p3" "$pp"
     done
 
     echo ""
@@ -227,7 +250,7 @@ done < "$SCENARIOS"
     echo "| type | A recall@must | B recall@must | gap (B−A) | interpretation |"
     echo "|------|---------------|---------------|-----------|----------------|"
 
-    for type in concept-match cross-cutting analogy risk-domain intent-gap; do
+    for type in concept-match cross-cutting analogy risk-domain intent-gap synonym-gap ranking pure-noise; do
         tv="${type//-/_}"
         eval "c=\$TYPE_${tv}_COUNT"
         [ "$c" -eq 0 ] && continue
@@ -248,8 +271,8 @@ done < "$SCENARIOS"
     echo ""
     echo "- 语义 benchmark v2：测概念/模式/横切/风险/意图 5 类召回能力，非字符串匹配"
     echo "- **Strategy A**：runner 从 file_hints[0] 抽 scope（strip src|lib|app|tests|scripts|migrations 前缀 + strip 扩展名 + / → .），调 \`know-ctl query\` 获取当前算法行为"
-    echo "- **Strategy B**：concept 集合交集模拟理想上界；trigger._concepts ∩ scenario.required_concepts ≠ ∅ → 召回。**required_concepts 独立标注，不从 expected_recalls 反推**"
-    echo "- recall@must 和 recall@should 为核心；precision_penalty 越低越好"
+    echo "- **Strategy B**：(\`_concepts ∪ _synonyms\`) ∩ required_concepts ≠ ∅ → 召回。模拟理想上界（含同义词层）"
+    echo "- recall@must 为核心；precision@3 反映排序（know recall 只展示 max 3）；precision_penalty 越低越好"
     echo "- 空集处理：n_must=0 时 recall@must=100（"无需召回也是召回完成"）"
 } >> "$REPORT_TMP"
 
