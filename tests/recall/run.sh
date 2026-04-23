@@ -37,13 +37,16 @@ declare -a failures=()
     echo ""
     echo "## Per scenario"
     echo ""
-    echo "| id | kind | origin | file | scope queried | returned | verdict |"
-    echo "|----|------|--------|------|---------------|----------|---------|"
+    echo "| # | test | file | scope queried | returned | verdict |"
+    echo "|---|------|------|---------------|----------|---------|"
 } > "$REPORT"
 
+idx=0
 while IFS= read -r line; do
     [ -z "$line" ] && continue
+    idx=$((idx + 1))
     id=$(echo "$line" | jq -r .id)
+    title=$(echo "$line" | jq -r '.title // .id')
     kind=$(echo "$line" | jq -r .kind)
     origin=$(echo "$line" | jq -r .origin)
     file=$(echo "$line" | jq -r '.file_path // "null"')
@@ -76,7 +79,7 @@ while IFS= read -r line; do
             n_self_pass=$((n_self_pass + 1))
         else
             verdict="✗ miss"
-            failures+=("$id: expected [$include] got [$returned_csv]")
+            failures+=("$title — expected [$include] got [$returned_csv]")
         fi
     elif [ "$kind" = "contamination" ]; then
         n_cont_total=$((n_cont_total + 1))
@@ -92,12 +95,12 @@ while IFS= read -r line; do
         if [ "$polluted" -eq 1 ]; then
             n_cont_fail=$((n_cont_fail + 1))
             verdict="✗ polluted"
-            failures+=("$id: got unexpected [$returned_csv]")
+            failures+=("$title — got unexpected [$returned_csv]")
         fi
     fi
 
-    printf "| %s | %s | %s | %s | %s | %s | %s |\n" \
-        "$id" "$kind" "$origin" "$(basename "$file" 2>/dev/null || echo —)" "$scope_q" "$returned_csv" "$verdict" \
+    printf "| %d | %s | %s | %s | %s | %s |\n" \
+        "$idx" "$title" "$(basename "$file" 2>/dev/null || echo —)" "$scope_q" "$returned_csv" "$verdict" \
         >> "$REPORT"
 done < "$SCENARIOS"
 
