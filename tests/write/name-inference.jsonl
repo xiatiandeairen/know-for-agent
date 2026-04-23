@@ -1,0 +1,7 @@
+{"id":"tc01-no-name-needed","input":{"type":"roadmap","conversation":"v1 规划","name_hint":null,"user_replies":[]},"expected":{"name":null}}
+{"id":"tc02-hint-direct","input":{"type":"tech","conversation":"讨论实现","name_hint":"know-learn","user_replies":[]},"expected":{"name":"know-learn"}}
+{"id":"tc03-hint-normalize","input":{"type":"arch","conversation":"聊架构","name_hint":"Know Learn","user_replies":[]},"expected":{"name":"know-learn"}}
+{"id":"tc04-infer-from-conv","input":{"type":"tech","conversation":"关于 recall pipeline 升级的实现细节","name_hint":null,"user_replies":[]},"expected":{"name":"recall-pipeline"}}
+{"id":"tc05-ask-when-unclear","input":{"type":"arch","conversation":"零散想法","name_hint":null,"user_replies":["storage-layer"]},"expected":{"name":"storage-layer"}}
+{"id":"tc06-invalid-then-valid","input":{"type":"arch","conversation":"零散","name_hint":null,"user_replies":["不知道","cache"]},"expected":{"name":"cache"}}
+{"id":"tc07-persistent-invalid-abort","input":{"type":"arch","conversation":"零散","name_hint":null,"user_replies":["不知道","随便"]},"expected":{"name":"abort"}}

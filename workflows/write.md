@@ -152,15 +152,53 @@ Ask this question internally against each type's exemplar:
 - Clarifying prompts must display the full option set; never abbreviate.
 - Step 2a returns a type only if the `Inference check` yields **yes for exactly one** type. Any broader match downgrades to 2b/2c.
 
-### 1b: Name/Topic
+### 1b: Name Inference
 
-| Level | Rule |
-|-------|------|
-| Project single (roadmap, capabilities, ops, marketing) | No name needed |
-| Project directory (arch, ui, schema, decision) | Extract `{topic}` → kebab-case slug |
-| Requirement (prd, tech) | Extract `{req}` → kebab-case slug |
+Produce the slug that completes the document path for types that need one.
 
-**Default**: name unextractable → ask user.
+**Signature**
+- Input: `type` (from 1a), `conversation`, `name_hint` (optional), `user_replies[]`
+- Output: `name` (kebab-case string) or `null` (for types that do not require a name); `abort` on two consecutive invalid replies
+- Validation fixture: `tests/write/name-inference.jsonl`
+
+**Name requirement by type**
+
+| Type | Needs name? | Path |
+|---|---|---|
+| roadmap, capabilities, ops, marketing | no | `docs/<type>.md` |
+| arch, ui, schema, decision | yes (topic) | `docs/<type>/<name>.md` |
+| prd, tech | yes (req) | `docs/requirements/<name>/<type>.md` |
+
+#### Decision procedure
+
+```
+1. If type does not require a name                     → return null.
+2. If name_hint is provided                            → normalize, return.
+3. Otherwise, infer a slug from the conversation:
+     3a. Conversation contains a clear topic/requirement phrase → normalize, return.
+     3b. No clear phrase                                         → ask the user.
+4. If the user's reply is invalid:
+     → ask once more; a second invalid reply terminates with `abort`.
+```
+
+#### Kebab-case normalization
+
+- Lowercase.
+- Replace spaces, underscores, dots, slashes with `-`.
+- Strip any character outside `[a-z0-9-]`.
+- Collapse consecutive `-`; trim leading/trailing `-`.
+- Reject if the result is empty.
+
+#### Invalid replies
+
+A reply is invalid if, after normalization, it is empty, or if it matches any of: `不知道`, `随便`, `skip`, `idk`, `-`.
+
+#### Hard rules
+
+- Return `null` only when the type does not require a name; never null for types that do.
+- `name_hint` is adopted after normalization without further prompting.
+- Inference in 3a requires an explicit noun phrase (e.g. `recall pipeline`, `cache layer`); do not invent a slug from tangential references.
+- An invalid reply triggers exactly one fallback prompt; a second invalid reply aborts.
 
 ### 1c: New or Update
 
