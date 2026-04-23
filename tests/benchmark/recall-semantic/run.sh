@@ -22,7 +22,7 @@ FIXTURE="$BENCH_DIR/fixture-triggers.jsonl"
 SCENARIOS="$BENCH_DIR/scenarios.jsonl"
 RESULTS_DIR="$BENCH_DIR/results"
 
-DATE=$(date +%Y-%m-%d)
+DATE=$(date +%Y-%m-%dT%H%M%S)
 REPORT="$RESULTS_DIR/$DATE.md"
 
 # ─── isolated env for Strategy A ─────────────────────────────
@@ -125,9 +125,14 @@ while IFS= read -r scenario; do
     must_not=$(echo "$scenario" | jq -r '.must_not_recall[]? // empty')
     required_concepts=$(echo "$scenario" | jq -c '.required_concepts')
 
-    # Strategy A: extract scope, query know-ctl
+    # Strategy A: extract scope + keywords, query know-ctl
     scope_A=$(extract_scope "$file_hint")
-    actual_A=$(bash "$KNOW_CTL" query "$scope_A" 2>/dev/null | jq -r '._id // empty' | grep -v '^$' || true)
+    kw_csv=$(echo "$required_concepts" | jq -r '. | join(",")')
+    if [ -n "$kw_csv" ]; then
+        actual_A=$(bash "$KNOW_CTL" query "$scope_A" --keywords "$kw_csv" 2>/dev/null | jq -r '._id // empty' | grep -v '^$' || true)
+    else
+        actual_A=$(bash "$KNOW_CTL" query "$scope_A" 2>/dev/null | jq -r '._id // empty' | grep -v '^$' || true)
+    fi
 
     # Strategy B: concept overlap (≥1 required ∈ trigger._concepts)
     actual_B=$(jq -r --argjson req "$required_concepts" \

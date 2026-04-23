@@ -20,7 +20,7 @@ FIXTURE="$BENCH_DIR/fixture-triggers.jsonl"
 SCENARIOS="$BENCH_DIR/scenarios.jsonl"
 RESULTS_DIR="$BENCH_DIR/results"
 
-DATE=$(date +%Y-%m-%d)
+DATE=$(date +%Y-%m-%dT%H%M%S)
 REPORT="$RESULTS_DIR/$DATE.md"
 
 # ─── Setup isolated env ──────────────────────────────────────
