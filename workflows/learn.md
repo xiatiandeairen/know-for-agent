@@ -1,460 +1,214 @@
 # learn — Knowledge Persistence
 
-## Progress
+## 1. Overview
 
-Steps: 9
-Names: Detect, Extract, Filter, Generate, Conflict, Challenge, Level, Confirm, Write
+Turn conversational insights into persisted `trigger` entries in `triggers.jsonl`. Pipeline: collect candidates → formalize fields → resolve conflicts → confirm with user → write. Designed to prefer fewer, higher-quality entries over broad capture.
 
-Core infrastructure (paths, schema, recall, markers) → SKILL.md.
+## 2. Core Principles
 
----
+1. **Collect once.** A single scan produces final candidates; no multi-pass filtering.
+2. **Quality over quantity.** Drop anything a reader could infer from the code itself; save only non-obvious tacit knowledge.
+3. **Confirm before writing.** The user sees every entry verbatim and controls final persistence.
+4. **Conflicts never silent.** Duplicates, contradictions, and mergeable overlaps must surface for user decision.
+5. **Level is explicit.** Every trigger is either `project` (this repo) or `user` (cross-project); no ambiguous default.
+6. **Bounded clarification.** Invalid reply → one fallback prompt → abort if still invalid.
 
-## Shared Definitions
+## 3. Definitions
 
-These definitions are used by learn, extract, and review pipelines.
-
-### Tag definitions
-
-| Tag | Records | Examples |
-|-----|---------|---------|
-| insight | Cognitive understanding: decisions, rationale, mental models, concepts, frameworks | "Chose JSONL over SQLite — need line-level append without locking" |
-| rule | Must/must-not constraints, ordering, boundaries | "Webhook signature must be verified before parsing body" |
-| trap | Bugs, root causes, easy-to-repeat mistakes | "DataEngine singleton leaks state across test targets" |
-
-### Strict definition (rule only)
-
-| Value | When to use | Recall behavior |
-|-------|-------------|-----------------|
-| `true` | Hard constraint: violating causes compile failure, data corruption, security hole, or must-not-violate rule | Prefixed with ⚠ in recall output |
-| `false` | Soft constraint: recommended practice, style convention, advisory rule | No prefix; informational |
-
-`strict` is **required** for `tag=rule` and **must be `null`** for `tag=insight|trap`.
-
-### Scope guidelines
-
-Scope makes future recall hit the right entries. Not a directory tree replica.
-
-**Generation priority**: explicit file path → module/subsystem name → recurring functional domain → broad stable boundary → `"project"` (last resort).
-
-**Good**: `Auth.session`, `Payment.webhook`, `Search.reranker`, `Infra.queue.worker`
-
-**Bad**: `src.app.services.payment.handlers.webhook.verify.signature.v2`, `misc`, `unknown`
-
-### Conflict handling
-
-| Relationship | Action |
-|-------------|--------|
-| **duplicate** | Same conclusion, different wording → suggest merge or skip |
-| **conflict** | Mutually exclusive conclusions → must show to user, let them decide |
-| **merge** | Complementary (same topic, different angle) → suggest merging |
-| **unrelated** | Pass through |
-
-Semantic similarity can find candidates, but final classification must also consider: scope, conclusion direction, tag, applicable range, chronology.
-
----
-
-## Decay
-
-Run at Step 1 entry, before signal detection. Skip if neither `$PROJECT_TRIGGERS` nor `$USER_TRIGGERS` exists.
-
-```bash
-# [RUN] v7: decay is a no-op (deferred); command remains callable
-bash "$KNOW_CTL" decay
-```
-
-Output: `[decay] 已推延到下个 sprint（v7 schema 简化完成，衰减策略将在 v7.x 重做）`。
-
----
-
-## Step 1: Detect
-
-Model: opus
-
-**Trigger**: `/know learn` or routed from `/know` → scan full conversation.
-
-### Signal types
-
-| Signal | Typical language | Likely tag |
-|--------|-----------------|------------|
-| User correction | don't, not X use Y, wrong, should be, 必须, 不能 | rule / insight |
-| Technical choice | chose, decided, instead of, tradeoff, 选了, 决定用 | insight |
-| Root cause | root cause, caused by, turns out, 根因, 问题是 | trap |
-| Business logic | the flow is, algorithm, works by, 机制是, 流程是 | insight |
-| Constraint declared | must not, forbidden, never, always, 千万别 | rule |
-| External integration | API, endpoint, SDK, webhook, 第三方接口 | insight |
-
-### Detection requirements
-
-- Each candidate must have a clear conclusion or clear rule — drop vague signals.
-- Max 5 candidates. >5 → rank by: user-corrected > converged conclusion > likely to recur > project-relevant. Take top 5.
-- Prioritize: user explicit corrections, confirmed conclusions, things likely to recur.
-
-### Summary + claim presentation
-
-Output a structured conversation value summary before listing claims:
-
-```
-[learn] step: detect
-会话价值摘要：
-本次对话围绕 {主题} 进行了 {活动类型}。
-关键产出：
-- {产出1}
-- {产出2}
-
-检测到 {N} 条可持久化知识：
-1. [{likely_tag}] {summary}
-2. [{likely_tag}] {summary}
-
-持久化？ [all / 选编号 / skip]
-```
-
-[STOP:choose] User selects → each claim processed through Steps 2-9 sequentially.
-
----
-
-## Step 2: Extract（原步骤不变）
-
-Model: opus
-
-Split detected signals into independently retrievable knowledge units.
-
-### Principles
-
-Each unit should have:
-- One core conclusion
-- Preferably one key reason or context
-- Be independently understandable and retrievable
-
-### Splitting rules
-
-- Conclusion + its direct reason = one unit (do not split)
-- Two independent facts = split
-- One choice + one rejection reason = usually one insight entry
-- Uncertain whether to split → do not split (prefer fewer, not more)
-
-### Output per unit
-
-- `conclusion`: the core knowledge
-- `reason`: why (if available)
-- `evidence`: key evidence from conversation
-- `suggested_tag`: preliminary tag
-
----
-
-## Step 3: Filter
-
-Model: sonnet
-
-Drop claims that don't belong in the knowledge base. This is not about "store as little as possible" — it's about removing obvious noise while keeping genuinely valuable tacit knowledge.
-
-### Direct DROP
-
-| Condition | Why drop |
-|-----------|----------|
-| No clear conclusion | Speculation, divergent discussion, not converged |
-| One-time or snapshot | Temporary state, ticket numbers, won't recur |
-| Surface fact with no extra value | Restating what code obviously shows, no why/constraint/context |
-| Weak long-term relevance | Only useful for this one conversation, no future reuse |
-
-### Usually KEEP (even if single-file)
-
-- Conclusion is non-obvious
-- Reason not easily visible from surface code
-- Easy to re-encounter (repeat mistakes)
-- Involves business boundaries, external systems, timing, ordering
-- Clear "why we did this" value
-- Project-specific decision or rule
-
-### Output
-
-```
-[skipped] {summary}
-Reason: {drop reason}
-```
-
----
-
-## Step 4: Generate
-
-Model: opus
-
-Convert claim into a formal entry. Sub-steps in order: **tag → scope → (if rule) strict → summary → ref**.
-
-### 4a: Tag
-
-**Selection priority (tie-breaker rule)**: trap > rule > insight.
-
-- 有"历史犯错"的根因（踩过且易再踩） → **trap**
-- 是明确约束（必须/禁止做 X，含外部 API 约束等） → **rule**
-- 否则（决策、心智模型、背景事实） → **insight**
-
-| Pattern | Tag |
-|---------|-----|
-| Choice/comparison ("chose X over Y") | insight |
-| Prohibition ("must not", "forbidden", "always") | rule |
-| External API / SDK hard constraint (header required, version pinned) | rule（防错优先于解释） |
-| Bug/error/root-cause discovery | trap |
-| Flow/algorithm/architecture/business-rule | insight |
-
-≥2 tags仍等价 → ask user（优先级规则已打破多数绑带情况）。
-
-### 4b: Scope
-
-Generate using SKILL.md Scope Guidelines. Scope should be stable, reusable, and hittable.
-
-### 4c: Strict (tag=rule only)
-
-**仅 tag=rule 时执行**；tag=insight|trap 跳过此步（strict 固定为 null）。
-
-| Condition | strict |
+| Term | Meaning |
 |---|---|
-| 违反会导致编译失败 / 数据损坏 / 安全漏洞 / 外部 API 硬要求 | `true` |
-| 推荐实践 / 风格约定 / 建议性规则 | `false` |
+| `trigger` | one JSONL row with 8 fields: `tag, scope, summary, strict, ref, keywords, source, created/updated` |
+| `tag` | `rule` (must/must-not), `insight` (decision/mental model), `trap` (bug/pitfall); priority when ambiguous: `trap > rule > insight` |
+| `scope` | dot-separated keypath (`Auth.session`, `methodology.recall-design`); stable reusable anchor |
+| `strict` | `true/false` for `rule`; must be `null` for `insight/trap` |
+| `level` | `project` or `user`; determines file location |
+| `candidate` | a trigger in-progress, pre-persistence |
 
-### 4d: Summary
+## 4. Rules
 
-Format: `{conclusion} — {key reason/context}`
+### 4.1 Input handling
 
-Requirements: concise, readable, ≤80 chars, real information density, not an empty title.
+- All string matching is case-insensitive.
+- `STOP:choose` blocks the pipeline; the user must pick from the displayed options.
+- One invalid reply triggers a full-list fallback prompt; a second invalid reply terminates with `abort`.
 
-Overflow: remove qualifiers → core conclusion only → still over → split into two entries.
+### 4.2 Entry integrity
 
-### 4e: Ref (optional)
+- Every candidate produces a valid 8-field entry; partial writes are forbidden.
+- `rule` requires `strict ∈ {true, false}`; `insight/trap` require `strict = null`.
+- `summary` is `≤ 80 chars`, formatted `{conclusion} — {reason}`.
+- Scope follows: explicit file path → module/subsystem name → recurring functional domain → broad boundary → `"project"` (last resort).
+- Level defaults: scope starting with `methodology.*` → `user`; project-local identifiers → `project`; ambiguous → ask.
 
-指向该条目的完整 context 所在。值域：
-- `"docs/decision/xxx.md#anchor"` — 项目文档段落
-- `"src/auth/session.ts:42"` — 代码锚点
-- `"https://..."` — 外部链接
-- `null` — 无引用（summary 已足够）
+### 4.3 Candidate quality
 
-建议场景：tag=rule + strict=true 时最好有 ref；summary ≥60 字常意味着值得配 doc 段。
+A candidate is dropped when any of:
+- no clear conclusion or rule,
+- describes transient state or one-off facts,
+- is directly readable from surface code without extra why/constraint/context,
+- has no foreseeable recurrence or reuse.
 
-### 4f: Keywords
+### 4.4 Conflict handling
 
-为 trigger 选 5-8 个 keywords，用于 recall 的语义匹配。
-
-**Hard rule（`know-ctl` 校验）**：每个 keyword 字符只允许 `[a-z0-9-]`，长度 2-40。
-
-- ✓ `webhook`、`signature-verification`、`api-v2`、`jwt`、`pii-protection`
-- ✗ `Webhook`（大写）、`web_hook`（下划线）、`签名`（中文）、`api design`（空格）
-
-**Soft convention（优先复用词表）**：
-
-```bash
-# [RUN] 获取当前动态词表
-bash "$KNOW_CTL" keywords
-```
-
-输出示例：
-```
-authentication (8)
-webhooks (5)
-signature-verification (3)
-idempotency (4)
-...
-```
-
-为这条 trigger 选 keywords：
-- **优先从词表复用**（一致性 > 个人偏好）
-- 新词直接加入即可（会自然扩展词表）
-
-**Prompt 示例**：
-
-```
-trigger: "session 过期必须触发刷新而非拒绝 — 避免静默登出"
-current vocabulary: [authentication(8), session-management(3), jwt(2), ...]
-→ selected keywords: [authentication, session-management, session-refresh]
-```
-
----
-
-## Step 5: Conflict
-
-Model: sonnet
-
-Check if new entry duplicates, conflicts with, or supplements existing entries.
-
-### Phase 1: Keyword retrieval
-
-Extract keywords from summary (scope module names → proper nouns → action verbs → skip generic words).
-
-| Summary length | Keywords |
-|---------------|----------|
-| ≤30 chars | 2 |
-| 31-60 chars | 3 |
-| >60 chars | 4 |
-
-```bash
-# [RUN]
-bash "$KNOW_CTL" search "<kw1>|<kw2>"
-```
-
-0 results → skip Phase 2, proceed to Step 7.
-
-### Phase 2: Relationship classification
-
-Compare each candidate against new claim. Classify as:
-
-| Relationship | Action |
-|-------------|--------|
-| unrelated | → Step 7 |
-| merge (complementary) | → suggest merge [STOP:choose] |
-| duplicate (same conclusion) | → suggest skip or merge [STOP:choose] |
-| conflict (opposite conclusion) | → must show, user decides [STOP:choose] |
-
-**Conflict block**:
-```
-[conflict] Similar entry found:
-Existing: {summary}
-New: {summary}
-Relationship: {duplicate|conflict|merge}
-Choose: A) Update existing  B) Keep both  C) Merge  D) Skip new
-```
-
-Do not classify based on semantic similarity alone. Also consider: scope, conclusion direction, tag, applicable range, chronology.
-
----
-
-## Step 6: Challenge
-
-Model: opus
-
-Adversarial review of each generated entry before user sees it. Goal: catch weak, vague, or misclassified entries before they pollute the knowledge base.
-
-### Per entry, answer 5 questions internally
-
-| # | Challenge question | Fail action |
-|---|-------------------|-------------|
-| 1 | Is the conclusion falsifiable? Can you construct a scenario where it's wrong? | If trivially falsifiable → drop or narrow scope |
-| 2 | Would a different AI, without this knowledge, actually produce broken code? | If no → for tag=rule demote strict=true→false; for others consider drop |
-| 3 | Is this a fact that can be derived by reading the code? | If yes → drop (code is the source of truth) |
-| 4 | Does the summary capture the "why", not just the "what"? | If no → rewrite summary to include reason |
-| 5 | Is the scope precise enough for recall to hit it, but not so narrow it's useless? | If too broad or too narrow → adjust scope |
-
-### Execution
-
-- Run all 5 questions per entry. Record pass/fail.
-- **All pass** → proceed to Step 8 unchanged.
-- **Any fail** → apply fix (drop / demote / rewrite / adjust), mark what changed.
-- **≥3 fail** → drop entry, report reason.
-
-### Output
-
-```
-[learn] step: challenge
-{N} entries reviewed:
-  ✓ {summary}                          — passed
-  △ {summary}                          — {field}: {old} → {new}
-  ✗ {summary}                          — dropped: {reason}
-
-Surviving entries ({M}/{N}):
-1. [{tag}{⚠ if rule+strict=true}] {summary} — scope {scope}{ref: ... if not null}
-2. ...
-
-持久化？ [all / 选编号 / skip]
-```
-
-[STOP:choose] User selects → each surviving entry processed through Steps 7-9.
-
----
-
-## Step 7: Level
-
-Model: sonnet
-
-Decide storage level for each surviving entry: `project` (default) or `user` (cross-project).
-
-### Inference (default suggestion)
-
-| Signal in scope or summary | Suggest |
+| Relation | Action |
 |---|---|
-| Scope starts with `methodology.*` | user |
-| Summary is domain-agnostic (generic engineering lesson, no project-specific identifier) | user |
-| Scope names a project-local module (e.g. `Auth.session`, `Search.reranker`) | project |
-| References project-specific file/class/config | project |
+| unrelated | pass through |
+| merge (complementary) | propose merge, `STOP:choose` |
+| duplicate (same conclusion) | propose skip or merge, `STOP:choose` |
+| conflict (opposing) | mandatory surface, `STOP:choose` resolves |
 
-When uncertain → suggest `project` (safe default; upgrade later via `know-ctl delete` + append `--level user`).
+Semantic similarity alone never decides; also weigh scope, direction, tag, applicable range, chronology.
 
-### Interaction
+### 4.5 User touchpoints
 
-```
-[learn] step: level
-{N} 条待持久化知识的 level 归属：
+- One choice block after `Collect` (select which candidates to process).
+- One choice block on any conflict.
+- One confirmation block before `Write`.
+- No other prompts unless a step explicitly demands a fallback.
 
-1. [{tag}] {summary}
-   建议: {project|user} — {reason}
-2. ...
+## 5. Workflow
 
-确认？回复 "ok" 接受全部建议；或 "1:user, 3:user" 覆盖特定编号；或 "all user" 全改 user。
-```
+Models: `opus` for scanning and judgment (1, 2); `sonnet` for mechanical work (3, 5).
 
-[STOP:choose]
+### 5.1 Step 1 — Collect
 
-### User-level write confirmation
-
-任何被标 `user` 的条目 → Step 9 写入前再确认一次：
+**Input**: `conversation`, optional `"<claim>"`, `/know learn` entry point.
+**Output**: `candidates[]` (≤ 5), each carrying `summary_draft` and `likely_tag`; empty when nothing qualifies.
 
 ```
-[learn] 即将写入 user 级，跨所有项目生效。确认以下 {M} 条？
-
-1. [{tag}] {summary}
-2. ...
-
-回复 "y" 确认；或 "1:project, 3:project" 降回 project；或 "cancel" 撤销这部分。
+1. If the entry point is /know learn "<claim>":
+     → single candidate, skip scanning.
+2. Otherwise scan the conversation for content that passes all four quality checks (§4.3).
+3. Apply splitting: one conclusion + its direct reason = one candidate; two independent facts = two.
+4. If the pool exceeds 5, rank by:
+     user-corrected > converged conclusion > likely to recur > project-relevant.
+   Take the top 5.
+5. Present:
+     [learn] step: collect
+     会话价值摘要：{theme}
+     关键产出：
+       - {output 1}
+       - {output 2}
+     检测到 {N} 条可持久化知识：
+       1. [{likely_tag}] {summary_draft}
+       2. ...
+     持久化？[all / 编号 / skip]
+6. STOP:choose on selection.
 ```
 
-[STOP:confirm] Default on silence: treat as confirm after explicit `y`; any other single word → re-ask with options.
+### 5.2 Step 2 — Generate
 
----
+**Input**: selected candidates.
+**Output**: formal entries with `{tag, scope, strict, summary, ref, keywords, level}` per candidate.
 
-## Step 8: Confirm [STOP:confirm]
+```
+For each selected candidate:
+  2a tag         trap > rule > insight; ≥ 2 equally valid → ask user.
+  2b scope       follow §4.2; avoid overly deep or generic paths.
+  2c strict      rule only; null for insight/trap.
+  2d summary     "{conclusion} — {reason}", ≤ 80 chars; rewrite until it fits.
+  2e ref         optional docs path / code anchor / URL; rule+strict=true prefers a ref.
+  2f keywords    5–8 kebab-case; prefer existing vocabulary (know-ctl keywords).
+  2g level       methodology.* → user; project-local → project; ambiguous → STOP:choose.
+```
 
-Show complete entry for user review.
+**Keyword rules.** Lowercase, `[a-z0-9-]`, length 2–40. Reuse terms from the current vocabulary unless a genuinely new concept appears.
 
-Max 3 edit rounds. After 3rd edit: `A) Confirm current  B) Cancel entry`.
+### 5.3 Step 3 — Conflict
 
-User can: confirm, edit summary/scope/tag/strict/ref, merge with existing, skip, cancel.
+**Input**: generated entries.
+**Output**: entries with conflict resolution applied.
 
----
+```
+1. For each entry, run know-ctl search against scope keywords:
+     bash "$KNOW_CTL" search "<kw1>|<kw2>"
+2. Classify each candidate match: unrelated | merge | duplicate | conflict.
+3. On anything not "unrelated":
+     [conflict] Similar entry found:
+       Existing: {summary}
+       New:      {summary}
+       Relation: {merge | duplicate | conflict}
+       Choose:   A) Update existing  B) Keep both  C) Merge  D) Skip new
+   STOP:choose decides.
+```
 
-## Step 9: Write
+### 5.4 Step 4 — Confirm
 
-Model: sonnet
+**Input**: resolved entries.
+**Output**: final list for writing; up to 3 rounds of edits per entry.
+
+```
+For each entry:
+  Display tag / scope / strict / summary / ref / keywords / level.
+  Ask: confirm / edit <field>=<value> / skip / merge-with <existing>.
+  After the 3rd edit round, force A) confirm current, B) cancel.
+User-level entries require a second confirmation naming every affected scope.
+```
+
+### 5.5 Step 5 — Write
+
+**Input**: confirmed entries.
+**Output**: appended triggers.jsonl rows and `created` events.
 
 ```bash
-# [RUN] append takes a JSON string + optional --level. Level is stored by file location, not in JSON.
-TODAY=$(date +%Y-%m-%d) && bash "$KNOW_CTL" append --level {level} '{"tag":"{tag}","scope":"{scope}","summary":"{summary}","strict":{strict_or_null},"ref":{ref_or_null},"keywords":{keywords_array_or_null},"source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"}'
+TODAY=$(date +%Y-%m-%d)
+bash "$KNOW_CTL" append --level {level} '{
+  "tag":"{tag}","scope":"{scope}","summary":"{summary}",
+  "strict":{strict_or_null},"ref":{ref_or_null},
+  "keywords":{keywords_array_or_null},
+  "source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"
+}'
 ```
 
-`{level}` = value confirmed in Step 7 (`project` | `user`). Omit `--level` falls back to project.
-
-**Field values per tag**:
-
-| Tag | strict | ref |
-|-----|--------|-----|
-| rule | true or false | optional string |
-| insight | null (required) | optional string |
-| trap | null (required) | optional string |
-
-**Note**: v7 has no separate `entries/{tag}/{slug}.md` detail file. The `ref` field points to an existing paragraph in `docs/` (decision/arch/schema) or code/URL; context lives where humans browse.
-
 ```
-[persisted] Auth.session :: session 过期必须触发刷新（project, strict=true, ref=docs/decision/auth.md#refresh）
+[persisted] {scope} :: {summary} ({level})
 ```
 
----
+Decay runs once at pipeline entry (`know-ctl decay`; currently no-op in v7).
 
-## Completion
+## 6. Examples
 
-- All selected claims processed through Steps 2-9
-- Each persisted entry has valid 8-field JSON line in the correct level's triggers.jsonl
-- User saw `[persisted]` or `[skipped]` for every claim
+### Single correction captured as a rule
 
-## Recovery
+```
+user: "你忘了 webhook 必须先验签再解 body"
+→ Collect: 1 candidate, likely_tag=rule.
+→ Generate: tag=rule, scope=Payment.webhook, strict=true,
+   summary="webhook 必须先验签再解 body — 防注入",
+   keywords=["webhook","signature-verification","security"], level=project.
+→ Conflict: no match.
+→ Confirm → Write.
+```
 
-| Error | Recovery |
-|-------|----------|
-| `know-ctl.sh` fails on append | Show error message. Do not retry silently. |
-| User cancels mid-batch | Remaining claims discarded. Already-persisted entries kept. |
-| Single claim fails in batch | Skip to next claim. Continue processing. Report skipped count at end. |
-| Conflict check fails | Treat as no conflict, proceed to confirm. |
+### Methodology insight promoted to user level
+
+```
+conversation: discussion of benchmark double-strategy design
+→ Collect: 1 candidate.
+→ Generate: tag=insight, scope=methodology.benchmark,
+   summary="benchmark = A 现状算法 + B 上界模拟 — 对照出天花板",
+   level=user.
+→ Conflict: no match.
+→ Confirm → second confirmation for user level → Write.
+```
+
+### Conflict resolved by merge
+
+```
+Existing: "session 过期必须刷新 — 避免静默登出"
+New:      "session 超时不要拒绝，必须刷新 — 提升留存"
+→ Conflict classifies as duplicate.
+→ User picks C) Merge; Step 3 consolidates into single entry; Step 5 updates.
+```
+
+## 7. Edge Cases
+
+| Situation | Behavior |
+|---|---|
+| Conversation contains no qualifying material | `[learn] No high-value knowledge detected.` |
+| `/know learn "<claim>"` with malformed claim | single candidate with `likely_tag=insight`; continue as normal. |
+| More than 5 candidates | truncate by ranking rule (§5.1 step 4). |
+| All selected candidates dropped by quality pre-check | surface `[skipped]` per candidate, exit without Write. |
+| User edits push an entry past 3 rounds | force confirm-current or cancel. |
+| `know-ctl append` fails | surface the error; do not retry silently. |
+| User-level write missed secondary confirmation | abort that entry only; other entries proceed. |

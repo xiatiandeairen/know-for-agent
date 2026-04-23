@@ -1,0 +1,3 @@
+{"id":"tc01-top3-rendered","input":{"entries":[{"tag":"rule","strict":true,"summary":"X","_level":"project","ref":"docs/y.md"},{"tag":"insight","strict":null,"summary":"Y","_level":"user","ref":null},{"tag":"trap","strict":null,"summary":"Z","_level":"project","ref":null}]},"expected":{"lines_count":3,"warn_prefix_on_strict_rule":true}}
+{"id":"tc02-empty-silent","input":{"entries":[]},"expected":{"outcome":"silent"}}
+{"id":"tc03-more-than-3-truncated","input":{"entries_count":5},"expected":{"lines_count":3}}

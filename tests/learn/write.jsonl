@@ -1,0 +1,4 @@
+{"id":"tc01-project-write","input":{"entry":{"level":"project","tag":"rule","scope":"Auth.session","strict":true}},"expected":{"written_to":"docs/triggers.jsonl","event":"created"}}
+{"id":"tc02-user-write","input":{"entry":{"level":"user","tag":"insight","scope":"methodology.x","strict":null}},"expected":{"written_to":"$XDG_CONFIG_HOME/know/triggers.jsonl","event":"created"}}
+{"id":"tc03-validation-fail","input":{"entry":{"tag":"rule","strict":null}},"expected":{"outcome":"error","reason":"rule requires strict"}}
+{"id":"tc04-empty-list","input":{"entries":[]},"expected":{"outcome":"no-op"}}

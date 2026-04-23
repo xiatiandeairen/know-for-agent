@@ -1,0 +1,5 @@
+{"id":"tc01-no-conflict","input":{"entry_scope":"Auth.session","existing_matches":[]},"expected":{"outcome":"pass-through"}}
+{"id":"tc02-duplicate","input":{"entry":{"summary":"A"},"existing":{"summary":"A 同义"},"user_replies":["A"]},"expected":{"outcome":"update-existing"}}
+{"id":"tc03-merge","input":{"entry":{"summary":"A 补充"},"existing":{"summary":"A"},"user_replies":["C"]},"expected":{"outcome":"merged"}}
+{"id":"tc04-conflict-keep-both","input":{"entry":{"summary":"A 反向"},"existing":{"summary":"A"},"user_replies":["B"]},"expected":{"outcome":"keep-both"}}
+{"id":"tc05-skip-new","input":{"entry":{"summary":"A"},"existing":{"summary":"A"},"user_replies":["D"]},"expected":{"outcome":"skip"}}

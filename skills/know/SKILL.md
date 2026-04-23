@@ -97,61 +97,70 @@ Multi-select execution order: learn → extract → write → review.
 
 ## Recall
 
-Goal: remind, not block. Help system, not enforcement.
+Purpose: surface relevant triggers before an edit so the AI can factor them into its work. Reminds, does not block.
 
 ### Trigger
 
-Before code-changing operations (Edit, Write, Bash that modifies files).
+Runs before any code-changing operation (`Edit`, `Write`, or `Bash` that modifies files).
 
-**Skip when any**:
-1. Both project and user triggers files missing
-2. Same scope already queried this session
-3. Current operation is Read/Glob/Grep (no Edit/Write/Bash write)
+**Skip when any of**:
+- Both project and user triggers files are missing.
+- The same scope was already queried in this session.
+- The current operation is read-only (`Read`, `Glob`, `Grep`).
 
-### Pipeline
+### Pipeline (4 steps)
 
 ```
-Scope Inference → Keywords Inference → Query (scope + keywords) → Select (max 3) → Act
+1. Infer context        (scope + keywords together)
+2. Query and log         (know-ctl query + recall-log)
+3. Present top 3         (render tag/strict/why/ref)
+4. Hit on adoption       (know-ctl hit when AI uses a trigger)
 ```
 
-**Scope inference** (from current file operation):
+#### Step 1 — Infer context
 
-| Priority | Method |
-|----------|--------|
+**Scope**
+
+| Priority | Source |
+|---|---|
 | P1 | Current file path → module notation |
-| P2 | Last 10 tool call paths, ≥2 occurrences wins |
+| P2 | A path appearing ≥ 2 times in the last 10 tool calls |
 | P3 | `"project"` fallback |
 
-**Keywords inference** (semantic signal, from current task):
+**Keywords**
 
-1. 拉动态词表：
-   ```bash
-   # [RUN]
-   bash "$KNOW_CTL" keywords
-   ```
-2. 从词表中选 3-5 个与当前任务（当前 file 类型、正在改的功能、task context）最相关的 keywords
-3. 只从词表选，**不要自由生成新 keywords**（新 keywords 只在 learn 时产生）
+```bash
+# [RUN]
+bash "$KNOW_CTL" keywords
+```
 
-**Query**（scope 双向前缀 + keywords 交集；know-ctl 自动按 keywords 命中数排序）：
+Pick 3–5 keywords from the returned vocabulary that match the current task (file type + feature being changed + conversational context). Never invent new keywords — new keywords only appear during `learn`.
+
+#### Step 2 — Query and log
 
 ```bash
 # [RUN]
 bash "$KNOW_CTL" query "{scope}" --keywords "{k1},{k2},{k3}"
 ```
 
-输出为 JSONL，每行一个 entry，附 `_level` 和 `_kw_hits`（keywords 命中数）字段，按 `_kw_hits` 降序排列。
+Returns JSONL; each entry has `_level` and `_kw_hits`. Results are already ordered by `_kw_hits` descending with `_level=project` breaking ties.
 
-**Record query** (immediately after Query):
+Log the query immediately; capture `returned_scopes` so adoption attribution works:
+
 ```bash
 # [RUN]
-bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}" --keywords "{k1},{k2},{k3}" --kw-hits "{total_kw_hits}"
+bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}" \
+  --keywords "{k1},{k2},{k3}" \
+  --kw-hits "{total_kw_hits}" \
+  --returned-scopes "{s1,s2,s3}"
 ```
 
-`{total_kw_hits}` = sum of `_kw_hits` across matched entries（没匹配就传 0）。
+`{total_kw_hits}` = sum of `_kw_hits` across returned entries (0 when empty).
 
-**Select**: 取 `_kw_hits` 降序前 3 条；同 `_kw_hits` 值内 `_level=project` 优先；0 相关 → 不输出。
+#### Step 3 — Present top 3
 
-**Output format** — prefix level tag; `tag=rule && strict=true` 加 `⚠` 前缀；输出里补 ref（若非 null）：
+Take the first 3 entries; emit nothing when the list is empty. Prefix `⚠` when `tag=rule && strict=true`.
+
 ```
 [recall] [project] ⚠ {summary}
 Why:  {one-line relevance to current operation}
@@ -162,17 +171,35 @@ Why:  {one-line relevance}
 Ref:  {ref or "—"}
 ```
 
-AI 自行根据 tag、strict、⚠ 判断处理强度（rule+strict=true 应严格遵守；insight/trap 参考）。不做机械 block/warn/suggest 分级。
+The AI reads the tag and `⚠` to decide how strictly to apply each trigger. No mechanical block/warn/suggest tiers.
 
-**Record hit**: `bash "$KNOW_CTL" hit "{summary-keyword}" --level {entry._level}`
+#### Step 4 — Hit on adoption
 
-**Learn hint** (once per session, only when ≥5 user messages in conversation and not yet hinted):
+A recall is "adopted" when the AI explicitly uses a returned trigger in its subsequent output. Emit a hit event at that moment.
+
+**Adoption is explicit when any of**:
+- The AI's reply cites the trigger's summary, scope, or ref by name.
+- The AI changes its proposed action because of a specific returned trigger.
+- The AI declines or adjusts a step naming the trigger as the reason.
+
+**Do not emit a hit for**:
+- Reading the recall output without acting on a specific trigger.
+- General alignment with a rule that happened to be returned but was not cited.
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" hit "{summary-keyword}" --level {entry._level}
+```
+
+### Learn hint
+
+Once per session, when all three hold: recall was triggered this session, the user has sent ≥ 5 messages, and the hint has not yet fired.
 
 ```
 [know] tip: this conversation has learnable insights — run /know learn before ending
 ```
 
-Conditions: ≥5 user messages AND learn hint not yet shown this session AND recall was triggered (piggyback on recall, don't fire independently). Append after recall output, not as standalone interruption.
+Appended after recall output; never as a standalone interruption.
 
 ---
 
