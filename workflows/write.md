@@ -74,19 +74,37 @@ Determine the document type from user input and conversational context.
 1. If hint resolves to a valid type (case-insensitive match against the 10 types):
      → accept and return.
 
-2. Otherwise, attempt to infer the type from conversational evidence:
-     2a. If two or more verbatim quotes support a single type   → return that type.
-     2b. If evidence narrows the answer to a group (A/B/C)       → ask Q2 for that group.
-     2c. If evidence is insufficient even for grouping           → ask Q1, then Q2.
+2. Otherwise, apply the inference check below:
+     2a. Check passes for exactly one type        → return that type.
+     2b. Check passes for all types in one group  → ask Q2 for that group.
+     2c. Check fails, or passes across groups     → ask Q1, then Q2.
 
 3. If the user's reply fails to map to a valid type:
      → present the full list of 10 types for explicit selection.
      → a second invalid reply terminates the step with `abort`.
 ```
 
+#### Inference check
+
+Ask this question internally against each type's exemplar:
+
+> 如果把完整对话替换成该 type 的 exemplar，一个新读者是否还能还原出同一份写作意图？
+
+- 仅对某一 type 答 **yes** → 2a（返回该 type）
+- 对某组（A/B/C）内所有 type 答 yes，无法再窄 → 2b（问该组 Q2）
+- 所有 type 都答 no，或跨组都 yes → 2c（从 Q1 开始问）
+
+**示例**
+
+| 对话片段 | 最接近的 exemplar | 判决 |
+|---|---|---|
+| "recall 用 SQLite，WAL 模式，按 project_id 分表" | tech: "采用 SQLite 存储；启用 WAL 模式；按 project_id 分表" | 2a → `tech` |
+| "聊了方案，但还没定画架构还是记录选型" | arch / decision（B 组内） | 2b → 问 Q2-B |
+| "零散想法，涉及版本规划、UI 风格、上线节奏" | 跨 A/C 组，无单一最近者 | 2c → 问 Q1 |
+
 #### Type catalog (reference exemplars)
 
-Each row lists one sentence that typifies the type. The classifier uses these as semantic anchors and must cite at least two matching quotes from the conversation before inferring a type.
+`Inference check` 对照的锚点。
 
 | Type | Exemplar |
 |---|---|
@@ -132,7 +150,7 @@ Each row lists one sentence that typifies the type. The classifier uses these as
 - A valid `hint` is adopted without further prompting.
 - An invalid reply triggers exactly one fallback prompt listing all 10 types; a second invalid reply terminates with `abort`. No inference or guessing is permitted after this point.
 - Clarifying prompts must display the full option set; never abbreviate.
-- Inference in step 2a is valid only when the classifier can cite two or more verbatim quotes from the conversation. If it cannot, downgrade to 2b or 2c.
+- Step 2a returns a type only if the `Inference check` yields **yes for exactly one** type. Any broader match downgrades to 2b/2c.
 
 ### 1b: Name/Topic
 
