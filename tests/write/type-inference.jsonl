@@ -8,3 +8,4 @@
 {"id": "tc08-user-out-of-range-retry", "input": {"hint": null, "conversation_summary": "零散想法", "user_replies": ["我要写 runbook", "prd"]}, "expected": {"type": "prd", "questions_asked": 2}, "notes": "用户超范围 → 追问 → 第二轮给合法答"}
 {"id": "tc09-guess-after-two-rounds", "input": {"hint": null, "conversation_summary": "零散想法", "user_replies": ["不知道", "随便"]}, "expected": {"type": "<guess-any>", "questions_asked": 2, "note": "允许 guess 最接近项"}, "notes": "2 轮仍无有效 → guess + Confirm 让用户改"}
 {"id": "tc10-hint-direct-answer", "input": {"hint": null, "conversation_summary": "零散", "user_replies": ["我要写 prd"]}, "expected": {"type": "prd", "questions_asked": 1}, "notes": "用户跳过层级直接说 type → 直接采用"}
+{"id":"tc11-case-insensitive","input":{"hint":"TECH","conversation_summary":"讨论 SQLite 实现","user_replies":[]},"expected":{"type":"tech","questions_asked":0},"notes":"hint 大写 → 规范化小写 → 合法 → 直通"}

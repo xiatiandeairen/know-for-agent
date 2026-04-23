@@ -132,6 +132,7 @@ D) 推广 / 发布方案                → marketing
 
 #### 硬规则
 
+- 所有字符串输入（hint、用户回答）先 **lowercase 规范化** 再匹配
 - hint 合法 → 立即采用，不得询问
 - `questions_asked ≤ 3`（含超范围追问）
 - 2 轮仍无有效答 → guess + 标注 `note: guessed`，不再继续问
