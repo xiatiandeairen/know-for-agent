@@ -80,16 +80,33 @@ Conversation has <3 substantive messages → warn insufficient context, ask user
 5. q 已 ≥ 2 且仍无有效答 → guess 最接近项，标 note=guessed → END
 ```
 
-#### 置信度判据
+#### 置信度判据（对比示例 + 强制引证）
 
-AI 内部自问"能用对话原话证明吗"：
+**10 类的典型对话长啥样（1 句示例）**：
 
-| 置信 | 判据 |
+| type | 典型示例 |
 |---|---|
-| 高 | 对话中 ≥2 句话明显符合某一 type 写法 |
-| 中 | 能定大组（A/B/C）但具体 type 不清 |
-| 低 | 对话零散，既可写此也可写彼 |
-| 无信息 | 对话几乎不涉及文档相关素材 |
+| roadmap | "v1 做 A/B/C，v2 扩 D，Q2 发布" |
+| prd | "用户要能上传 pdf，成功率 95%" |
+| tech | "用 SQLite 存，WAL 模式，按 project_id 分表" |
+| arch | "recall 模块 = scope 推断 + query + rank" |
+| decision | "选 JSONL 不选 SQLite，因为 diff 友好" |
+| schema | "POST /api/v2/users，请求体含 name, email" |
+| capabilities | "我们支持文件上传、OCR、全文搜索" |
+| ui | "点击按钮后弹框，表单 3 段" |
+| ops | "发布后看反馈，两周一迭代" |
+| marketing | "发博客 + Twitter 推文 + 官网 landing" |
+
+**判决规则**：
+
+| 置信 | 判据（必须可验证） |
+|---|---|
+| 高 | AI 能引用**≥2 条对话原话**最像某一 type 的示例 |
+| 中 | AI 能引用**≥1 条原话**最像某一大组（A/B/C）但具体 type 不清 |
+| 低 | 对话里能引出原话但不聚焦到任何 type / 任何大组 |
+| 无信息 | 对话几乎无文档相关素材 |
+
+**强制**：高置信必须在内部写出引用的 2 条原话；引不出来 → 降为中。
 
 #### Q1（3 选 1，大组分流）
 
