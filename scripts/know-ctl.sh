@@ -435,6 +435,51 @@ EOF
         fi
     fi
 
+    # M4 利用率 + M5 深度分布（近 30 天，从 events.jsonl 派生）
+    if [ -f "$EVENTS_FILE" ] && [ -s "$EVENTS_FILE" ]; then
+        local since
+        since=$(date -v-30d +%Y-%m-%d 2>/dev/null || date -d '30 days ago' +%Y-%m-%d)
+        local tf_scopes total_scopes recalled_scopes m4_pct
+        local filter_30d="select(.ts>=\"$since\" and .level==\"$level\")"
+        if [ -f "$tf" ] && [ -s "$tf" ]; then
+            total_scopes=$(jq -sr '[.[] | .scope] | unique | length' "$tf")
+        else
+            total_scopes=0
+        fi
+        recalled_scopes=$(jq -s --arg since "$since" --arg lv "$level" \
+            '[.[] | select(.event=="recall_query" and .level==$lv and .ts>=$since and .matched>0) | .scope] | unique | length' \
+            "$EVENTS_FILE")
+        if [ "$total_scopes" -gt 0 ]; then
+            m4_pct=$((recalled_scopes * 100 / total_scopes))
+        else
+            m4_pct=0
+        fi
+
+        # M5 matched 分布
+        local med mean b0 b1 b2 b3
+        med=$(jq -sr --arg since "$since" --arg lv "$level" \
+            '[.[] | select(.event=="recall_query" and .level==$lv and .ts>=$since) | .matched] as $xs
+             | if ($xs|length)==0 then "—" else ($xs|sort) as $s | $s[($s|length/2|floor)] | tostring end' \
+            "$EVENTS_FILE")
+        mean=$(jq -sr --arg since "$since" --arg lv "$level" \
+            '[.[] | select(.event=="recall_query" and .level==$lv and .ts>=$since) | .matched] as $xs
+             | if ($xs|length)==0 then "—" else (([$xs[]]|add)/($xs|length) | .*10|round/10|tostring) end' \
+            "$EVENTS_FILE")
+        b0=$(jq -s --arg since "$since" --arg lv "$level" \
+            '[.[] | select(.event=="recall_query" and .level==$lv and .ts>=$since and .matched==0)] | length' "$EVENTS_FILE")
+        b1=$(jq -s --arg since "$since" --arg lv "$level" \
+            '[.[] | select(.event=="recall_query" and .level==$lv and .ts>=$since and .matched>=1 and .matched<=2)] | length' "$EVENTS_FILE")
+        b2=$(jq -s --arg since "$since" --arg lv "$level" \
+            '[.[] | select(.event=="recall_query" and .level==$lv and .ts>=$since and .matched>=3 and .matched<=5)] | length' "$EVENTS_FILE")
+        b3=$(jq -s --arg since "$since" --arg lv "$level" \
+            '[.[] | select(.event=="recall_query" and .level==$lv and .ts>=$since and .matched>=6)] | length' "$EVENTS_FILE")
+
+        printf '\n真指标（events.jsonl 派生，近 30 天）\n'
+        printf '  M4 利用率:    %s/%s scopes (%s%%) 被召回过 (estimated)\n' "$recalled_scopes" "$total_scopes" "$m4_pct"
+        printf '  M5 深度分布: median=%s mean=%s | 0条=%s 1-2=%s 3-5=%s 6+=%s\n' \
+            "$med" "$mean" "$b0" "$b1" "$b2" "$b3"
+    fi
+
     echo ""
     local suggestions=()
     if [ "$total" -gt 0 ] && [ "$hit_pct" -lt 50 ]; then
