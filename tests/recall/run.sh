@@ -16,7 +16,8 @@ DATE=$(date +%Y-%m-%dT%H%M%S)
 REPORT="$RESULTS_DIR/$DATE.md"
 mkdir -p "$RESULTS_DIR"
 
-# Isolate events only (triggers read live from real locations)
+# Preserve real XDG_DATA_HOME for post-run metrics; isolate scenario queries to tmp
+REAL_XDG_DATA="${XDG_DATA_HOME:-$HOME/.local/share}"
 TMP_DATA=$(mktemp -d)
 trap 'rm -rf "$TMP_DATA"' EXIT
 export XDG_DATA_HOME="$TMP_DATA"
@@ -128,7 +129,36 @@ m2=0
     echo ""
     echo "- M1 < 75% → trigger 的 scope/keywords 标注差，review triggers.jsonl"
     echo "- M2 > 0%  → 某 trigger 写太泛，scope 或 keywords 需收窄"
+    echo ""
+    echo "## 生产指标（近 30 天，从真实 events.jsonl 派生）"
+    echo ""
+    echo "### project level"
+    echo ""
+    echo '```'
+    XDG_DATA_HOME="$REAL_XDG_DATA" bash "$KNOW_CTL" metrics --level project 2>&1 | sed -n '/真指标/,/---/p' | grep -v '^---' || echo "(无数据)"
+    echo '```'
+    echo ""
+    echo "### user level"
+    echo ""
+    echo '```'
+    XDG_DATA_HOME="$REAL_XDG_DATA" bash "$KNOW_CTL" metrics --level user 2>&1 | sed -n '/真指标/,/---/p' | grep -v '^---' || echo "(无数据)"
+    echo '```'
+    echo ""
+    echo "## Follow-up"
+    echo ""
+    echo "- **M3 采纳率**：需加 \`recall_query.returned_scopes[]\` + \`hit.scope\` 事件字段，计算 \`hits / recall_query with matched>0\`"
 } >> "$REPORT"
+
+# Final summary print
+m4_project=$(XDG_DATA_HOME="$REAL_XDG_DATA" bash "$KNOW_CTL" metrics --level project 2>&1 | grep 'M4 利用率' | awk -F'[()]' '{print $2}' || echo "—")
+m4_user=$(XDG_DATA_HOME="$REAL_XDG_DATA" bash "$KNOW_CTL" metrics --level user 2>&1 | grep 'M4 利用率' | awk -F'[()]' '{print $2}' || echo "—")
+echo ""
+echo "--- all metrics summary ---"
+printf "  M1 自查率:   %s%% (%s/%s)\n" "$m1" "$n_self_pass" "$n_self_total"
+printf "  M2 污染率:   %s%% (%s/%s)\n" "$m2" "$n_cont_fail" "$n_cont_total"
+printf "  M3 采纳率:   — (follow-up)\n"
+printf "  M4 利用率:   project=%s  user=%s  (estimated)\n" "$m4_project" "$m4_user"
+printf "  M5 深度分布: 见 report\n"
 
 echo "Report: $REPORT"
 echo "M1=${m1}% M2=${m2}%"
