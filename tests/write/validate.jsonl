@@ -1,0 +1,5 @@
+{"id":"tc01-no-checklist-skip","input":{"type":"capabilities","checklist_exists":false,"doc_issues":[]},"expected":{"verdict":"skip"}}
+{"id":"tc02-pass","input":{"type":"tech","checklist_exists":true,"doc_issues":[]},"expected":{"verdict":"pass"}}
+{"id":"tc03-fail-fabricated-number","input":{"type":"prd","checklist_exists":true,"doc_issues":["uncited_number:95%"]},"expected":{"verdict":"fail","violations":["data confidence"]}}
+{"id":"tc04-repair-within-cap","input":{"type":"tech","checklist_exists":true,"doc_issues":["structure_missing_section"],"repair_rounds":2},"expected":{"verdict":"pass","rounds_used":2}}
+{"id":"tc05-force-after-cap","input":{"type":"tech","checklist_exists":true,"doc_issues":["persistent_structure_error"],"repair_rounds":3},"expected":{"verdict":"force-through","unresolved_count":1}}

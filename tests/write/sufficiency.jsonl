@@ -1,0 +1,5 @@
+{"id":"tc01-non-high-risk-skip","input":{"type":"capabilities","conversation":"能力清单草稿","user_replies":[]},"expected":{"verdict":"pass"}}
+{"id":"tc02-all-yes","input":{"type":"prd","conversation":"含完整用户故事、验收标准、范围、边界","user_replies":[]},"expected":{"verdict":"pass"}}
+{"id":"tc03-partial-degrade","input":{"type":"tech","conversation":"仅聊了实现方向，缺算法细节和迭代记录","user_replies":["A"]},"expected":{"verdict":"degrade","user_action":"supplement"}}
+{"id":"tc04-all-no-reject","input":{"type":"arch","conversation":"几乎无相关内容","user_replies":["B"]},"expected":{"verdict":"reject","user_action":"degrade-to-decision"}}
+{"id":"tc05-cancel","input":{"type":"tech","conversation":"内容严重不足","user_replies":["C"]},"expected":{"verdict":"reject","user_action":"abort"}}

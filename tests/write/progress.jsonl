@@ -1,0 +1,4 @@
+{"id":"tc01-no-parent","input":{"type":"arch","parent_path":null},"expected":{"outcome":"skip"}}
+{"id":"tc02-tech-updates-prd","input":{"type":"tech","parent_path":"docs/requirements/upload/prd.md","parent_exists":true},"expected":{"outcome":"updated","field":"§4 方案 task table"}}
+{"id":"tc03-prd-updates-roadmap","input":{"type":"prd","parent_path":"docs/roadmap.md","parent_exists":true},"expected":{"outcome":"updated","field":"milestone table"}}
+{"id":"tc04-parent-missing","input":{"type":"tech","parent_path":"docs/requirements/upload/prd.md","parent_exists":false},"expected":{"outcome":"skip"}}

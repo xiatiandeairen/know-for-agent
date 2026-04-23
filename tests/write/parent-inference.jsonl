@@ -1,0 +1,5 @@
+{"id":"tc01-no-parent","input":{"type":"arch","name":"cache","roadmap_exists":true,"prd_exists":true,"user_replies":[]},"expected":{"parent_path":null}}
+{"id":"tc02-prd-with-roadmap","input":{"type":"prd","name":"upload","roadmap_exists":true,"prd_exists":true,"user_replies":[]},"expected":{"parent_path":"docs/roadmap.md"}}
+{"id":"tc03-prd-no-roadmap","input":{"type":"prd","name":"upload","roadmap_exists":false,"prd_exists":false,"user_replies":[]},"expected":{"parent_path":null,"note":"proceed with absence noted"}}
+{"id":"tc04-tech-no-prd-continue","input":{"type":"tech","name":"upload","roadmap_exists":true,"prd_exists":false,"user_replies":["A"]},"expected":{"parent_path":null}}
+{"id":"tc05-tech-no-prd-redirect","input":{"type":"tech","name":"upload","roadmap_exists":true,"prd_exists":false,"user_replies":["B"]},"expected":{"parent_path":"redirect-to-prd"}}

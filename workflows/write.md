@@ -200,23 +200,64 @@ A reply is invalid if, after normalization, it is empty, or if it matches any of
 - Inference in 3a requires an explicit noun phrase (e.g. `recall pipeline`, `cache layer`); do not invent a slug from tangential references.
 - An invalid reply triggers exactly one fallback prompt; a second invalid reply aborts.
 
-### 1c: New or Update
+### 1c: Mode Inference
 
-File exists → `mode=update`. File absent → `mode=create`.
+Decide whether this invocation creates a new file or updates an existing one.
 
-Roadmap is always a single file. New version = `mode=update` (append `### v{n+1}` section to § 2, update § 3).
+**Signature**
+- Input: `type`, `name`, resolved `path`
+- Output: `mode ∈ {create, update}`; `abort` if the user declines both options when the path is taken
+- Validation fixture: `tests/write/mode-inference.jsonl`
 
-### 1d: Parent
+#### Decision procedure
+
+```
+1. File at resolved path does not exist           → mode = create.
+2. File exists and type is roadmap                → mode = update (new version = new section).
+3. File exists (other types) → [STOP:choose]:
+     A) Update the existing file                  → mode = update.
+     B) Pick a different name                     → re-enter Step 1b.
+     C) Cancel                                    → abort.
+```
+
+#### Hard rules
+
+- Never silently overwrite an existing file; rule 3 is mandatory.
+- Roadmap's "new version" is modeled as an update, not a create (the file is a single source across versions).
+
+### 1d: Parent Inference
+
+Resolve the parent document required for progress propagation.
+
+**Signature**
+- Input: `type`, `name`, project layout
+- Output: `parent_path` (string) or `null`; may prompt the user when ambiguous
+- Validation fixture: `tests/write/parent-inference.jsonl`
+
+#### Parent map
 
 | Type | Parent |
-|------|--------|
-| prd | roadmap |
-| tech | prd |
-| others | none |
+|---|---|
+| prd | roadmap (`docs/roadmap.md`) |
+| tech | prd (`docs/requirements/<name>/prd.md`) |
+| all others | none |
 
-**Missing parent**: prd without roadmap → proceed, note absence. tech without prd → [STOP:choose] `A) Continue without parent  B) Create PRD first`
+#### Decision procedure
 
-**PRD milestone association**: infer which roadmap milestone the PRD belongs to from conversation context. Ambiguous → ask user to specify milestone number.
+```
+1. Type has no parent                                      → return null.
+2. Parent file exists                                      → return its path.
+3. type=prd and roadmap is missing                         → proceed, note absence.
+4. type=tech and prd is missing → [STOP:choose]:
+     A) Continue without parent                            → return null.
+     B) Create PRD first                                   → redirect to /know write prd.
+5. type=prd and the target milestone is ambiguous           → ask the user for a milestone number.
+```
+
+#### Hard rules
+
+- A missing parent never blocks the current step silently; rules 3–5 make absence explicit.
+- `abort` is not produced here; the user's redirect choices are downstream concerns.
 
 ---
 
@@ -224,29 +265,46 @@ Roadmap is always a single file. New version = `mode=update` (append `### v{n+1}
 
 Model: sonnet
 
-Gate: document type is prd/tech/arch/schema/decision/ui (high-risk types). Other types → skip.
+Verify the conversation contains enough material to author a quality document.
 
-```bash
-# [RUN]
-cat "{project_root}/workflows/templates/sufficiency-gate.md"
-```
+**Signature**
+- Input: `type`, `conversation`
+- Output: `verdict ∈ {pass, degrade, reject}` plus a list of unsatisfied questions
+- Gate: only runs when `type ∈ {prd, tech, arch, schema, decision, ui}`; other types pass through
+- Validation fixture: `tests/write/sufficiency.jsonl`
 
-Find the question group for this document type. Answer each question yes/no based on conversation content.
-
-| Result | Condition | Action |
-|--------|-----------|--------|
-| 充足 | 全部 yes | 正常继续 Step 2 |
-| 降级 | 任一 no | 提示降级选项 [STOP:choose] |
-| 拒绝 | 全部 no | 提示补充信息 |
+#### Decision procedure
 
 ```
-[write] 充分性检查: {type}
-- ✅ Q1: {问题} — {判定依据}
-- ❌ Q2: {问题} — {不满足原因}
-建议: A) 补充信息后重新创建  B) 降级为 {降级目标}
+1. If type is not high-risk                               → verdict = pass.
+2. Load the question group for this type from
+   templates/sufficiency-gate.md. For each question,
+   answer yes/no using the conversation.
+3. All yes                                                → verdict = pass.
+4. Any yes and any no                                     → verdict = degrade.
+5. All no                                                 → verdict = reject.
 ```
 
-User chooses B → switch type/path to degraded target, re-enter Step 1 with new type.
+#### Output template
+
+```
+[write] Sufficiency check: {type}
+  ✅ Q1: {question} — {supporting quote}
+  ❌ Q2: {question} — {what is missing}
+  ...
+Verdict: {pass | degrade | reject}
+```
+
+On `degrade` or `reject`, present **[STOP:choose]**:
+
+- **A) Supplement the conversation** → user adds context, re-run this step.
+- **B) Degrade to {suggested_type}** → re-enter Step 1 with the new type.
+- **C) Cancel** → abort.
+
+#### Hard rules
+
+- Each question must be answered with a verbatim quote or an explicit "not present" statement; no paraphrased reasoning.
+- The suggested degrade target is the type's lowest-risk neighbor (e.g. `tech → decision`, `prd → capabilities`). If the user selects B, always re-run Step 1 so the new type re-derives its name, mode, and parent.
 
 ---
 
@@ -254,17 +312,38 @@ User chooses B → switch type/path to degraded target, re-enter Step 1 with new
 
 Model: sonnet
 
-Resolve full path from Path Resolution table, then show:
+Present the resolved parameters in one block and block until the user confirms or edits them.
+
+**Signature**
+- Input: `{type, name, mode, path, parent}` from Step 1
+- Output: confirmed parameter set, or re-entry into an earlier step
+
+#### Display format
 
 ```
-[write] Inferred from conversation:
-Type: arch | Path: docs/arch/know-ctl.md | Mode: create | Parent: none
-Correct?
+[write] Inferred from conversation
+  Type:   {type}
+  Name:   {name or "—"}
+  Path:   {resolved path}
+  Mode:   {create | update}
+  Parent: {parent path or "none"}
+Correct? (yes / change <field>=<value>)
 ```
 
-Multiple types → [STOP:choose] list with `[1 / 2 / both]`. Both → sequential from Step 3.
+#### Decision procedure
 
-**Parameter correction**: user changes type → re-infer name/topic. User changes name → no re-inference needed.
+```
+1. User confirms                        → proceed to Step 3.
+2. User changes `type`                  → re-enter Step 1a with the new type; re-derive name, mode, parent.
+3. User changes `name`                  → re-enter Step 1c only; mode and parent follow.
+4. User changes `mode` or `path`        → accept directly, no re-inference.
+5. Step 1 produced multiple candidates  → [STOP:choose] `1 | 2 | both`; `both` runs Steps 3–6 sequentially per type.
+```
+
+#### Hard rules
+
+- Never skip this step; confirmation is required even when inference was high-confidence.
+- Field-level edits must not trigger full re-inference unless the changed field is upstream in the dependency chain (`type → name → mode → parent`).
 
 ---
 
@@ -272,14 +351,34 @@ Multiple types → [STOP:choose] list with `[1 / 2 / both]`. Both → sequential
 
 Model: sonnet
 
-Load template using project root from Script Paths (→ SKILL.md):
+Load the template associated with the chosen type.
+
+**Signature**
+- Input: `type`
+- Output: template text (structured markdown with section headers and INCLUDE/EXCLUDE hints)
+
+#### Procedure
 
 ```bash
 # [RUN]
 cat "{project_root}/workflows/templates/{type}.md"
 ```
 
-**Default**: template missing → fallback: `# {Title}` / `## Overview` / `## Details` / `## Open Questions`.
+#### Fallback
+
+If the template file does not exist, synthesize a minimal skeleton:
+
+```markdown
+# {Title}
+## Overview
+## Details
+## Open Questions
+```
+
+#### Hard rules
+
+- Template files are the single source of truth for document structure; this step never modifies them.
+- The fallback skeleton is used only when a template is genuinely absent; never substitute the fallback when a template exists but looks incomplete.
 
 ---
 
@@ -287,50 +386,78 @@ cat "{project_root}/workflows/templates/{type}.md"
 
 Model: opus
 
-### Create mode
+Compose the document body by mapping conversation content and triggers onto the template.
 
-1. Scan full conversation for content matching this document type
-2. Organize into template sections as structured prose
-3. Follow each section's `<!-- INCLUDE/EXCLUDE -->` guide
-4. Each section: ≥3 sentences; if insufficient → `TBD — {what's missing}`
-5. Preserve technical accuracy; do not fabricate unstated details
-6. Ambiguities → prefix with `Open question:`
-7. Code examples and tables: quote directly from conversation
-8. Cross-references: paths relative to project root. Match user's language for content.
+**Signature**
+- Input: `template`, `conversation`, `triggers` (both `docs/triggers.jsonl` and the user-level file), `existing_doc` (update mode only)
+- Output: fully populated markdown ready for preview
+
+#### Create mode
+
+```
+1. Load triggers from docs/triggers.jsonl and $XDG_CONFIG_HOME/know/triggers.jsonl.
+2. For each template section:
+     2a. Collect relevant conversation quotes and matching triggers.
+     2b. Honor the section's <!-- INCLUDE / EXCLUDE --> hints.
+     2c. Produce structured prose; preserve code/tables verbatim from source.
+     2d. Insufficient evidence for a section → write "TBD — {what is missing}".
+3. Prefix any ambiguity with `Open question:`.
+4. Cross-references use project-root–relative paths; content language follows the user's.
+5. Apply progress fields (see table) before handing off.
+```
+
+#### Triggers as evidence
+
+- `tag=insight` entries are reference material; cite by summary, do not copy verbatim.
+- `tag=rule` entries must be respected in sections that cover the same scope (e.g. a PRD cannot contradict a rule about authentication).
+- `tag=trap` entries enter the `Open Questions` section or the relevant "risks" subsection when in scope.
 
 #### Progress fields (create mode)
 
 | Type | Field | Rule |
-|------|-------|------|
-| roadmap | 里程碑.进度 | Count existing PRDs linked to this milestone. Format: `完成数/总数` |
-| roadmap | 里程碑.需求 | Link to each PRD under this milestone. `—` if none yet |
-| roadmap | 里程碑编号 | Each version starts from M1 |
-| prd | §4 方案.任务表 | List each tech doc as one row. Progress = `完成数/总数` |
-| tech | §4 迭代记录 | Add initial entry with today's date and sprint summary |
+|---|---|---|
+| roadmap | 里程碑.进度 | `完成数/总数` over PRDs linked to the milestone |
+| roadmap | 里程碑.需求 | Link each PRD; `—` when empty |
+| roadmap | 里程碑编号 | Versions restart from M1 |
+| prd | §4 方案.任务表 | One row per tech doc; progress = `完成数/总数` |
+| tech | §4 迭代记录 | Seed an entry with today's date and sprint summary |
 
-### Update mode (`mode=update`)
+#### Update mode
 
-Targeted section update, not full rewrite:
+```
+1. Read the existing document in full.
+2. Identify every section the conversation discusses; output the list.
+3. For each listed section, regenerate from conversation content using the
+   create-mode quality rules.
+4. Leave untouched sections byte-identical.
+5. Add any template section that is missing from the document; populate
+   with content or `TBD` as appropriate.
+6. Repair or remove broken relative paths only inside touched sections.
+7. If no existing section is discussed → [STOP:choose] A) add new section B) cancel.
+```
 
-1. Read existing document in full
-2. Identify which sections the conversation discusses (output section list)
-3. Only regenerate affected sections; untouched sections remain verbatim
-4. Same quality rules as create mode per section
+#### Update rules per type
 
-| Check | Action |
-|-------|--------|
-| Section discussed in conversation | Regenerate from conversation content |
-| Section not discussed | Preserve verbatim |
-| New template section not in existing doc | Add with conversation content or `TBD` |
-| Broken relative paths in touched sections | Fix or remove |
-| H1 title | Project: `{项目名} {文档类型}`, Directory: `{主题名} {文档类型}`, Requirement: `{用户入口}`, Tech: `{需求名} 技术方案` |
-| No existing section discussed | Warn "对话未涉及已有内容，是否要新增 section？" [STOP:choose] A) Add B) Cancel |
+| Type | Section | Rule |
+|---|---|---|
+| tech | §2 方案 | Overwrite as understanding deepens |
+| tech | §3 关键决策 | Append new rows; never rewrite existing ones |
+| tech | §4 迭代记录 | Prepend today's entry; never overwrite history |
 
-#### Update mode for tech
+#### H1 title conventions
 
-1. §2 方案: update as understanding deepens (overwrite)
-2. §3 关键决策: append new rows to existing table
-3. §4 迭代记录: prepend new entry (newest first) with today's date. Never overwrite existing entries.
+| Scope | Title |
+|---|---|
+| Project single | `{项目名} {文档类型}` |
+| Project directory | `{主题名} {文档类型}` |
+| Requirement (prd) | `{用户入口}` |
+| Requirement (tech) | `{需求名} 技术方案` |
+
+#### Hard rules
+
+- Fabricated details are forbidden; missing evidence must produce TBD or an Open question, never a plausible invention.
+- Create mode writes every template section exactly once; update mode touches only sections the conversation explicitly discusses.
+- Triggers may be referenced but never copied verbatim; the trigger remains the source of truth.
 
 ---
 
@@ -338,67 +465,66 @@ Targeted section update, not full rewrite:
 
 Model: sonnet
 
-### Preview
+Present a preview, collect confirmation, then materialize the document on disk.
 
-Use the full path resolved in Step 2.
+**Signature**
+- Input: filled document (from Step 4), resolved path, mode
+- Output: file written at the resolved path; user edits may loop back through preview
 
-**Content check**: filled content covers <30% of template sections →
+#### Preview
+
+**Create mode** — show the full document:
 
 ```
-[write] Insufficient content for {type}, missing:
-- {section 1}
-- {section 2}
-Continue with missing sections marked TBD?
-```
-
-**Create mode**:
-```
-[write] Preview: docs/requirements/know-learn/tech.md
+[write] Preview: {path}
 
 {full document content}
 
-Write?
+Write? (yes / edit <section>)
 ```
 
-**Update mode** — changed sections as diff:
+**Update mode** — show a diff for touched sections only:
+
 ```
-[write] Update preview: docs/roadmap.md
+[write] Update preview: {path}
 
-## {Section A}
-- {old content summary}
-+ {new content summary}
+## {Section}
+- {old}
++ {new}
 
-Write?
+Write? (yes / edit <section>)
 ```
 
-User confirms → write. User requests edits → adjust, re-display.
+#### TBD threshold
 
-### Write
+When the filled document contains `TBD` in more than 3 sections, add this line above the confirmation prompt:
 
-**Create mode**:
+```
+[write] {n} sections marked TBD: {list}. Still write?
+```
+
+The user must confirm explicitly to proceed; editing a section removes it from the TBD list.
+
+#### Write operation
 
 ```bash
-# [RUN] Create parent directory from resolved path
+# [RUN] create parent directory
 mkdir -p "$(dirname "{resolved_path}")"
 ```
 
-Write file using Write tool to the resolved path.
-
-File already exists in create mode → switch to update mode (re-enter Step 4 with `mode=update`).
-
-```
-[written] docs/requirements/know-learn/tech.md
-```
-
-**Update mode**:
-
-Use Edit tool to replace each changed section individually.
-
-For tech docs: prepend new entry to §4 迭代记录.
+- **Create mode** → write the file with the Write tool.
+- **Update mode** → apply each changed section with the Edit tool; tech docs additionally prepend an entry to `§4 迭代记录`.
 
 ```
-[written] docs/roadmap.md (updated 2 sections)
+[written] {path}
+[written] {path} (updated {n} sections)
 ```
+
+#### Hard rules
+
+- Preview is mandatory; no silent writes.
+- The "file exists in create mode" path is a Step 1c concern; by the time Step 5 runs, mode has already been resolved.
+- User edits requested at the preview prompt loop back through preview until the user issues a final `yes` or cancels.
 
 ---
 
@@ -406,60 +532,105 @@ For tech docs: prepend new entry to §4 迭代记录.
 
 Model: sonnet
 
-Gate: checklist file exists for this document type (`templates/{type}-checklist.md`). No checklist → skip.
+Verify the written document against the type's checklist.
+
+**Signature**
+- Input: written document path, `type`
+- Output: `pass` or `fail` with a list of violations; up to 3 repair rounds
+
+**Gate**: only runs when `templates/{type}-checklist.md` exists; otherwise skip.
+
+#### Procedure
 
 ```bash
 # [RUN]
 cat "{project_root}/workflows/templates/{type}-checklist.md"
 ```
 
-Validate the written document against the checklist:
+```
+For each check in the checklist, verify the document meets it:
+  1. Structure    — required sections/fields present, no extras.
+  2. Language     — fields meet their language constraint (✅/❌ patterns).
+  3. Data         — every numeric value cites a source (see below).
+  4. Completeness — non-optional fields are real content, not placeholders.
+  5. Diagrams     — if the checklist references diagram-checklist.md, run it.
 
-1. **Structure**: every required field present, no extra/missing columns
-2. **Language**: each field meets its language constraint (check ❌/✅ patterns)
-3. **Data confidence**: every numeric value has a valid source
-   - Has real data → value + source citation
-   - Has estimate → value + "估算" + basis
-   - Has target only → value + "目标值，待验证"
-   - Cannot estimate → "无数据（{reason}）"
-   - **Fabricated precise numbers with no source → FAIL**
-4. **Completeness**: non-optional fields are filled (not placeholder text)
-5. **Diagrams**: if checklist references `diagram-checklist.md`, load it and check each when→action trigger against the document content. Missing diagram for a satisfied trigger → FAIL
+On violations:
+  → list them, repair the document, re-run Step 5 preview.
+  → max 3 repair rounds; on the 4th attempt, emit the current document with
+    an explicit "[validate] forced through, {n} checks unresolved" notice.
+```
+
+#### Data confidence rule
+
+Every numeric value in the document must cite its source:
+
+| Source | Output form |
+|---|---|
+| Real measurement | value + citation |
+| Estimate | value + `估算` + basis |
+| Target only | value + `目标值，待验证` |
+| None available | `无数据（{reason}）` |
+
+A precise number without a source **always fails**; no exceptions.
+
+#### Output
+
+```
+[validate] {type} checklist: {passed}/{total} passed
+  ✅ {check}
+  ❌ {check} — {violation}
+```
 
 ```bash
-# [RUN] only if checklist contains "diagram-checklist.md" reference
+# [RUN] only when the checklist references diagram-checklist.md
 cat "{project_root}/workflows/templates/diagram-checklist.md"
 ```
 
-**Any failure** → list violations, fix in the document, re-preview changed sections.
+#### Hard rules
 
-```
-[validate] {type} checklist: {passed}/{total} checks passed
-{list of violations if any}
-```
-
-No violations → proceed silently to Step 6.
+- A missing checklist means the step is skipped, not passed with zero checks.
+- The 3-round repair cap prevents infinite loops; after the cap, the document ships with a visible unresolved count so the user can decide.
+- Data confidence is non-negotiable: fabricated numbers must fail even if every other check passes.
 
 ---
 
-## Step 6: Progress
+## Step 6: Progress Propagation
 
 Model: sonnet
 
-After writing a child document, update progress in its parent:
+Propagate the child document's status to its parent's progress tracker.
 
-| Written type | Parent update |
-|-------------|---------------|
-| tech | Update parent PRD §4 方案 task table progress column |
-| prd | Update parent roadmap milestone table progress as `完成PRD数/总PRD数` |
+**Signature**
+- Input: written document's `type` and `path`
+- Output: parent document edited in place, or a silent skip
 
-Progress update uses Edit tool on the parent document. Only update the progress field.
+#### Update rules
 
-**Parent not found** → skip silently. **No parent relationship** (all types except prd/tech) → skip.
+| Written type | Parent | Field |
+|---|---|---|
+| tech | parent PRD | `§4 方案` task table — progress column |
+| prd | roadmap | milestone table — `完成PRD数/总PRD数` |
+| all others | — | skip |
+
+#### Decision procedure
 
 ```
-[progress] {parent path} updated ({progress value})
+1. Type has no parent                   → skip silently.
+2. Parent file not found                → skip silently.
+3. Parent found → Edit only the progress field using the Edit tool.
 ```
+
+#### Output
+
+```
+[progress] {parent_path} updated ({new value})
+```
+
+#### Hard rules
+
+- Only touch the progress field; do not rewrite neighboring content.
+- Silent skip is the only valid non-update outcome; never create a parent here — parent creation is Step 1d's concern.
 
 ---
 
