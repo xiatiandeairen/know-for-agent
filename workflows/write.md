@@ -61,22 +61,82 @@ Conversation has <3 substantive messages → warn insufficient context, ask user
 
 ### 1a: Type
 
-| Signal | Type |
-|--------|------|
-| Priorities, milestones, timeline | roadmap |
-| Module decomposition, infrastructure | arch |
-| Feature inventory, capability list, what can it do | capabilities |
-| Wireframe, interaction flow, component spec | ui |
-| Release, feedback loop, iteration | ops |
-| Promotion, content strategy, launch | marketing |
-| Endpoint, request/response, protocol | schema |
-| Trade-off analysis, option comparison | decision |
-| User stories, acceptance criteria, scope | prd |
-| Data model, sequence diagram, implementation | tech |
+**Input**: `hint` (optional, from `/know write <hint>`), conversation, `user_replies[]`
+**Output**: `type` ∈ 10 类, `questions_asked` ∈ {0,1,2,3}
+**测试**: `tests/write/type-inference.jsonl`
 
-Hint provided → match against type names first. No match → fall back to signal-based inference.
+#### 流程
 
-**Default**: ≥2 types tied → list, ask user. 0 matches → ask user.
+```
+1. hint 合法 (∈ 10 类) → 采用 → END (q=0)
+2. hint 非法且非 null → 必问一次：
+     "hint '<X>' 不在 10 类，你要哪个？(推荐 <AI 从对话推断的 type>)"
+   → 解析 → END (q≥1)
+3. hint 为 null → 判置信度（见判据）：
+   - 高        → 推 type → END (q=0)
+   - 中（定组）→ 问 Q2    → 解析 → END (q=1)
+   - 低 / 无信息 → 问 Q1 → Q2 → 解析 → END (q=2)
+4. 用户答超范围 → 追问"10 类里哪个" → 解析（q 累加）
+5. q 已 ≥ 2 且仍无有效答 → guess 最接近项，标 note=guessed → END
+```
+
+#### 置信度判据
+
+AI 内部自问"能用对话原话证明吗"：
+
+| 置信 | 判据 |
+|---|---|
+| 高 | 对话中 ≥2 句话明显符合某一 type 写法 |
+| 中 | 能定大组（A/B/C）但具体 type 不清 |
+| 低 | 对话零散，既可写此也可写彼 |
+| 无信息 | 对话几乎不涉及文档相关素材 |
+
+#### Q1（3 选 1，大组分流）
+
+```
+写哪种？
+  A) 计划 / 需求        (roadmap, prd)
+  B) 技术方案           (tech, arch, decision, schema)
+  C) 产品 / 运营介绍    (capabilities, ui, ops, marketing)
+```
+
+#### Q2（按 Q1 分支）
+
+**Q2-A（2 选 1）**：
+```
+A) 项目总计划 / 版本规划          → roadmap
+B) 单需求的用户故事 / 验收标准    → prd
+```
+
+**Q2-B（4 选 1）**：
+```
+A) 实现细节 / 数据流 / 代码设计    → tech
+B) 系统架构 / 模块分解            → arch
+C) 决策记录（为什么选 X 不选 Y）  → decision
+D) 接口 / 数据结构规范            → schema
+```
+
+**Q2-C（4 选 1）**：
+```
+A) 对外功能清单                    → capabilities
+B) 界面 / 交互说明                → ui
+C) 运营流程 / 反馈闭环            → ops
+D) 推广 / 发布方案                → marketing
+```
+
+#### 答案解析
+
+- 合法：字母（A/B/C/D）或直接 type 名（"prd"）
+- 直接说 type 名 → 跳过未问的 Q2，直接采用
+- 包含"都不是/其他/没有" 或 非法 type 名（如 "runbook"）→ 视为超范围
+
+#### 硬规则
+
+- hint 合法 → 立即采用，不得询问
+- `questions_asked ≤ 3`（含超范围追问）
+- 2 轮仍无有效答 → guess + 标注 `note: guessed`，不再继续问
+- Q1/Q2 选项必须完整展示，不得省略
+- 置信度判定必须能举出对话原话，否则降级
 
 ### 1b: Name/Topic
 
