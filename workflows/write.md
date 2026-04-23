@@ -62,27 +62,23 @@ Conversation has <3 substantive messages → warn insufficient context, ask user
 ### 1a: Type
 
 **Input**: `hint` (optional, from `/know write <hint>`), conversation, `user_replies[]`
-**Output**: `type` ∈ 10 类, `questions_asked` ∈ {0,1,2,3}
+**Output**: `type` ∈ 10 类；反复无效答则 `abort`
 **测试**: `tests/write/type-inference.jsonl`
 
-#### 流程
+#### 流程（3 条）
 
 ```
-1. hint 合法 (∈ 10 类) → 采用 → END (q=0)
-2. hint 非法且非 null → 必问一次：
-     "hint '<X>' 不在 10 类，你要哪个？(推荐 <AI 从对话推断的 type>)"
-   → 解析 → END (q≥1)
-3. hint 为 null → 判置信度（见判据）：
-   - 高        → 推 type → END (q=0)
-   - 中（定组）→ 问 Q2    → 解析 → END (q=1)
-   - 低 / 无信息 → 问 Q1 → Q2 → 解析 → END (q=2)
-4. 用户答超范围 → 追问"10 类里哪个" → 解析（q 累加）
-5. q 已 ≥ 2 且仍无有效答 → guess 最接近项，标 note=guessed → END
+1. hint 合法 → 采用 → END
+2. hint 无/非法 → AI 先在对话里猜 Q1（大组）和 Q2（具体 type）的答案:
+   - 都猜到（引证 ≥2 条原话）→ 推 type → END
+   - 只猜到 Q1 → 问 Q2 → END
+   - Q1 也猜不到 → 问 Q1 → 问 Q2 → END
+3. 用户答不合法 → 列 10 类让选; 再不合法 → abort
 ```
 
-#### 置信度判据（对比示例 + 强制引证）
+#### 猜 type 判据（对比示例 + 强制引证）
 
-**10 类的典型对话长啥样（1 句示例）**：
+**10 类的典型对话示例**（AI 相似度参照）：
 
 | type | 典型示例 |
 |---|---|
@@ -97,16 +93,7 @@ Conversation has <3 substantive messages → warn insufficient context, ask user
 | ops | "发布后看反馈，两周一迭代" |
 | marketing | "发博客 + Twitter 推文 + 官网 landing" |
 
-**判决规则**：
-
-| 置信 | 判据（必须可验证） |
-|---|---|
-| 高 | AI 能引用**≥2 条对话原话**最像某一 type 的示例 |
-| 中 | AI 能引用**≥1 条原话**最像某一大组（A/B/C）但具体 type 不清 |
-| 低 | 对话里能引出原话但不聚焦到任何 type / 任何大组 |
-| 无信息 | 对话几乎无文档相关素材 |
-
-**强制**：高置信必须在内部写出引用的 2 条原话；引不出来 → 降为中。
+**判"能猜"的标准**：AI 能在对话里引用 **≥2 条原话** 最像某一 type 的示例 → 能猜。否则 → 猜不到，进列表。
 
 #### Q1（3 选 1，大组分流）
 
@@ -151,8 +138,7 @@ D) 推广 / 发布方案                → marketing
 
 - 所有字符串输入（hint、用户回答）先 **lowercase 规范化** 再匹配
 - hint 合法 → 立即采用，不得询问
-- `questions_asked ≤ 3`（含超范围追问）
-- 2 轮仍无有效答 → guess + 标注 `note: guessed`，不再继续问
+- 用户答不合法 → 列 10 类让选；再不合法 → abort（不猜）
 - Q1/Q2 选项必须完整展示，不得省略
 - 置信度判定必须能举出对话原话，否则降级
 
