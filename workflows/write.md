@@ -59,88 +59,80 @@ Parse entry point and infer all parameters in one pass.
 
 Conversation has <3 substantive messages → warn insufficient context, ask user to point to specific content.
 
-### 1a: Type
+### 1a: Type Inference
 
-**Input**: `hint` (optional, from `/know write <hint>`), conversation, `user_replies[]`
-**Output**: `type` ∈ 10 类；反复无效答则 `abort`
-**测试**: `tests/write/type-inference.jsonl`
+Determine the document type from user input and conversational context.
 
-#### 流程（3 条）
+**Signature**
+- Input: `hint` (optional string from `/know write <hint>`), `conversation` (the session transcript), `user_replies[]` (user responses to clarifying prompts)
+- Output: `type ∈ {roadmap, prd, tech, arch, decision, schema, ui, capabilities, ops, marketing}`, or `abort` when two consecutive responses are invalid
+- Validation fixture: `tests/write/type-inference.jsonl`
+
+#### Decision procedure
 
 ```
-1. hint 合法 → 采用 → END
-2. hint 无/非法 → AI 先在对话里猜 Q1（大组）和 Q2（具体 type）的答案:
-   - 都猜到（引证 ≥2 条原话）→ 推 type → END
-   - 只猜到 Q1 → 问 Q2 → END
-   - Q1 也猜不到 → 问 Q1 → 问 Q2 → END
-3. 用户答不合法 → 列 10 类让选; 再不合法 → abort
+1. If hint resolves to a valid type (case-insensitive match against the 10 types):
+     → accept and return.
+
+2. Otherwise, attempt to infer the type from conversational evidence:
+     2a. If two or more verbatim quotes support a single type   → return that type.
+     2b. If evidence narrows the answer to a group (A/B/C)       → ask Q2 for that group.
+     2c. If evidence is insufficient even for grouping           → ask Q1, then Q2.
+
+3. If the user's reply fails to map to a valid type:
+     → present the full list of 10 types for explicit selection.
+     → a second invalid reply terminates the step with `abort`.
 ```
 
-#### 猜 type 判据（对比示例 + 强制引证）
+#### Type catalog (reference exemplars)
 
-**10 类的典型对话示例**（AI 相似度参照）：
+Each row lists one sentence that typifies the type. The classifier uses these as semantic anchors and must cite at least two matching quotes from the conversation before inferring a type.
 
-| type | 典型示例 |
+| Type | Exemplar |
 |---|---|
-| roadmap | "v1 做 A/B/C，v2 扩 D，Q2 发布" |
-| prd | "用户要能上传 pdf，成功率 95%" |
-| tech | "用 SQLite 存，WAL 模式，按 project_id 分表" |
-| arch | "recall 模块 = scope 推断 + query + rank" |
-| decision | "选 JSONL 不选 SQLite，因为 diff 友好" |
-| schema | "POST /api/v2/users，请求体含 name, email" |
-| capabilities | "我们支持文件上传、OCR、全文搜索" |
-| ui | "点击按钮后弹框，表单 3 段" |
-| ops | "发布后看反馈，两周一迭代" |
-| marketing | "发博客 + Twitter 推文 + 官网 landing" |
+| roadmap | "v1 交付 A/B/C；v2 扩展 D；Q2 发布" |
+| prd | "用户可上传 pdf；上传成功率目标 95%" |
+| tech | "采用 SQLite 存储；启用 WAL 模式；按 project_id 分表" |
+| arch | "recall 模块由 scope 推断、query、rank 三段构成" |
+| decision | "选用 JSONL 而非 SQLite，因其 diff 友好" |
+| schema | "POST /api/v2/users 接口请求体包含 name、email" |
+| capabilities | "系统支持文件上传、OCR、全文检索" |
+| ui | "点击按钮触发弹窗；表单分三段" |
+| ops | "发布后收集反馈；两周一次迭代" |
+| marketing | "通过博客、Twitter、官网 landing 多渠道推广" |
 
-**判"能猜"的标准**：AI 能在对话里引用 **≥2 条原话** 最像某一 type 的示例 → 能猜。否则 → 猜不到，进列表。
+#### Clarifying prompts
 
-#### Q1（3 选 1，大组分流）
+**Q1 — top-level group**
 
 ```
-写哪种？
-  A) 计划 / 需求        (roadmap, prd)
-  B) 技术方案           (tech, arch, decision, schema)
-  C) 产品 / 运营介绍    (capabilities, ui, ops, marketing)
+你要写哪类文档？
+  A) 计划 / 需求         (roadmap, prd)
+  B) 技术方案            (tech, arch, decision, schema)
+  C) 产品 / 运营介绍     (capabilities, ui, ops, marketing)
 ```
 
-#### Q2（按 Q1 分支）
+**Q2 — by group**
 
-**Q2-A（2 选 1）**：
-```
-A) 项目总计划 / 版本规划          → roadmap
-B) 单需求的用户故事 / 验收标准    → prd
-```
+| Branch | Options |
+|---|---|
+| Q2-A | A) 项目总计划 / 版本规划 → `roadmap`  ·  B) 单需求的用户故事 / 验收标准 → `prd` |
+| Q2-B | A) 实现细节 / 数据流 → `tech`  ·  B) 系统架构 / 模块分解 → `arch`  ·  C) 决策记录 → `decision`  ·  D) 接口 / 数据结构 → `schema` |
+| Q2-C | A) 对外功能清单 → `capabilities`  ·  B) 界面 / 交互 → `ui`  ·  C) 运营流程 → `ops`  ·  D) 推广方案 → `marketing` |
 
-**Q2-B（4 选 1）**：
-```
-A) 实现细节 / 数据流 / 代码设计    → tech
-B) 系统架构 / 模块分解            → arch
-C) 决策记录（为什么选 X 不选 Y）  → decision
-D) 接口 / 数据结构规范            → schema
-```
+#### Reply parsing
 
-**Q2-C（4 选 1）**：
-```
-A) 对外功能清单                    → capabilities
-B) 界面 / 交互说明                → ui
-C) 运营流程 / 反馈闭环            → ops
-D) 推广 / 发布方案                → marketing
-```
+- **Accepted forms** — a letter (`A`/`B`/`C`/`D`) or an explicit type name (e.g. `prd`).
+- An explicit type name short-circuits pending Q2 and is adopted directly.
+- Any other reply — including `其他`, `都不是`, unknown words, or type names outside the catalog — is treated as invalid.
 
-#### 答案解析
+#### Hard rules
 
-- 合法：字母（A/B/C/D）或直接 type 名（"prd"）
-- 直接说 type 名 → 跳过未问的 Q2，直接采用
-- 包含"都不是/其他/没有" 或 非法 type 名（如 "runbook"）→ 视为超范围
-
-#### 硬规则
-
-- 所有字符串输入（hint、用户回答）先 **lowercase 规范化** 再匹配
-- hint 合法 → 立即采用，不得询问
-- 用户答不合法 → 列 10 类让选；再不合法 → abort（不猜）
-- Q1/Q2 选项必须完整展示，不得省略
-- 置信度判定必须能举出对话原话，否则降级
+- Normalize all string inputs to lowercase before matching.
+- A valid `hint` is adopted without further prompting.
+- An invalid reply triggers exactly one fallback prompt listing all 10 types; a second invalid reply terminates with `abort`. No inference or guessing is permitted after this point.
+- Clarifying prompts must display the full option set; never abbreviate.
+- Inference in step 2a is valid only when the classifier can cite two or more verbatim quotes from the conversation. If it cannot, downgrade to 2b or 2c.
 
 ### 1b: Name/Topic
 
