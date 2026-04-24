@@ -1,66 +1,66 @@
-# write — Document Authoring
+# write — 文档撰写
 
-## 1. Overview
+## 1. 概述
 
-Compose a structured markdown document from conversation content and `triggers.jsonl`. Supports 10 document types across three layouts (single file, directory, requirement). Pipeline: infer parameters → confirm → fill template → preview → write → validate → propagate progress.
+基于对话内容与 `triggers.jsonl` 生成结构化 markdown 文档。支持 10 种 type，分三种布局（单文件、目录、需求）。流程：推断参数 → 确认 → 填充 template → 预览 → 写入 → 校验 → 回写 progress。
 
-## 2. Core Principles
+## 2. 核心原则
 
-1. **Confirm before persisting.** Every path, type, and full preview requires explicit user confirmation.
-2. **No fabrication.** Missing evidence becomes `TBD — {what is missing}` or `Open question:`; numbers without sources fail validation.
-3. **Triggers are evidence, not content.** Reference by summary; never paste verbatim. Rules bind, insights advise, traps surface as risks.
-4. **Bounded clarification.** One invalid reply triggers a single full-list fallback; a second ends with `abort`. Never guess.
-5. **Template and checklist are sources of truth.** The writer fills the template and satisfies the checklist; it never silently redefines structure.
-6. **Update preserves history.** Only regenerate sections the conversation discusses; append-only sections (`tech §3 决策`, `§4 迭代记录`) never overwrite.
-7. **Bounded repair.** Validation loops at most three rounds before shipping with an unresolved count.
+1. **落盘前先确认**。path、type、完整预览均需用户显式确认。
+2. **不编造**。证据缺失写 `TBD — {缺失内容}` 或 `Open question:`；无来源的数字一律校验失败。
+3. **trigger 是证据，不是正文**。按 summary 引用，禁止原文粘贴。rule 约束、insight 建议、trap 作为风险呈现。
+4. **澄清有上限**。一次无效回复触发单次完整列表回退；第二次无效则 `abort`。禁止猜测。
+5. **template 与 checklist 是唯一结构来源**。写入器只填充与满足，绝不私自重定义结构。
+6. **update 保留历史**。仅重写对话明确讨论的 section；append-only section（`tech §3 决策`、`§4 迭代记录`）永不覆盖。
+7. **修复有上限**。校验最多循环 3 轮，第 4 轮强制出文并报告未解数。
 
-## 3. Definitions
+## 3. 定义
 
-| Term | Meaning |
+| 术语 | 含义 |
 |---|---|
-| `type` | one of `roadmap, prd, tech, arch, decision, schema, ui, capabilities, ops, marketing` |
-| `hint` | optional type string passed via `/know write <hint>` |
-| `name` | kebab-case slug (topic or requirement) |
+| `type` | `roadmap, prd, tech, arch, decision, schema, ui, capabilities, ops, marketing` 之一 |
+| `hint` | 可选的 type 字符串，通过 `/know write <hint>` 传入 |
+| `name` | kebab-case slug（主题名或需求名）|
 | `mode` | `create` \| `update` |
-| `parent` | upstream document whose progress field is updated on completion |
-| `trigger` | one entry from `docs/triggers.jsonl` or `$XDG_CONFIG_HOME/know/triggers.jsonl` |
-| `exemplar` | one reference sentence per type, used as the semantic anchor in Step 1a |
-| `STOP:confirm` | block until user answers yes/no |
-| `STOP:choose` | block until user selects one option from a displayed list |
-| `abort` | terminate the step with no file change |
+| `parent` | 上游文档，完成后回写其 progress 字段 |
+| `trigger` | `docs/triggers.jsonl` 或 `$XDG_CONFIG_HOME/know/triggers.jsonl` 的一条记录 |
+| `exemplar` | 每个 type 的语义锚点例句，Step 1a 使用 |
+| `STOP:confirm` | 阻塞，等待用户 yes/no |
+| `STOP:choose` | 阻塞，等待用户从列表选项中选一 |
+| `abort` | 终止当前步骤，不写文件 |
 
-## 4. Rules
+## 4. 规则
 
-### 4.1 Input handling
+### 4.1 输入处理
 
-- All string matching is case-insensitive; normalize to lowercase first.
-- A valid `hint` is adopted without prompting.
-- A reply is invalid when its lowercase form is empty, matches `不知道 / 随便 / skip / idk / -`, or is not among the accepted options for the prompt.
-- Invalid replies permit exactly one fallback prompt listing the full option set; a second invalid reply terminates with `abort`.
+- 字符串匹配大小写不敏感，先归一为小写。
+- `hint` 有效则直接采用，不再提问。
+- 回复视为无效：小写后为空、匹配 `不知道 / 随便 / skip / idk / -`、或不在当前 prompt 的候选集内。
+- 无效回复允许一次完整列表回退；第二次无效即 `abort`。
 
-### 4.2 File safety
+### 4.2 文件安全
 
-- Never overwrite an existing file silently. When a `create` target exists, prompt with `Update / Pick different name / Cancel`.
-- Roadmap is always a single file; a new version is an `update`, not a `create`.
-- `create` writes every template section exactly once; `update` touches only sections the conversation discusses.
+- 禁止静默覆盖。`create` 目标已存在时提示 `Update / Pick different name / Cancel`。
+- roadmap 永远单文件；新版本属 `update`，非 `create`。
+- `create` 把 template 每个 section 写一次；`update` 只动对话讨论过的 section。
 
-### 4.3 Content integrity
+### 4.3 内容完整性
 
-- Forbidden: precise numbers without a cited source, fabricated details, invented cross-references.
-- Required for every numeric value: one of `value + citation`, `value + 估算 + basis`, `value + 目标值，待验证`, `无数据（{reason}）`.
-- Triggers may be referenced by summary; copying verbatim is forbidden.
-- Append-only sections (`tech §3 关键决策`, `tech §4 迭代记录`) are never overwritten.
+- 禁止：无来源的精确数字、编造细节、虚构的交叉引用。
+- 每个数字必须满足其一：`数值 + 引用`、`数值 + 估算 + 依据`、`数值 + 目标值，待验证`、`无数据（{原因}）`。
+- trigger 按 summary 引用，原文粘贴禁止。
+- append-only section（`tech §3 关键决策`、`tech §4 迭代记录`）永不覆盖。
 
-### 4.4 Clarification limits
+### 4.4 澄清上限
 
-- Sufficiency, mode, and inference checks each allow at most one clarifying prompt before either proceeding or aborting.
-- Validation runs at most three repair rounds; on the fourth attempt the document ships with an explicit unresolved count.
+- sufficiency、mode、inference 各自最多 1 次澄清提问，否则推进或 abort。
+- 校验最多 3 轮修复；第 4 轮强制出文并标注未解数。
 
-## 5. Workflow
+## 5. 工作流
 
-Models: `opus` for inference and composition (1a, 4); `sonnet` elsewhere.
+模型：推断与撰写（1a、4）用 `opus`，其他用 `sonnet`。
 
-### 5.1 Path resolution
+### 5.1 路径解析
 
 | Type | Path |
 |---|---|
@@ -68,26 +68,26 @@ Models: `opus` for inference and composition (1a, 4); `sonnet` elsewhere.
 | `arch / ui / schema / decision` | `docs/<type>/<name>.md` |
 | `prd / tech` | `docs/requirements/<name>/<type>.md` |
 
-Hierarchy: `roadmap → prd → tech`. All other types are independent. Roadmap versions live as `### v{n}` sections under `## 2. 版本规划`; milestone numbering restarts per version.
+层级：`roadmap → prd → tech`，其余独立。roadmap 版本以 `### v{n}` 挂在 `## 2. 版本规划` 下，里程碑编号按版本重置。
 
-### 5.2 Step 1 — Parameter inference
+### 5.2 Step 1 — 参数推断
 
-Four substeps produce `{type, name, mode, parent}`; each step follows the pattern *hint → auto-infer → one clarifying prompt → fallback to full list → abort*.
+4 个子步产出 `{type, name, mode, parent}`，统一模式：*hint → 自动推断 → 一次澄清 → 完整列表回退 → abort*。
 
 #### 1a — `type`
 
 ```
-1. hint ∈ 10 types (lowercase)                 → accept.
-2. inference check against exemplars:
-     one type passes                           → return it.
-     one group (A/B/C) passes                  → ask Q2.
-     none or multiple groups pass              → ask Q1, then Q2.
-3. invalid reply → list all 10 types → second invalid → abort.
+1. hint ∈ 10 种 type（小写）                    → 直接采用。
+2. exemplar 推断检查：
+     命中单个 type                              → 返回。
+     命中单个分组（A/B/C）                      → 问 Q2。
+     零命中或跨多组                             → 先 Q1，再 Q2。
+3. 无效回复 → 列全部 10 种 type → 再无效 → abort。
 ```
 
-**Inference check.** For each type, ask: *"If I replace the conversation with this exemplar, can a reader reconstruct the same writing intent?"* Yes for exactly one type → 2a. Yes for one full group → 2b. Otherwise 2c.
+**推断检查**：逐 type 自问「若以此 exemplar 替代对话，读者能否还原相同写作意图？」恰好命中一个 type → 2a；命中一整个分组 → 2b；否则 2c。
 
-**Exemplars.**
+**Exemplars**
 
 | Type | Exemplar |
 |---|---|
@@ -102,36 +102,36 @@ Four substeps produce `{type, name, mode, parent}`; each step follows the patter
 | ops | "发布后收集反馈；两周一次迭代" |
 | marketing | "通过博客、Twitter、官网 landing 多渠道推广" |
 
-**Clarifying prompts.**
+**澄清提问**
 
-Q1 (3-way) — A: `roadmap, prd` · B: `tech, arch, decision, schema` · C: `capabilities, ui, ops, marketing`
+Q1（三分组）— A：`roadmap, prd` · B：`tech, arch, decision, schema` · C：`capabilities, ui, ops, marketing`
 
-Q2-A: `roadmap | prd`
-Q2-B: `tech | arch | decision | schema`
-Q2-C: `capabilities | ui | ops | marketing`
+Q2-A：`roadmap | prd`
+Q2-B：`tech | arch | decision | schema`
+Q2-C：`capabilities | ui | ops | marketing`
 
-Accepted reply forms: a letter, or an explicit type name (short-circuits pending Q2).
+可接受回复：字母，或直接写 type 名（直接短路跳过 Q2）。
 
 #### 1b — `name`
 
 ```
-1. type does not require a name                → null.
-2. name_hint                                   → normalize, return.
-3. conversation contains an explicit noun phrase → normalize, return.
-4. otherwise → ask user → invalid reply → one retry → abort.
+1. 该 type 不需要 name                         → null。
+2. name_hint 存在                              → 归一化返回。
+3. 对话中含明确名词短语                        → 归一化返回。
+4. 否则 → 问用户 → 无效 → 重试 1 次 → abort。
 ```
 
-**Normalization.** lowercase → replace `[space/._/]` with `-` → strip chars outside `[a-z0-9-]` → collapse repeats → trim `-`. Empty result is invalid.
+**归一化**：小写 → 把 `[space/._/]` 替换为 `-` → 去除 `[a-z0-9-]` 之外字符 → 折叠重复 → trim `-`。结果为空则无效。
 
 #### 1c — `mode`
 
 ```
-1. file does not exist                         → create.
-2. type = roadmap (always single file)         → update.
-3. file exists → [STOP:choose]:
-     A) Update                                 → update.
-     B) Pick a different name                  → re-enter 1b.
-     C) Cancel                                 → abort.
+1. 文件不存在                                   → create。
+2. type = roadmap（永远单文件）                 → update。
+3. 文件存在 → [STOP:choose]：
+     A) Update                                  → update。
+     B) Pick a different name                   → 回 1b。
+     C) Cancel                                  → abort。
 ```
 
 #### 1d — `parent`
@@ -140,35 +140,35 @@ Accepted reply forms: a letter, or an explicit type name (short-circuits pending
 |---|---|
 | prd | `docs/roadmap.md` |
 | tech | `docs/requirements/<name>/prd.md` |
-| all others | none |
+| 其他 | 无 |
 
 ```
-1. no parent for this type                     → null.
-2. parent exists                               → return its path.
-3. prd + roadmap missing                       → proceed, note absence.
-4. tech + prd missing → [STOP:choose]:
-     A) Continue without parent                → null.
-     B) Create PRD first                       → redirect.
-5. prd with ambiguous milestone                → ask for milestone number.
+1. 该 type 无 parent                            → null。
+2. parent 存在                                  → 返回路径。
+3. prd 且 roadmap 缺失                          → 继续，标注缺失。
+4. tech 且 prd 缺失 → [STOP:choose]：
+     A) Continue without parent                 → null。
+     B) Create PRD first                        → 跳转。
+5. prd 里程碑归属不明                           → 询问里程碑编号。
 ```
 
 ### 5.3 Step 1.5 — Sufficiency gate
 
-Runs only for high-risk types (`prd, tech, arch, schema, decision, ui`).
+仅在高风险 type（`prd, tech, arch, schema, decision, ui`）运行。
 
 ```
-1. load the question group from templates/sufficiency-gate.md.
-2. answer each question with a verbatim quote or explicit "not present".
-3. all yes   → pass.
-   mix       → degrade.
-   all no    → reject.
-4. on degrade / reject → [STOP:choose]:
-     A) Supplement the conversation            → rerun this step.
-     B) Degrade to <suggested type>            → re-enter Step 1.
-     C) Cancel                                 → abort.
+1. 加载 templates/sufficiency-gate.md 的问题组。
+2. 每题以对话原文引用或明确 "not present" 作答。
+3. 全 yes  → pass。
+   混合    → degrade。
+   全 no   → reject。
+4. degrade / reject → [STOP:choose]：
+     A) 补充对话                                → 重跑本步。
+     B) Degrade 为 <建议 type>                  → 回 Step 1。
+     C) Cancel                                  → abort。
 ```
 
-### 5.4 Step 2 — Confirm
+### 5.4 Step 2 — 确认
 
 ```
 [write] Inferred from conversation
@@ -180,184 +180,184 @@ Runs only for high-risk types (`prd, tech, arch, schema, decision, ui`).
 Correct? (yes / change <field>=<value>)
 ```
 
-Field dependency: `type → name → mode → parent`. Editing a field re-runs everything downstream of it; edits to `mode` or `path` apply directly.
+字段依赖：`type → name → mode → parent`。修改某字段则其下游全部重跑；直接改 `mode` 或 `path` 则直接生效。
 
-### 5.5 Step 3 — Load template
+### 5.5 Step 3 — 加载 template
 
 ```bash
 cat "{project_root}/workflows/templates/{type}.md"
 ```
 
-If the template is absent, synthesize `# Title / ## Overview / ## Details / ## Open Questions`.
+template 缺失则合成 `# Title / ## Overview / ## Details / ## Open Questions`。
 
-### 5.6 Step 4 — Fill
+### 5.6 Step 4 — 填充
 
-Load both `docs/triggers.jsonl` and `$XDG_CONFIG_HOME/know/triggers.jsonl`.
+同时加载 `docs/triggers.jsonl` 与 `$XDG_CONFIG_HOME/know/triggers.jsonl`。
 
-**Create mode.**
-
-```
-For each template section:
-  1. collect relevant conversation quotes and triggers in scope.
-  2. obey <!-- INCLUDE / EXCLUDE --> hints.
-  3. produce structured prose; preserve code and tables verbatim.
-  4. if evidence is insufficient → "TBD — {what is missing}".
-Prefix ambiguities with "Open question:".
-Cross-references use project-root-relative paths; output language follows the user's.
-Apply progress fields before handoff.
-```
-
-**Update mode.**
+**Create 模式**
 
 ```
-1. read the existing document in full.
-2. list every section the conversation discusses.
-3. regenerate only listed sections; all others remain byte-identical.
-4. add missing template sections as content or TBD.
-5. repair broken relative paths only inside touched sections.
-6. if no section is discussed → [STOP:choose] A) add new section B) cancel.
+对每个 template section：
+  1. 收集相关对话引文与在 scope 内的 trigger。
+  2. 遵守 <!-- INCLUDE / EXCLUDE --> 提示。
+  3. 产出结构化正文；代码块与表格原样保留。
+  4. 证据不足 → "TBD — {缺失内容}"。
+不明确之处以 "Open question:" 开头。
+交叉引用用项目根相对路径；输出语言随用户。
+handoff 前应用 progress fields。
 ```
 
-**Progress fields (create).**
+**Update 模式**
+
+```
+1. 完整读取现有文档。
+2. 列出对话讨论过的全部 section。
+3. 只重写列出的 section；其余 byte-identical。
+4. 补齐缺失的 template section（写内容或 TBD）。
+5. 仅在被改动 section 内修复坏的相对路径。
+6. 若无 section 被讨论 → [STOP:choose] A) 新增 section  B) cancel。
+```
+
+**Progress fields（create）**
 
 | Type | Field | Rule |
 |---|---|---|
-| roadmap | 里程碑.进度 | `完成数/总数` over linked PRDs |
-| roadmap | 里程碑.需求 | link each PRD; `—` when empty |
-| roadmap | 里程碑编号 | restart at M1 per version |
-| prd | §4 方案.任务表 | one row per tech doc; progress = `完成数/总数` |
-| tech | §4 迭代记录 | seed with today's date and sprint summary |
+| roadmap | 里程碑.进度 | `完成数/总数`，按关联 PRD 统计 |
+| roadmap | 里程碑.需求 | 链接每个 PRD，空则 `—` |
+| roadmap | 里程碑编号 | 每个版本从 M1 重新开始 |
+| prd | §4 方案.任务表 | 每个 tech 文档一行；progress = `完成数/总数` |
+| tech | §4 迭代记录 | 以今日日期与 sprint 摘要起头 |
 
-**Update rules per type.**
+**各 type update 规则**
 
 | Type | Section | Rule |
 |---|---|---|
-| tech | §2 方案 | overwrite as understanding deepens |
-| tech | §3 关键决策 | append only |
-| tech | §4 迭代记录 | prepend today; never overwrite history |
+| tech | §2 方案 | 随认知深化覆写 |
+| tech | §3 关键决策 | 仅追加 |
+| tech | §4 迭代记录 | 今日置顶；永不覆盖历史 |
 
-**H1 titles.**
+**H1 titles**
 
 | Scope | Title |
 |---|---|
-| Project single | `{项目名} {文档类型}` |
-| Project directory | `{主题名} {文档类型}` |
-| Requirement (prd) | `{用户入口}` |
-| Requirement (tech) | `{需求名} 技术方案` |
+| 项目单文件 | `{项目名} {文档类型}` |
+| 项目目录 | `{主题名} {文档类型}` |
+| 需求（prd） | `{用户入口}` |
+| 需求（tech） | `{需求名} 技术方案` |
 
-### 5.7 Step 5 — Write [STOP:confirm]
+### 5.7 Step 5 — 写入 [STOP:confirm]
 
-Preview before writing.
+写前预览。
 
 ```
 [write] Preview: {path}
-{create: full content · update: diff on touched sections}
+{create: 完整内容 · update: 改动 section 的 diff}
 Write? (yes / edit <section> / no)
 ```
 
-If `TBD` appears in more than 3 sections, prepend `{n} sections marked TBD: {list}. Still write?` and require a second confirmation.
+若 `TBD` 超过 3 个 section，前置 `{n} sections marked TBD: {list}. Still write?`，要求二次确认。
 
-On `yes`:
+`yes` 后：
 
 ```bash
 mkdir -p "$(dirname "{path}")"
 ```
 
-- `create` → Write tool.
-- `update` → Edit tool per section; for `tech`, prepend the iteration entry.
+- `create` → Write 工具。
+- `update` → 逐 section 用 Edit 工具；`tech` 需把迭代记录条目置顶。
 
 ```
 [written] {path}
 [written] {path} (updated {n} sections)
 ```
 
-### 5.8 Step 5.5 — Validate
+### 5.8 Step 5.5 — 校验
 
-Gate: skip when `templates/{type}-checklist.md` does not exist.
+Gate：`templates/{type}-checklist.md` 不存在则跳过。
 
 ```bash
 cat "{project_root}/workflows/templates/{type}-checklist.md"
 ```
 
-Checks:
-- **Structure** — required sections/fields present.
-- **Language** — fields meet their `✅/❌` language constraint.
-- **Data confidence** — every numeric value has one of the four source forms (§4.3); precise numbers without sources fail.
-- **Completeness** — non-optional fields contain real content, not placeholders.
-- **Diagrams** — if the checklist references `diagram-checklist.md`, run it.
+检查项：
+- **Structure** — 必需 section/字段齐全。
+- **Language** — 字段满足其 `✅/❌` 语言约束。
+- **Data confidence** — 每个数字满足 §4.3 四种来源形式之一；无来源精确数字判失败。
+- **Completeness** — 非可选字段含真实内容而非占位。
+- **Diagrams** — checklist 引用了 `diagram-checklist.md` 则连带跑。
 
-On violations: list, repair, re-preview. Up to three rounds; on the fourth attempt ship with `[validate] forced through, {n} checks unresolved`.
+违规处理：列出 → 修复 → 重新预览。最多 3 轮；第 4 轮强制出文并标 `[validate] forced through, {n} checks unresolved`。
 
-### 5.9 Step 6 — Propagate
+### 5.9 Step 6 — 回写
 
 ```
-1. type has no parent, or parent file missing → skip silently.
-2. otherwise → Edit tool on the parent's progress field only.
+1. 该 type 无 parent 或 parent 文件缺失         → 静默跳过。
+2. 否则 → 用 Edit 工具只改 parent 的 progress 字段。
 ```
 
-| Written type | Parent field |
+| 写入 type | Parent field |
 |---|---|
-| tech | PRD `§4 方案` task table, progress column |
-| prd | roadmap milestone table, `完成PRD数/总PRD数` |
+| tech | PRD `§4 方案` 任务表 progress 列 |
+| prd | roadmap 里程碑表 `完成PRD数/总PRD数` |
 
 ```
 [progress] {parent_path} updated ({value})
 ```
 
-## 6. Examples
+## 6. 示例
 
-### High-confidence inference (Steps 1a → 5)
+### 高置信推断（Steps 1a → 5）
 
 ```
 /know write
 conversation: "recall 模块 = scope 推断 + query + rank; 增加 ranking weight"
-→ 1a matches arch exemplar → type=arch.
-→ 1b extracts "recall" from conversation → name=recall.
-→ 1c docs/arch/recall.md missing → mode=create.
-→ 1d no parent.
-→ Confirm: Type=arch, Path=docs/arch/recall.md, Mode=create.
-→ Fill → Preview → Write → Validate passes.
+→ 1a 命中 arch exemplar → type=arch。
+→ 1b 从对话提取 "recall" → name=recall。
+→ 1c docs/arch/recall.md 不存在 → mode=create。
+→ 1d 无 parent。
+→ Confirm：Type=arch, Path=docs/arch/recall.md, Mode=create。
+→ Fill → Preview → Write → 校验通过。
 ```
 
-### Ambiguous, clarifies once
+### 模糊，一次澄清
 
 ```
 /know write
 conversation: "聊了方案，但没定是画架构图还是记录选型"
-→ 1a narrows to group B → ask Q2-B.
+→ 1a 收敛到分组 B → 问 Q2-B。
 user: decision
-→ type=decision. Continue as above.
+→ type=decision。后续同上。
 ```
 
-### Update propagates to roadmap
+### Update 并回写 roadmap
 
 ```
 /know write prd
-→ 1b name=upload-flow; file exists at docs/requirements/upload-flow/prd.md.
-→ 1c → Update.
-→ Fill touches §4 方案 only.
-→ Write preview shows diff.
-→ Validate passes.
-→ Step 6 edits docs/roadmap.md milestone progress column.
+→ 1b name=upload-flow；docs/requirements/upload-flow/prd.md 已存在。
+→ 1c → Update。
+→ Fill 只动 §4 方案。
+→ Preview 显示 diff。
+→ 校验通过。
+→ Step 6 改 docs/roadmap.md 里程碑表 progress 列。
 ```
 
 ## 7. Edge Cases
 
-| Situation | Behavior |
+| 情形 | 行为 |
 |---|---|
-| Hint matches a name not in the catalog (`runbook`) | treat as null; proceed via inference. |
-| Two consecutive invalid replies | terminate the step with `abort`. |
-| Create target file exists | Step 1c presents Update / Rename / Cancel. |
-| `tech` without a parent PRD | Step 1d asks Continue / Create PRD first. |
-| Sufficiency rejects and user picks B | re-enter Step 1 with the degraded type; name and mode are re-derived. |
-| Preview contains 4+ TBD sections | warn and require a second `yes` before writing. |
-| Validator cannot clear a violation after 3 rounds | ship with `[validate] forced through, {n} unresolved`. |
-| Parent exists but cannot be edited (permission, syntax) | log `[progress] skip: {reason}` and continue. |
+| hint 是合法名但不在 10 种目录内（如 `runbook`） | 视为 null，走推断。 |
+| 连续两次无效回复 | 当前步骤 `abort`。 |
+| create 目标文件已存在 | Step 1c 呈现 Update / Rename / Cancel。 |
+| `tech` 无 parent PRD | Step 1d 问 Continue / Create PRD first。 |
+| sufficiency reject 且用户选 B | 以降级后的 type 回 Step 1，name 与 mode 重新推导。 |
+| 预览含 4+ 个 TBD section | 警告并要求二次 `yes`。 |
+| 校验 3 轮仍未清零 | 强制出文并标 `[validate] forced through, {n} unresolved`。 |
+| parent 存在但无法编辑（权限、语法坏） | 记 `[progress] skip: {reason}` 后继续。 |
 
 ## Recovery
 
-| Error | Recovery |
+| 错误 | 恢复 |
 |---|---|
-| Write / Edit tool fails | surface the error; do not retry silently. |
-| File exists mid-`create` | re-enter Step 1c. |
-| Checklist file malformed | treat as missing; skip validation and warn. |
+| Write / Edit 工具失败 | 暴露错误，禁止静默重试。 |
+| `create` 中途发现文件已存在 | 回 Step 1c。 |
+| checklist 文件损坏 | 视为缺失，跳过校验并告警。 |

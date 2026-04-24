@@ -1,11 +1,11 @@
-# extract — Code Knowledge Mining
+# extract — 代码知识挖掘
 
 ## Progress
 
 Steps: 6
 Names: Scope, Scan, Extract, Filter, Confirm, Write
 
-Shared definitions (schema, scope, output markers) → SKILL.md.
+共享定义（schema / scope / 输出标记）见 SKILL.md。
 
 ---
 
@@ -13,13 +13,13 @@ Shared definitions (schema, scope, output markers) → SKILL.md.
 
 Model: sonnet
 
-Determine which files to scan by inferring from conversation context:
+从对话上下文推断要扫描的文件：
 
-| Priority | Source | Method |
-|----------|--------|--------|
-| P1 | Recent tool calls | Last 10 Read/Edit paths in this conversation → deduplicate |
-| P2 | Conversation mentions | Explicit file paths mentioned by user |
-| P3 | Fallback | Ask user: `[extract] No files detected in conversation. Provide path or glob:` |
+| 优先级 | 来源 | 方法 |
+|--------|------|------|
+| P1 | 最近的工具调用 | 本会话最近 10 次 Read/Edit 路径，去重 |
+| P2 | 对话中提及 | 用户显式提到的文件路径 |
+| P3 | Fallback | 询问用户：`[extract] No files detected in conversation. Provide path or glob:` |
 
 ```
 [extract] step: scope
@@ -31,11 +31,11 @@ Scan scope:
 Correct? (add/remove files, or confirm)
 ```
 
-[STOP:confirm] User confirms or adjusts scope.
+[STOP:confirm] 用户确认或调整 scope。
 
-**Limits**:
-- Max 10 files per extraction run. >10 → rank by conversation relevance, take top 10, note remainder.
-- Binary/generated files → auto-exclude.
+**限制**：
+- 每次最多 10 个文件。超过则按对话相关度排序取前 10，剩余另行记录。
+- 二进制/生成文件自动排除。
 
 ---
 
@@ -43,25 +43,25 @@ Correct? (add/remove files, or confirm)
 
 Model: opus
 
-Read each file in scope. Identify knowledge that is **not self-evident from the code alone** — the "why" behind the "what".
+逐个读取 scope 内文件，识别**代码本身无法直接说明**的知识——即「what」背后的「why」。
 
-### 5 knowledge types to look for
+### 5 类目标知识
 
-| Type | What to look for | Example |
-|------|-----------------|---------|
-| Design decisions | Why this pattern, why this split, why this wrapper exists | "Uses pub/sub instead of direct calls for decoupling" |
-| Implicit constraints | Rules enforced by convention, not compiler | "All handlers must call validate() before processing" |
-| Non-obvious dependencies | Ordering, initialization, coupling | "SessionStore must init before AuthMiddleware" |
-| Configuration rules | Config combinations that must stay in sync | "TIMEOUT_MS must be < RETRY_INTERVAL_MS" |
-| Defensive patterns | Guards against known failure modes | "Retry with backoff because upstream rate-limits at 100 req/s" |
+| 类型 | 关注点 | 示例 |
+|------|--------|------|
+| Design decisions | 为什么用这个模式、这个拆分、这个 wrapper | "用 pub/sub 而非直调以解耦" |
+| Implicit constraints | 约定强制但编译器不管的规则 | "所有 handler 处理前必须调用 validate()" |
+| Non-obvious dependencies | 顺序、初始化、耦合 | "SessionStore 必须先于 AuthMiddleware 初始化" |
+| Configuration rules | 必须保持同步的配置组合 | "TIMEOUT_MS 必须 < RETRY_INTERVAL_MS" |
+| Defensive patterns | 针对已知失败模式的防御 | "重试带退避，因上游限流 100 req/s" |
 
-### Scanning principles
+### 扫描原则
 
-- Do not restate what the code surface-level shows
-- Focus on "why is it written this way" and "what goes wrong if you don't know this"
-- Max 3 knowledge items per file. If more found → rank by impact (causes errors > wastes time), take top 3.
+- 不复述代码表面已显示的内容
+- 聚焦「为何这样写」与「不知道这点会出什么问题」
+- 每个文件最多 3 条。超出则按影响排序（引发错误 > 浪费时间），取前 3。
 
-Output: internal list of `{file, knowledge_item, likely_tag}` tuples. Not shown to user.
+输出：内部列表 `{file, knowledge_item, likely_tag}`，不展示给用户。
 
 ---
 
@@ -69,26 +69,26 @@ Output: internal list of `{file, knowledge_item, likely_tag}` tuples. Not shown 
 
 Model: opus
 
-Convert each knowledge item to a claim. Each claim should capture:
+将每条知识转成 claim，覆盖四要素：
 
-- **Conclusion**: the core knowledge
-- **Reason**: why this matters
-- **Scope**: affected area
-- **Risk**: what goes wrong if you don't know this
+- **Conclusion**：核心结论
+- **Reason**：为何重要
+- **Scope**：影响范围
+- **Risk**：不知道会怎样
 
-Formal fields:
+正式字段：
 
-| Field | Source |
-|-------|--------|
-| tag | Inferred from knowledge type (→ learn.md Step 5a patterns) |
-| scope | File path → module notation (e.g. `src/auth/middleware.ts` → `auth.middleware`) |
-| summary | ≤80 chars, `{conclusion} — {key reason}` format |
+| 字段 | 来源 |
+|------|------|
+| tag | 由知识类型推断（参 learn.md Step 5a 规则） |
+| scope | 文件路径转模块记法（如 `src/auth/middleware.ts` → `auth.middleware`） |
+| summary | ≤80 字符，`{conclusion} — {key reason}` |
 
-Examples:
+示例：
 - `Retry must use idempotency key — webhook delivery may be duplicated`
 - `Worker should start before subscription binding — early events may be missed`
 
-If Step 2 found 0 items → `[extract] No extractable knowledge found in scanned files.` → exit.
+若 Step 2 无收获 → `[extract] No extractable knowledge found in scanned files.` → 退出。
 
 ---
 
@@ -96,22 +96,22 @@ If Step 2 found 0 items → `[extract] No extractable knowledge found in scanned
 
 Model: sonnet
 
-Apply learn.md Step 3 Filter rules with one addition:
+应用 learn.md Step 3 过滤规则，额外加一条：
 
-| Condition | Action |
-|-----------|--------|
-| **Code-obvious** — a developer reading this file would understand within 30 seconds without external context | DROP |
+| 条件 | 动作 |
+|------|------|
+| **Code-obvious**——开发者读此文件 30 秒内可自行理解，无需外部上下文 | DROP |
 
-This is stricter than learn's "code-derivable" rule because extract starts from code — the bar for "not derivable" is higher.
+比 learn 的 "code-derivable" 更严，因为 extract 从代码起步，"不可推导" 的门槛更高。
 
-### Usually KEEP from code
+### 通常 KEEP
 
-- Reason not visible from surface code
-- Easy to repeat mistakes
-- Involves external systems, timing, ordering, idempotency, config coupling
-- Has long-term protective value even if single-file
+- 原因在代码表面看不到
+- 容易重复犯错
+- 涉及外部系统、时序、顺序、幂等、配置耦合
+- 即使单文件也有长期保护价值
 
-After filtering, proceed to Step 5 (no separate tier assignment in v7; strict is only for rule and decided in Write step).
+过滤后进入 Step 5（v7 无独立 tier 分级；strict 仅对 rule 有效，在 Write 步骤决定）。
 
 ```
 [skipped] {summary}
@@ -124,7 +124,7 @@ Reason: {drop reason}
 
 Model: sonnet
 
-If 0 claims survived → `[extract] All items filtered (code-obvious or low impact).` → exit.
+若 0 条存活 → `[extract] All items filtered (code-obvious or low impact).` → 退出。
 
 ```
 [extract] step: confirm
@@ -144,14 +144,14 @@ Persist? [all / select numbers / skip]
 
 Model: sonnet
 
-For each selected claim, execute learn.md Steps 4-9 (v7):
+对每条入选 claim 执行 learn.md Step 4-9（v7）：
 
-1. **Generate** (learn.md Step 4): tag already assigned. Compute strict (if tag=rule), scope, summary. ref defaults to the source file path with line number (`src/file:42`). Set `source: "extract"`.
-2. **Conflict** (learn.md Step 5): check duplicates.
-3. **Challenge** (learn.md Step 6): 5 adversarial questions.
-4. **Level** (learn.md Step 7): extract defaults to project (source files are project-local).
-5. **Confirm** (learn.md Step 8): user reviews final entry.
-6. **Write** (learn.md Step 9): append to triggers.jsonl via `know-ctl append --level project`.
+1. **Generate**（learn.md Step 4）：tag 已定；算 strict（若 tag=rule）、scope、summary。ref 默认指向源文件带行号（`src/file:42`）。`source: "extract"`。
+2. **Conflict**（learn.md Step 5）：查重。
+3. **Challenge**（learn.md Step 6）：5 条对抗性提问。
+4. **Level**（learn.md Step 7）：extract 默认 project（源文件属项目本地）。
+5. **Confirm**（learn.md Step 8）：用户复核最终条目。
+6. **Write**（learn.md Step 9）：`know-ctl append --level project` 追加到 triggers.jsonl。
 
 ```
 [persisted] {scope} :: {summary} (project, strict={bool|null}, ref={file:line})
@@ -161,15 +161,15 @@ For each selected claim, execute learn.md Steps 4-9 (v7):
 
 ## Completion
 
-- All selected claims processed
-- Each persisted entry has: valid index line + detail file (if critical)
-- User saw `[persisted]` or `[skipped]` for every claim
+- 所有入选 claim 均已处理
+- 每条已持久化条目：index 行有效 + detail 文件（若 critical）
+- 每条 claim 用户都看到 `[persisted]` 或 `[skipped]`
 
 ## Recovery
 
-| Error | Recovery |
-|-------|----------|
-| File read fails | Skip file, continue with remaining. Report skipped files at end. |
-| All files excluded (binary/generated) | `[extract] No scannable files in scope.` → exit. |
-| Single claim fails in batch | Skip claim, continue. Report skipped count at end. |
-| Conflict check fails | Treat as no conflict, proceed to confirm. |
+| 错误 | 处置 |
+|------|------|
+| 文件读取失败 | 跳过该文件继续；末尾汇报 |
+| 所有文件被排除（二进制/生成） | `[extract] No scannable files in scope.` → 退出 |
+| 批量中单条 claim 失败 | 跳过继续；末尾汇报跳过数 |
+| 冲突检查失败 | 视作无冲突，进入 confirm |

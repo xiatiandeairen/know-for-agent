@@ -150,14 +150,18 @@ m2=0
 } >> "$REPORT"
 
 # Final summary print
-m4_project=$(XDG_DATA_HOME="$REAL_XDG_DATA" bash "$KNOW_CTL" metrics --level project 2>&1 | grep 'M4 利用率' | awk -F'[()]' '{print $2}' || echo "—")
-m4_user=$(XDG_DATA_HOME="$REAL_XDG_DATA" bash "$KNOW_CTL" metrics --level user 2>&1 | grep 'M4 利用率' | awk -F'[()]' '{print $2}' || echo "—")
+metrics_p=$(XDG_DATA_HOME="$REAL_XDG_DATA" bash "$KNOW_CTL" metrics --level project 2>&1)
+metrics_u=$(XDG_DATA_HOME="$REAL_XDG_DATA" bash "$KNOW_CTL" metrics --level user 2>&1)
+m3_project=$(echo "$metrics_p" | grep 'M3 采纳率' | awk -F'[()]' '{print $2}' || echo "—")
+m3_user=$(echo "$metrics_u" | grep 'M3 采纳率' | awk -F'[()]' '{print $2}' || echo "—")
+m4_project=$(echo "$metrics_p" | grep 'M4 利用率' | awk -F'[()]' '{print $2}' || echo "—")
+m4_user=$(echo "$metrics_u" | grep 'M4 利用率' | awk -F'[()]' '{print $2}' || echo "—")
 echo ""
 echo "--- all metrics summary ---"
 printf "  M1 自查率:   %s%% (%s/%s)\n" "$m1" "$n_self_pass" "$n_self_total"
 printf "  M2 污染率:   %s%% (%s/%s)\n" "$m2" "$n_cont_fail" "$n_cont_total"
-printf "  M3 采纳率:   — (follow-up)\n"
-printf "  M4 利用率:   project=%s  user=%s  (estimated)\n" "$m4_project" "$m4_user"
+printf "  M3 采纳率:   project=%s  user=%s\n" "${m3_project:-—}" "${m3_user:-—}"
+printf "  M4 利用率:   project=%s  user=%s  (estimated)\n" "${m4_project:-—}" "${m4_user:-—}"
 printf "  M5 深度分布: 见 report\n"
 
 echo "Report: $REPORT"

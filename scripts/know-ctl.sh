@@ -101,7 +101,13 @@ emit_event() {
     ensure_events_file
     local ts
     ts=$(date +%Y-%m-%d)
-    if [ -n "$scope" ]; then
+    if [ -n "$scope" ] && [ "$event" = "hit" ]; then
+        # hit event: scope only, no matched
+        jq -cn --arg ts "$ts" --arg pid "$PROJECT_ID" --arg lvl "$level" \
+               --arg ev "$event" --arg sum "$summary" --arg sc "$scope" \
+               '{ts:$ts, project_id:$pid, level:$lvl, event:$ev, summary:$sum, scope:$sc}' \
+            >> "$EVENTS_FILE"
+    elif [ -n "$scope" ]; then
         jq -cn --arg ts "$ts" --arg pid "$PROJECT_ID" --arg lvl "$level" \
                --arg ev "$event" --arg sum "$summary" --arg sc "$scope" \
                --argjson m "${matched:-0}" \
@@ -249,15 +255,19 @@ cmd_hit() {
     tf=$(level_to_triggers "$level")
     [ -f "$tf" ] || { echo "No triggers for level '$level'"; exit 0; }
 
-    local matched
-    matched=$(jq -r "select(.summary | test(\"$target\"; \"i\")) | .summary" "$tf" 2>/dev/null || echo "")
-    if [ -z "$matched" ]; then
+    local matched_jsonl
+    matched_jsonl=$(jq -c "select(.summary | test(\"$target\"; \"i\"))" "$tf" 2>/dev/null || echo "")
+    if [ -z "$matched_jsonl" ]; then
         echo "Error: no entry matching '$target' in [$level]"
         exit 1
     fi
-    while IFS= read -r s; do
-        emit_event "$level" "hit" "$s"
-    done <<< "$matched"
+    while IFS= read -r entry; do
+        [ -z "$entry" ] && continue
+        local s sc
+        s=$(echo "$entry" | jq -r '.summary')
+        sc=$(echo "$entry" | jq -r '.scope')
+        emit_event "$level" "hit" "$s" "$sc"
+    done <<< "$matched_jsonl"
 }
 
 cmd_delete() {
@@ -474,7 +484,23 @@ EOF
         b3=$(jq -s --arg since "$since" --arg lv "$level" \
             '[.[] | select(.event=="recall_query" and .level==$lv and .ts>=$since and .matched>=6)] | length' "$EVENTS_FILE")
 
+        # M3 采纳率：hit.scope ∈ 某 recall_query.returned_scopes 在窗口内
+        # 简化：`hit events 数量 / recall_query with matched>0 数量`（仅按 scope 字段存在的事件算）
+        local n_rq_hit n_hit_in_window m3_pct
+        n_rq_hit=$(jq -s --arg since "$since" --arg lv "$level" \
+            '[.[] | select(.event=="recall_query" and .level==$lv and .ts>=$since and .matched>0)] | length' \
+            "$EVENTS_FILE")
+        n_hit_in_window=$(jq -s --arg since "$since" --arg lv "$level" \
+            '[.[] | select(.event=="hit" and .level==$lv and .ts>=$since and (.scope // null) != null)] | length' \
+            "$EVENTS_FILE")
+        if [ "$n_rq_hit" -gt 0 ]; then
+            m3_pct=$((n_hit_in_window * 100 / n_rq_hit))
+        else
+            m3_pct=0
+        fi
+
         printf '\n真指标（events.jsonl 派生，近 30 天）\n'
+        printf '  M3 采纳率:   %s/%s hits / queries w/matched>0 (%s%%)\n' "$n_hit_in_window" "$n_rq_hit" "$m3_pct"
         printf '  M4 利用率:    %s/%s scopes (%s%%) 被召回过 (estimated)\n' "$recalled_scopes" "$total_scopes" "$m4_pct"
         printf '  M5 深度分布: median=%s mean=%s | 0条=%s 1-2=%s 3-5=%s 6+=%s\n' \
             "$med" "$mean" "$b0" "$b1" "$b2" "$b3"
@@ -520,14 +546,15 @@ cmd_history() {
 }
 
 cmd_recall_log() {
-    # recall-log <scope> <matched> [--level L] [--keywords k1,k2,k3] [--kw-hits N]
+    # recall-log <scope> <matched> [--level L] [--keywords k1,k2,k3] [--kw-hits N] [--returned-scopes s1,s2,s3]
     parse_level "$@"
     set -- "${REMAINING_ARGS[@]+"${REMAINING_ARGS[@]}"}"
-    local scope="" matched="" keywords_csv="" kw_hits=""
+    local scope="" matched="" keywords_csv="" kw_hits="" returned_csv=""
     while [[ $# -gt 0 ]]; do
         case "$1" in
-            --keywords) keywords_csv="$2"; shift 2 ;;
-            --kw-hits)  kw_hits="$2"; shift 2 ;;
+            --keywords)        keywords_csv="$2"; shift 2 ;;
+            --kw-hits)         kw_hits="$2"; shift 2 ;;
+            --returned-scopes) returned_csv="$2"; shift 2 ;;
             *)
                 if [ -z "$scope" ]; then scope="$1"; shift
                 elif [ -z "$matched" ]; then matched="$1"; shift
@@ -553,10 +580,16 @@ cmd_recall_log() {
     # kw_hits default 0 if not provided
     local kh="${kw_hits:-0}"
 
+    # returned_scopes JSON array (null if not provided)
+    local rs_json="null"
+    if [ -n "$returned_csv" ]; then
+        rs_json=$(echo "$returned_csv" | tr ',' '\n' | awk 'NF>0' | jq -R . | jq -s -c)
+    fi
+
     jq -cn --arg ts "$ts" --arg pid "$PROJECT_ID" --arg lvl "$level" \
            --arg sc "$scope" --argjson m "$matched" \
-           --argjson kws "$kw_json" --argjson kh "$kh" \
-           '{ts:$ts, project_id:$pid, level:$lvl, event:"recall_query", scope:$sc, matched:$m, keywords:$kws, kw_hits:$kh}' \
+           --argjson kws "$kw_json" --argjson kh "$kh" --argjson rs "$rs_json" \
+           '{ts:$ts, project_id:$pid, level:$lvl, event:"recall_query", scope:$sc, matched:$m, keywords:$kws, kw_hits:$kh, returned_scopes:$rs}' \
         >> "$EVENTS_FILE"
 }
 
@@ -996,6 +1029,7 @@ cmd_self_test() {
     echo "hit:"
     cmd_hit "project rule" > /dev/null
     _assert "hit event emitted" 'grep -q "\"event\":\"hit\"" "$EVENTS_FILE"'
+    _assert "hit event has scope field" 'jq -c "select(.event==\"hit\") | .scope" "$EVENTS_FILE" | grep -qv "null"'
 
     # 8. update
     echo "update:"
@@ -1036,6 +1070,8 @@ cmd_self_test() {
     cmd_recall_log "Payment.webhook" "2" --keywords "webhook,signature-verification" --kw-hits "2"
     _assert "recall_query with keywords field" 'grep -q "\"keywords\":\[\"webhook\",\"signature-verification\"\]" "$EVENTS_FILE"'
     _assert "recall_query with kw_hits field" 'grep -q "\"kw_hits\":2" "$EVENTS_FILE"'
+    cmd_recall_log "Auth.test" "1" --returned-scopes "Auth.session,Auth.jwt"
+    _assert "recall_query with returned_scopes field" 'grep -q "\"returned_scopes\":\[\"Auth.session\",\"Auth.jwt\"\]" "$EVENTS_FILE"'
     local metrics_out
     metrics_out=$(cmd_metrics 2>&1)
     _assert "metrics shows avg kw_hits" 'echo "$metrics_out" | grep -q "avg kw_hits"'

@@ -5,373 +5,106 @@ description: Project knowledge compiler for AI agents — persist tacit knowledg
 
 # Know
 
-4 pipelines: **learn** (persist knowledge), **write** (generate documents), **extract** (mine code), **review** (audit entries). Each loads its workflow file on demand.
+## 1. Overview
 
-2 always-on systems: **recall** (remind before code changes), **decay** (expire stale entries).
+面向 AI agent 的项目知识编译器：沉淀隐性知识（triggers.jsonl）+ 生成结构化文档。
 
-1 report: **report** (knowledge base health — 6 section diagnostic).
+- **4 条 pipeline**（按需加载 workflow 文件）：`learn` 沉淀 / `write` 写文档 / `extract` 挖代码 / `review` 审查条目
+- **2 个常驻系统**：`recall`（改动前提醒）/ `decay`（v7 no-op）
+- **1 个报告**：`report`（知识库健康 6 段诊断）
 
-## Session Init
+## 2. Core Principles
 
-On first load per session, run silently and output 1 line per non-empty level:
+1. **高风险保守**：覆盖/删除、critical 等级、block、重写文档、把未确认内容写为事实 → 必须证据 + 用户确认。
+2. **低风险灵活**：候选发现、摘要、scope 推断、草稿、ranking → 用完整模型能力。
+3. **语义理解给建议，显式信号 + 用户意图做决定**。
+4. **规则与实用冲突 → 简单流程优先**。
+5. **Recall 只提醒不阻断**：AI 看 tag + `⚠` 自行判断严格程度，无机械 block/warn/suggest 分层。
+6. **level 二选一**：`project`（默认写入）/ `user`（跨项目）；读默认合并，`--level` 覆盖。
+7. **数据置信**：数值必须标注来源（实测/估算/目标/无数据）。
+
+## 3. Definitions
+
+| 术语 | 含义 |
+|---|---|
+| entry | triggers.jsonl 一行记录，8 字段（见 §4.4） |
+| tag | `rule`（约束）/ `insight`（决策/心智）/ `trap`（踩坑）；歧义时优先级 `trap > rule > insight` |
+| scope | dot-separated keypath（`Auth.session`、`methodology.recall`），支持前缀匹配 |
+| strict | `tag=rule` 时必填 bool：`true`=硬约束（违反即编译失败/数据损坏/安全事故），`false`=软推荐；其他 tag 必须 `null` |
+| ref | 指向完整 context：docs 段 / 代码锚点 / URL / `null` |
+| keywords | `string[]` 或 `null`；每项匹配 `^[a-z0-9-]+$`，长度 2-40；learn 时从 `know-ctl keywords` 词表优先选 5-8 个，recall 时选 3-5 做匹配；既有 trigger 可 null（向后兼容） |
+| level | `project`（项目 git）/ `user`（跨项目，`$XDG_CONFIG_HOME/know/`） |
+| pipeline | learn/write/extract/review，对应 workflow 文件 |
+| PROJECT_ID | 项目绝对路径 `/` 换成 `-`（只作 event 字段，不作目录） |
+
+## 4. Rules / Constraints
+
+### 4.1 Session Init（首次加载执行一次）
 
 ```bash
 # [RUN]
 bash "$KNOW_CTL" stats --level project 2>/dev/null | grep -E '^Total:' | head -1
-bash "$KNOW_CTL" stats --level user 2>/dev/null | grep -E '^Total:' | head -1
-```
-
-Output: `[know] [project] {total} entries | [user] {total} entries | last updated: {date}`
-
-Where `{date}` comes from project triggers:
-```bash
+bash "$KNOW_CTL" stats --level user    2>/dev/null | grep -E '^Total:' | head -1
 jq -sr 'sort_by(.updated) | last | .updated' "$PROJECT_TRIGGERS" 2>/dev/null
 ```
 
-No output if both triggers files missing or empty. Run once per session, do not repeat.
+输出一行：`[know] [project] {N} entries | [user] {N} entries | last updated: {date}`。两份 triggers 都缺失或空 → 不输出。本会话不再重复。
 
----
+### 4.2 Recall 触发条件
 
-## Principles
+在任何会改文件的操作（`Edit` / `Write` / 写类 `Bash`）前执行。以下任一满足即跳过：
+- 两份 triggers 文件都缺失
+- 本会话已查过相同 scope
+- 当前操作只读（`Read` / `Glob` / `Grep`）
 
-**High-risk = conservative**: overwrite/delete knowledge, assign critical, recall block, rewrite documents, write unconfirmed as fact → require evidence + user confirmation.
-
-**Low-risk = flexible**: candidate discovery, summary writing, scope inference, document drafts, recall ranking → use full model capability.
-
-Semantic understanding recommends; explicit signals + user intent decide. Rules conflict with practicality → simpler flow wins.
-
----
-
-## Definitions
-
-| Term | Meaning |
-|------|---------|
-| entry | triggers.jsonl 中的一行记录，8 个字段（见 Entry Schema） |
-| tag | 分类：`insight`（决策/心智模型）、`rule`（约束）、`trap`（踩坑）。选择优先级：trap > rule > insight |
-| scope | dot-separated keypath（如 `Module.Class.method`），支持前缀匹配。概念域用 `methodology.*` 前缀 |
-| strict | `tag=rule` 时强制的 bool：`true`=硬约束（违反导致编译失败/数据损坏/安全问题），`false`=软约束（推荐）。其他 tag 必须 `null` |
-| ref | 指向完整 context 的引用：docs 段落 / 代码锚点 / URL / `null` |
-| keywords | `string[]` 或 `null`，每项匹配正则 `^[a-z0-9-]+$`。learn 时 Claude 从动态词表（`know-ctl keywords` 输出）选 5-8 个，优先复用。recall 时也从词表选 3-5 做查询匹配 |
-| level | 存储作用域：`project`（项目 git，per-project）或 `user`（跨项目共享）。由 `--level` 参数控制；读类默认两 level 合并，写类默认 project |
-| pipeline | 子命令对应的执行流程（learn/write/extract/review），由 workflow 文件定义 |
-
----
-
-## Input Normalization
-
-### Direct entry
-
-| Input | Pipeline | Workflow |
-|-------|----------|----------|
-| `/know learn` | Learn — scan conversation | `workflows/learn.md` |
-| `/know learn "text"` | Learn — treat quoted text as claim | `workflows/learn.md` |
-| `/know write` | Write — infer params from conversation | `workflows/write.md` |
-| `/know write <hint>` | Write — hint assists inference | `workflows/write.md` |
-| `/know extract` | Extract — mine code | `workflows/extract.md` |
-| `/know review` | Review — audit all entries | `workflows/review.md` |
-| `/know review <scope>` | Review — audit matching scope | `workflows/review.md` |
-| `/know report` | Report — knowledge base health report | inline (no workflow file) |
-
-### Auto-dispatch
-
-`/know` or `/know {text}` → keyword match first, conversation scan fallback.
-
-| Pipeline | Keywords |
-|----------|----------|
-| learn | 沉淀, 经验, 总结, 记住, save, persist, remember, 教训, lesson |
-| write | prd, tech, roadmap, arch, capabilities, ui, 文档, doc, 写文档, ops, marketing, schema, decision |
-| extract | 提取, extract, 扫描, scan, 挖掘, mine |
-| review | review, 审查, 清理, 检查, audit, cleanup |
-| report | report, 报告, 健康, health, status, 状态, 概况 |
-
-Case-insensitive substring match. First match wins.
-
-**0 or ≥2 matches** → scan conversation → present findings → user chooses:
-```
-[route] Detected: {findings}
-A) learn  B) write  C) extract  D) review  E) multi-select
-```
-Multi-select execution order: learn → extract → write → review.
-
----
-
-## Recall
-
-Purpose: surface relevant triggers before an edit so the AI can factor them into its work. Reminds, does not block.
-
-### Trigger
-
-Runs before any code-changing operation (`Edit`, `Write`, or `Bash` that modifies files).
-
-**Skip when any of**:
-- Both project and user triggers files are missing.
-- The same scope was already queried in this session.
-- The current operation is read-only (`Read`, `Glob`, `Grep`).
-
-### Pipeline (4 steps)
+### 4.3 存储布局（3 文件）
 
 ```
-1. Infer context        (scope + keywords together)
-2. Query and log         (know-ctl query + recall-log)
-3. Present top 3         (render tag/strict/why/ref)
-4. Hit on adoption       (know-ctl hit when AI uses a trigger)
+<project>/docs/triggers.jsonl           # project source（git-tracked）
+$XDG_CONFIG_HOME/know/triggers.jsonl    # user source（~/.config/know/，用户 dotfiles 可选 git）
+$XDG_DATA_HOME/know/events.jsonl        # runtime 事件（~/.local/share/know/，每行含 project_id + level）
 ```
 
-#### Step 1 — Infer context
+`docs/` 同时托管文档：`{type}.md`（roadmap/capabilities/ops/marketing）、`{type}/{topic}.md`（arch/ui/schema/decision）、`requirements/{req}/prd.md + tech.md`。
 
-**Scope**
+legacy v6 数据（`$XDG_DATA_HOME/know/projects/{id}/` 和 `/user/`）由 `scripts/know-ctl.sh migrate-v7` 迁移，原文件不自动删除。
 
-| Priority | Source |
-|---|---|
-| P1 | Current file path → module notation |
-| P2 | A path appearing ≥ 2 times in the last 10 tool calls |
-| P3 | `"project"` fallback |
-
-**Keywords**
-
-```bash
-# [RUN]
-bash "$KNOW_CTL" keywords
-```
-
-Pick 3–5 keywords from the returned vocabulary that match the current task (file type + feature being changed + conversational context). Never invent new keywords — new keywords only appear during `learn`.
-
-#### Step 2 — Query and log
-
-```bash
-# [RUN]
-bash "$KNOW_CTL" query "{scope}" --keywords "{k1},{k2},{k3}"
-```
-
-Returns JSONL; each entry has `_level` and `_kw_hits`. Results are already ordered by `_kw_hits` descending with `_level=project` breaking ties.
-
-Log the query immediately; capture `returned_scopes` so adoption attribution works:
-
-```bash
-# [RUN]
-bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}" \
-  --keywords "{k1},{k2},{k3}" \
-  --kw-hits "{total_kw_hits}" \
-  --returned-scopes "{s1,s2,s3}"
-```
-
-`{total_kw_hits}` = sum of `_kw_hits` across returned entries (0 when empty).
-
-#### Step 3 — Present top 3
-
-Take the first 3 entries; emit nothing when the list is empty. Prefix `⚠` when `tag=rule && strict=true`.
-
-```
-[recall] [project] ⚠ {summary}
-Why:  {one-line relevance to current operation}
-Ref:  {ref or "—"}
-
-[recall] [user] {summary}
-Why:  {one-line relevance}
-Ref:  {ref or "—"}
-```
-
-The AI reads the tag and `⚠` to decide how strictly to apply each trigger. No mechanical block/warn/suggest tiers.
-
-#### Step 4 — Hit on adoption
-
-A recall is "adopted" when the AI explicitly uses a returned trigger in its subsequent output. Emit a hit event at that moment.
-
-**Adoption is explicit when any of**:
-- The AI's reply cites the trigger's summary, scope, or ref by name.
-- The AI changes its proposed action because of a specific returned trigger.
-- The AI declines or adjusts a step naming the trigger as the reason.
-
-**Do not emit a hit for**:
-- Reading the recall output without acting on a specific trigger.
-- General alignment with a rule that happened to be returned but was not cited.
-
-```bash
-# [RUN]
-bash "$KNOW_CTL" hit "{summary-keyword}" --level {entry._level}
-```
-
-### Learn hint
-
-Once per session, when all three hold: recall was triggered this session, the user has sent ≥ 5 messages, and the hint has not yet fired.
-
-```
-[know] tip: this conversation has learnable insights — run /know learn before ending
-```
-
-Appended after recall output; never as a standalone interruption.
-
----
-
-## Decay
-
-**v7: no-op**（策略重做在下个 sprint）。命令保留可调用性；learn 管线入口仍调，但不会有删除/降级动作。
-
-```bash
-# [RUN]
-bash "$KNOW_CTL" decay
-```
-
-Output: `[decay] 已推延到下个 sprint（v7 schema 简化完成，衰减策略将在 v7.x 重做）`。
-
----
-
-## Report
-
-Triggered by `/know report`. No workflow file — runs inline commands and assembles output.
-
-### Data Collection
-
-```bash
-# [RUN] collect all data in one pass
-bash "$KNOW_CTL" metrics
-bash "$KNOW_CTL" stats
-```
-
-Then gather additional data with inline commands:
-
-```bash
-# [RUN] recent activity (7 days, current project)
-jq -s --arg since "$(date -v-7d +%Y-%m-%d 2>/dev/null || date -d '7 days ago' +%Y-%m-%d)" --arg pid "$PROJECT_ID" '[.[] | select(.ts >= $since and .project_id == $pid)]' "$EVENTS_FILE" 2>/dev/null | jq '{created: [.[] | select(.event=="created")] | length, hit: [.[] | select(.event=="hit")] | length, recall_query: [.[] | select(.event=="recall_query")] | length}'
-```
-
-```bash
-# [RUN] top never-hit entries (current project)
-# "never-hit" = summary never appears as hit event for this project
-TRIGGERS="$PROJECT_TRIGGERS"
-jq -r '.summary' "$TRIGGERS" 2>/dev/null | while read -r s; do
-  if ! jq -e --arg s "$s" --arg pid "$PROJECT_ID" 'select(.event=="hit" and .summary==$s and .project_id==$pid)' "$EVENTS_FILE" > /dev/null 2>&1; then
-    echo "$s"
-  fi
-done | head -5
-```
-
-```bash
-# [RUN] document inventory
-find "$DOCS_DIR" -name "*.md" -not -path "*/milestones/*" | wc -l
-```
-
-### Output Format
-
-Assemble into 6 sections. Use `[report]` marker.
-
-```
-[report] know health report
-
---- 1. Overview ---
-  Entries:    {total} (rule: {n_rule}, insight: {n_insight}, trap: {n_trap})
-  Strict:     {hard_count} hard + {soft_count} soft (rule only)
-  Scopes:     {n} ({largest}: {n} entries)
-  Last 7d:    +{created} new, -{deleted} deleted
-
---- 2. Knowledge Value ---
-  Hit rate:   {hit_count}/{total} ({pct}%)
-  Last hit:   "{summary}"
-  Never hit:  {count} entries (top 3: ...)
-
---- 3. Recall ---
-  Defensive:  {strict_hits}     (hits on rule+strict=true)
-  Queries:    {rq_total} (hit {rq_hit}/{pct}%, empty {rq_empty}/{pct}%)
-  Blind spots: {scopes never queried}
-
---- 4. Documents ---
-  Types:      {covered}/{total} ({list of covered types})
-  Files:      {count}
-  Missing:    {uncovered types}
-
---- 5. Trend (7d vs prior) ---
-  New:        {recent} vs {prior}
-  Hits:       {recent} vs {prior}
-  Queries:    {recent} vs {prior}
-  Direction:  {growing/stable/declining} — {one-line interpretation}
-
---- 6. Actions ---
-  {priority}. {action description}
-```
-
-### Action Generation Rules
-
-| Condition | Priority | Action |
-|-----------|----------|--------|
-| hit rate < 10% | high | "{n} entries never hit — run /know review" |
-| recall queries = 0 for > 7 days | high | "recall not triggering — check SKILL.md recall section" |
-| recall empty rate > 50% | medium | "recall matching too narrow — check scope rules" |
-| uncovered doc types with existing data | medium | "missing {types} — run /know write" |
-| no new entries in 7 days | low | "no recent knowledge — run /know learn or /know extract" |
-| all healthy | — | "all indicators healthy" |
-
----
-
-## Storage
-
-**Three JSONL files**, split by source vs runtime and by level:
-
-```
-<project>/docs/triggers.jsonl          # project source (git-tracked)
-                                       # also hosts narrative docs:
-                                       #   {type}.md (roadmap/capabilities/ops/marketing)
-                                       #   {type}/{topic}.md (arch/ui/schema/decision)
-                                       #   requirements/{req}/prd.md + tech.md
-
-$XDG_CONFIG_HOME/know/triggers.jsonl   # user source (user's dotfiles git optional)
-                                       # default: ~/.config/know/
-
-$XDG_DATA_HOME/know/events.jsonl       # runtime: all events (project + user)
-                                       # each event has project_id + level fields
-                                       # default: ~/.local/share/know/
-```
-
-Legacy v6 data at `$XDG_DATA_HOME/know/projects/{id}/` and `/user/` is migrated via `bash scripts/know-ctl.sh migrate-v7`.
-
-### Entry Schema (8 core + 1 optional keywords)
+### 4.4 Entry Schema（8 字段 + 可选 keywords）
 
 ```json
-{"tag":"rule|insight|trap","scope":"...","summary":"≤80ch","strict":true|false|null,"ref":"docs/x.md#a|src/f:42|https://...|null","keywords":["webhook","signature-verification"]|null,"source":"learn|extract","created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}
+{"tag":"rule|insight|trap","scope":"...","summary":"≤80ch","strict":true|false|null,"ref":"docs/x.md#a|src/f:42|https://...|null","keywords":["a","b"]|null,"source":"learn|extract","created":"YYYY-MM-DD","updated":"YYYY-MM-DD"}
 ```
 
-| Field | Values |
-|-------|--------|
-| tag | `rule` (约束)、`insight` (决策/心智模型)、`trap` (踩坑)；选择优先级 trap > rule > insight |
+| 字段 | 约束 |
+|---|---|
+| tag | 见 §3 |
 | scope | dot-separated keypath；支持前缀匹配 |
-| summary | `{结论} — {原因}`，≤80 chars，含可搜索锚词 |
-| strict | `tag=rule` 时必填 bool：`true`=硬约束，`false`=软约束；其他 tag 必须 `null` |
-| ref | 指向 context：docs 段 / 代码锚点 / URL / `null` |
-| **keywords** | **string[] 或 null；每项匹配 `^[a-z0-9-]+$`（长度 2-40）；learn 时从 `know-ctl keywords` 词表优先选；既有 trigger 可 null（向后兼容）** |
-| source | `learn` \| `extract` |
+| summary | `{结论} — {原因}`，≤80 字符，含可搜索锚词 |
+| strict | `rule` 时 bool，其他 tag 必须 `null` |
+| ref | docs 段 / 代码锚点 / URL / `null` |
+| keywords | 见 §3 |
+| source | `learn` / `extract` |
 | created / updated | `YYYY-MM-DD` |
 
-### Event Schema (runtime, `$XDG_DATA_HOME/know/events.jsonl`)
+### 4.5 Event Schema（runtime）
 
 ```json
 {"ts":"YYYY-MM-DD","project_id":"-Users-x-proj","level":"project|user","event":"created|updated|deleted|hit|recall_query","summary":"...","scope":"...","matched":N}
 ```
 
-`scope` and `matched` 仅在 `event=recall_query` 时存在。`project_id` 即便对 `level=user` 条目的 hit 也记录（表明"在哪个项目里命中"），用于跨项目分析。
+`scope` / `matched` 仅在 `event=recall_query` 存在。`level=user` 条目被命中时 `project_id` 仍记录（用于跨项目归因）。
 
-### Document Types (10 types)
+### 4.6 文档类型（10 种）
 
-| Type | Level | Path Pattern |
-|------|-------|-------------|
-| roadmap | 项目单文件 | `docs/roadmap.md` |
-| capabilities | 项目单文件 | `docs/capabilities.md` |
-| ops | 项目单文件 | `docs/ops.md` |
-| marketing | 项目单文件 | `docs/marketing.md` |
-| arch | 项目目录 | `docs/arch/{topic}.md` |
-| ui | 项目目录 | `docs/ui/{topic}.md` |
-| schema | 项目目录 | `docs/schema/{topic}.md` |
-| decision | 项目目录 | `docs/decision/{topic}.md` |
-| prd | 需求 | `docs/requirements/{req}/prd.md` |
-| tech | 需求 | `docs/requirements/{req}/tech.md` |
+| Type | 路径 |
+|---|---|
+| roadmap / capabilities / ops / marketing | `docs/{type}.md`（项目单文件） |
+| arch / ui / schema / decision | `docs/{type}/{topic}.md`（项目目录） |
+| prd / tech | `docs/requirements/{req}/{type}.md` |
 
-Document hierarchy: `roadmap → prd → tech`. All other types are independent.
+层级：`roadmap → prd → tech`；其他独立。
 
----
-
-## Infrastructure
-
-### Path Resolution
-
-From `"Base directory for this skill: {path}"`, strip `skills/know/` to get project root.
+### 4.7 路径解析（从 "Base directory for this skill: {path}" 去掉 `skills/know/` 得项目根）
 
 ```
 KNOW_CTL          = {project_root}/scripts/know-ctl.sh
@@ -383,58 +116,229 @@ TEMPLATES_DIR     = {project_root}/workflows/templates
 PROJECT_ID        = pwd | sed 's|/|-|g'
 ```
 
-**3 files** — source split from runtime by XDG semantics (CONFIG = user declarations, DATA = derived state).
+### 4.8 执行控制标记（不出现在用户输出中）
 
-### Execution Control
+| 标记 | 含义 |
+|---|---|
+| `# [RUN]` | Bash 工具执行 |
+| `[STOP:confirm]` | 暂停待用户确认（ok/yes/continue/确认/好/可以） |
+| `[STOP:choose]` | 暂停待用户选项 |
 
-| Marker | Behavior |
-|--------|----------|
-| `# [RUN]` | Execute with Bash tool |
-| `[STOP:confirm]` | Pause until user confirms (ok/yes/continue/确认/好/可以) |
-| `[STOP:choose]` | Pause until user picks option |
+### 4.9 输出标记（每条 pipeline 输出前缀）
 
-Flow markers never appear in user-facing output.
+`[route]` / `[learn]` / `[persisted]` / `[conflict]` / `[skipped]` / `[extract]` / `[write]` / `[written]` / `[progress]` / `[recall]` / `[review]` / `[report]` / `[decay]` / `[error]`
 
-### Output Constraints
+**风格**：pipeline 输出带步骤名（`[learn] step: detect`）；匹配用户语言；无填充/含糊词；数值具体（"3 files" 不是 "several"）；空结果也是合法输出（"No issues found"）。
 
-**Markers** — prefix every pipeline output:
+## 5. Workflow
 
-| Marker | When |
-|--------|------|
-| `[route]` | Auto-dispatch result |
-| `[learn]` | Learn pipeline status |
-| `[persisted]` | Entry written to index |
-| `[conflict]` | Duplicate/conflict/merge found |
-| `[skipped]` | Claim filtered out |
-| `[extract]` | Extract pipeline status |
-| `[write]` | Write pipeline status |
-| `[written]` | Document written to disk |
-| `[progress]` | Parent document updated |
-| `[recall]` | Knowledge recalled before edit |
-| `[review]` | Review pipeline status |
-| `[report]` | Health report output |
-| `[decay]` | Entries deleted or demoted |
-| `[error]` | Unrecoverable error |
+### 5.1 输入归一化
 
-**Style rules**:
-- Include step name in pipelines: `[learn] step: detect`
-- Match user's language for content
-- No filler words, no hedging, no empty statements
-- Numbers must be concrete: "3 files" not "several"
-- Empty result is valid output: "No issues found" / "No entries"
+**直接入口**：
 
----
+| 输入 | pipeline | workflow |
+|---|---|---|
+| `/know learn` | Learn — 扫会话 | `workflows/learn.md` |
+| `/know learn "text"` | Learn — 把 text 当 claim | `workflows/learn.md` |
+| `/know write` | Write — 从会话推参数 | `workflows/write.md` |
+| `/know write <hint>` | Write — hint 辅助推断 | `workflows/write.md` |
+| `/know extract` | Extract — 挖代码 | `workflows/extract.md` |
+| `/know review [scope]` | Review — 审查 | `workflows/review.md` |
+| `/know report` | Report — 健康报告 | 内联，无 workflow |
 
-## Defaults
+**自动分派** `/know` 或 `/know {text}` → 关键词匹配优先，失败则扫会话。大小写不敏感子串匹配，首个命中胜出。
 
-| Situation | Behavior |
-|-----------|----------|
-| No `$PROJECT_TRIGGERS` file | Create on first write operation |
-| No triggers entries | Skip recall/review silently |
-| `/know write` with <3 messages | Warn insufficient context, ask user to specify content |
-| `/know learn` with 0 signals | `[learn] No high-value knowledge detected.` |
-| `/know review` with empty index | `[review] No entries to review.` |
-| `/know extract` with 0 files | `[extract] No files detected. Provide path or glob.` |
-| `/know` route finds nothing | `[route] No actionable findings.` Offer: review / extract |
-| `know-ctl.sh` command fails | Show error verbatim. Ask: retry or skip |
-| Workflow file missing | `[error] Workflow not found: {path}` |
+| pipeline | keywords |
+|---|---|
+| learn | 沉淀/经验/总结/记住/save/persist/remember/教训/lesson |
+| write | prd/tech/roadmap/arch/capabilities/ui/文档/doc/写文档/ops/marketing/schema/decision |
+| extract | 提取/extract/扫描/scan/挖掘/mine |
+| review | review/审查/清理/检查/audit/cleanup |
+| report | report/报告/健康/health/status/状态/概况 |
+
+0 个或 ≥2 个命中 → 扫会话呈现发现让用户选：
+
+```
+[route] Detected: {findings}
+A) learn  B) write  C) extract  D) review  E) multi-select
+```
+
+多选执行顺序：learn → extract → write → review。
+
+### 5.2 Recall（4 步）
+
+**Step 1 — 推断 context**
+
+*Scope*：P1 当前文件路径 → 模块表示法 / P2 最近 10 次工具调用出现 ≥2 次的路径 / P3 fallback `"project"`。
+
+*Keywords*：
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" keywords
+```
+
+从返回词表选 3-5 个匹配当前任务（文件类型 + 正在改的 feature + 会话上下文）。**禁止发明新词**，新词仅在 learn 时产生。
+
+**Step 2 — 查询并记日志**
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" query "{scope}" --keywords "{k1},{k2},{k3}"
+bash "$KNOW_CTL" recall-log "{scope}" "{matched_count}" \
+  --keywords "{k1},{k2},{k3}" \
+  --kw-hits "{total_kw_hits}" \
+  --returned-scopes "{s1,s2,s3}"
+```
+
+返回 JSONL 已按 `_kw_hits` 降序、`_level=project` 先。`{total_kw_hits}` = 返回条目 `_kw_hits` 之和（空时 0）。必须记 `returned_scopes` 以便后续归因命中。
+
+**Step 3 — 输出前 3 条**
+
+空列表 → 不输出。`tag=rule && strict=true` 加 `⚠` 前缀。
+
+```
+[recall] [project] ⚠ {summary}
+Why:  {一行相关性}
+Ref:  {ref 或 —}
+```
+
+**Step 4 — 命中记录**
+
+AI 在后续输出中**显式使用**某条 trigger 时立即发命中事件。判定显式：
+- AI 回复按名引用该 trigger 的 summary/scope/ref
+- AI 因某条具体 trigger 改变方案
+- AI 基于该 trigger 调整或拒绝某步
+
+**不计命中**：读了 recall 输出但没针对性行动；与某条 rule 无关地恰好一致。
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" hit "{summary-keyword}" --level {entry._level}
+```
+
+### 5.3 Learn Hint
+
+三条件全满足时，本会话一次，追加在 recall 输出后（不单独打断）：本会话已触发过 recall + 用户消息 ≥5 条 + 本会话未触发过该提示。
+
+```
+[know] tip: this conversation has learnable insights — run /know learn before ending
+```
+
+### 5.4 Decay（v7 no-op）
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" decay
+```
+
+输出：`[decay] 已推延到下个 sprint（v7 schema 简化完成，衰减策略将在 v7.x 重做）`。
+
+### 5.5 Report（/know report，内联）
+
+**数据收集**：
+
+```bash
+# [RUN]
+bash "$KNOW_CTL" metrics
+bash "$KNOW_CTL" stats
+
+# 近 7 天活动（当前项目）
+jq -s --arg since "$(date -v-7d +%Y-%m-%d 2>/dev/null || date -d '7 days ago' +%Y-%m-%d)" --arg pid "$PROJECT_ID" '[.[] | select(.ts >= $since and .project_id == $pid)]' "$EVENTS_FILE" 2>/dev/null | jq '{created:[.[]|select(.event=="created")]|length, hit:[.[]|select(.event=="hit")]|length, recall_query:[.[]|select(.event=="recall_query")]|length}'
+
+# Top never-hit（当前项目）
+TRIGGERS="$PROJECT_TRIGGERS"
+jq -r '.summary' "$TRIGGERS" 2>/dev/null | while read -r s; do
+  if ! jq -e --arg s "$s" --arg pid "$PROJECT_ID" 'select(.event=="hit" and .summary==$s and .project_id==$pid)' "$EVENTS_FILE" > /dev/null 2>&1; then
+    echo "$s"
+  fi
+done | head -5
+
+# 文档清单
+find "$DOCS_DIR" -name "*.md" -not -path "*/milestones/*" | wc -l
+```
+
+**输出 6 段**（前缀 `[report]`）：
+
+```
+[report] know health report
+
+--- 1. Overview ---
+  Entries: {total} (rule:{n_rule}, insight:{n_insight}, trap:{n_trap})
+  Strict:  {hard} hard + {soft} soft (rule only)
+  Scopes:  {n} ({largest}: {n} entries)
+  Last 7d: +{created} new, -{deleted} deleted
+
+--- 2. Knowledge Value ---
+  Hit rate: {hit}/{total} ({pct}%)
+  Last hit: "{summary}"
+  Never hit: {count} (top 3: ...)
+
+--- 3. Recall ---
+  Defensive:  {strict_hits}  (hits on rule+strict=true)
+  Queries:    {rq_total} (hit {rq_hit}/{pct}%, empty {rq_empty}/{pct}%)
+  Blind spots: {scopes never queried}
+
+--- 4. Documents ---
+  Types:   {covered}/{total} ({covered list})
+  Files:   {count}
+  Missing: {uncovered types}
+
+--- 5. Trend (7d vs prior) ---
+  New:      {recent} vs {prior}
+  Hits:     {recent} vs {prior}
+  Queries:  {recent} vs {prior}
+  Direction: {growing/stable/declining} — {一行解读}
+
+--- 6. Actions ---
+  {priority}. {action}
+```
+
+**Action 规则**：
+
+| 条件 | 优先级 | Action |
+|---|---|---|
+| hit rate < 10% | high | "{n} entries never hit — run /know review" |
+| recall queries = 0 超过 7 天 | high | "recall not triggering — check SKILL.md recall section" |
+| recall empty rate > 50% | medium | "recall matching too narrow — check scope rules" |
+| 文档类型缺失但有对应数据 | medium | "missing {types} — run /know write" |
+| 7 天无新 entry | low | "no recent knowledge — run /know learn or /know extract" |
+| 全健康 | — | "all indicators healthy" |
+
+## 6. Examples
+
+**Recall 展示**
+
+```
+[recall] [project] ⚠ webhook 必须先验签再解 body — 防注入
+Why:  当前改动涉及 src/payment/webhook.ts，属于 Payment.webhook scope
+Ref:  docs/decision/payment.md#webhook-auth
+```
+
+**自动分派歧义**
+
+```
+user: /know 改进下 session 刷新
+[route] Detected: 与 session 相关的讨论，候选多条
+A) learn  B) write  C) extract  D) review  E) multi-select
+```
+
+**Session init 输出**
+
+```
+[know] [project] 42 entries | [user] 8 entries | last updated: 2026-04-20
+```
+
+## 7. Edge Cases
+
+| 场景 | 行为 |
+|---|---|
+| 无 `$PROJECT_TRIGGERS` 文件 | 首次写入时创建 |
+| 无 triggers 条目 | 静默跳过 recall / review |
+| `/know write` 会话 <3 消息 | 警告上下文不足，让用户指定内容 |
+| `/know learn` 无信号 | `[learn] No high-value knowledge detected.` |
+| `/know review` 空索引 | `[review] No entries to review.` |
+| `/know extract` 0 文件 | `[extract] No files detected. Provide path or glob.` |
+| `/know` 路由无发现 | `[route] No actionable findings.` 提供 review / extract |
+| `know-ctl.sh` 命令失败 | 原样显示错误，问 retry 或 skip |
+| workflow 文件缺失 | `[error] Workflow not found: {path}` |
