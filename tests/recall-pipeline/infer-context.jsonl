@@ -1,4 +1,0 @@
-{"id":"tc01-file-path","input":{"tool":"Edit","file":"src/auth/session.ts","task":"jwt 过期刷新"},"expected":{"scope":"Auth.session","keywords_count":3}}
-{"id":"tc02-history-p2","input":{"tool":"Write","file":null,"recent_paths":["src/auth/a.ts","src/auth/b.ts"],"task":"auth"},"expected":{"scope":"Auth","keywords_count":3}}
-{"id":"tc03-fallback","input":{"tool":"Bash","file":null,"recent_paths":[],"task":"通用"},"expected":{"scope":"project"}}
-{"id":"tc04-keywords-from-vocab","input":{"vocabulary":["jwt","authentication","cache-invalidation"],"task":"jwt 验证"},"expected":{"keywords_subset_of_vocab":true}}

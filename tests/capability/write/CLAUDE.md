@@ -1,4 +1,4 @@
-# tests/write — write pipeline 测试场景
+# tests/capability/write — write pipeline 测试场景
 
 **不是 benchmark**，是回归参考：保证 workflow 行为符合 spec。
 

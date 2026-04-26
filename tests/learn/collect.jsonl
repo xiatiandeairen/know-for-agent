@@ -1,5 +1,0 @@
-{"id":"tc01-no-signals","input":{"conversation":"随便聊天","claim":null},"expected":{"candidates":[]}}
-{"id":"tc02-explicit-claim","input":{"conversation":"","claim":"JWT 必须校验签名"},"expected":{"candidates_count":1}}
-{"id":"tc03-single-correction","input":{"conversation":"用户: 你忘了 webhook 必须先验签再解 body","claim":null},"expected":{"candidates_count":1,"likely_tag":"rule"}}
-{"id":"tc04-truncate-to-5","input":{"conversation":"七条分散信号","claim":null},"expected":{"candidates_count":5}}
-{"id":"tc05-drop-surface-code","input":{"conversation":"讨论 let x = 1 这种代码一眼可读内容","claim":null},"expected":{"candidates":[]}}

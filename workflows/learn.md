@@ -163,7 +163,7 @@ bash "$KNOW_CTL" append --level {level} '{
 [persisted] {scope} :: {summary} ({level})
 ```
 
-Decay 在 pipeline 入口跑一次（`know-ctl decay`；v7 当前为 no-op）。
+Decay 在 pipeline 入口跑一次（`know-ctl decay`）。
 
 ## 6. Examples
 

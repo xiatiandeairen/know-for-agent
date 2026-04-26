@@ -1,3 +1,0 @@
-{"id":"tc01-with-results","input":{"scope":"Auth.session","keywords":["jwt","auth"],"matched_entries":2},"expected":{"event":"recall_query","matched":2,"returned_scopes_logged":true}}
-{"id":"tc02-empty","input":{"scope":"Nothing","keywords":["x"],"matched_entries":0},"expected":{"event":"recall_query","matched":0,"returned_scopes":[]}}
-{"id":"tc03-same-scope-skip","input":{"scope":"Auth","session_queried":["Auth"]},"expected":{"outcome":"skip"}}

@@ -1,5 +1,0 @@
-{"id":"tc01-direct-confirm","input":{"user_replies":["confirm"]},"expected":{"outcome":"accepted","edit_rounds":0}}
-{"id":"tc02-edit-then-confirm","input":{"user_replies":["edit scope=Auth.jwt","confirm"]},"expected":{"outcome":"accepted","edit_rounds":1}}
-{"id":"tc03-skip","input":{"user_replies":["skip"]},"expected":{"outcome":"skipped"}}
-{"id":"tc04-force-after-3","input":{"user_replies":["edit","edit","edit"]},"expected":{"outcome":"force-confirm-or-cancel"}}
-{"id":"tc05-user-level-second-confirm","input":{"entry":{"level":"user"},"user_replies":["confirm","y"]},"expected":{"outcome":"accepted"}}

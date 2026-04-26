@@ -1,4 +1,0 @@
-{"id":"tc01-cite-summary","input":{"ai_response_references":"trigger summary quoted"},"expected":{"hit_emitted":true}}
-{"id":"tc02-cite-scope","input":{"ai_response_references":"scope Auth.session"},"expected":{"hit_emitted":true}}
-{"id":"tc03-implicit-alignment","input":{"ai_response_references":null,"behavior":"happens to follow rule"},"expected":{"hit_emitted":false}}
-{"id":"tc04-read-only","input":{"ai_response_references":null,"behavior":"acknowledged recall but did nothing"},"expected":{"hit_emitted":false}}

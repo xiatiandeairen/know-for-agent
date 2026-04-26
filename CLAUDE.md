@@ -4,62 +4,42 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-know — Project knowledge compiler for AI agents. A Claude Code plugin that persists tacit knowledge and generates structured documents. Run `/know` for help, `/know report` for health diagnostics. Docs in `docs/`.
+know — AI 辅助的高熵知识单元 authoring 工具 + Claude Code 生态原生载体。Claude Code plugin。
+
+**当前状态（pivot 后）**：v1 `write` 已实现可用；v2 `learn` 体系（5 模式 + entropy gate + 5 字段元数据）规划中。运行时检索（recall / extract / review / report / decay）已下线，由 Claude Code 嵌套 CLAUDE.md 加载机制接管。
+
+入口仅 `/know learn` + `/know write`。Roadmap 见 `docs/roadmap.md`，pivot 前迭代史归档在 `docs/milestones/history.md`。
 
 ## Architecture
 
 ```
-skills/know/SKILL.md          ← Skill entry: routing, recall (unified, no tier/tm), storage
-workflows/                     ← Pipeline definitions (loaded on demand by SKILL.md)
-  learn.md                       9-step knowledge extraction (v7: no Assess; adds strict)
-  write.md                       8-step document authoring (sufficiency gate + validate)
-  extract.md                     Code mining pipeline
-  review.md                      Entry audit pipeline (--level filter + strict column)
-  templates/                   ← Document templates + quality infrastructure
-scripts/
-  know-ctl.sh                  ← CLI: 14 subcommands (init/append/query/.../migrate-v7)
-                                  all accept --level project|user
-docs/                          ← Project knowledge (git-tracked)
-  triggers.jsonl                 ← project source (8-field schema, v7)
-  {type}.md                      Structured narrative docs (roadmap, capabilities, ops, marketing)
-  {type}/{topic}.md              arch, ui, schema, decision
-  requirements/{req}/            prd.md, tech.md
-  milestones/history.md          Compressed milestone history
-
-$XDG_CONFIG_HOME/know/         ← User source (per-user, dotfiles-git optional)
-  triggers.jsonl                 ← user-level triggers (cross-project methodology)
-
-$XDG_DATA_HOME/know/           ← Runtime (per-machine, never git)
-  events.jsonl                   ← all events; each line has project_id + level fields
-                                  metrics/stats derived from this
-```
-
-`project_id` = absolute project path with `/` replaced by `-`（used in event records as a field, not as a directory name in v7）.
-
-## Key Commands
-
-```bash
-bash scripts/know-ctl.sh self-test              # Run 33+ tests in isolated XDG_CONFIG + XDG_DATA
-bash scripts/know-ctl.sh stats                  # Entry counts by tag/scope/strict (both levels)
-bash scripts/know-ctl.sh metrics                # Hit rate + defensive count (derived from events)
-bash scripts/know-ctl.sh check                  # Template-document structure check
-bash scripts/know-ctl.sh init                   # Create 3-file layout; warn on v6 data
-bash scripts/know-ctl.sh migrate-v7 --dry-run   # Preview v6 → v7 migration
-bash scripts/know-ctl.sh migrate-v7             # Execute migration
+skills/know/SKILL.md          ← Skill 入口：仅 routing + conventions（最小常驻上下文）
+workflows/                     ← Pipeline 定义，按需加载
+  learn.md                       v2 重写中（旧 v7 版本待重构为 5 模式）
+  write.md                       v1 文档撰写流程（沿用，保留中）
+docs/
+  templates/                   ← write 用文档模板 + 检查清单
+  roadmap.md                     v2 路线图
+  capabilities.md / marketing.md / ops.md   产品文档（待 v2 实现进行时回填）
+  arch/ decision/ requirements/  历史决策与架构记录
+  milestones/history.md          pivot 前 v1-v7 / M1-M15 迭代归档
+tests/
+  capability/write/            ← write 能力 fixtures（保留）
+scripts/                       ← 空。v2 计划无运行时脚本依赖
 ```
 
 ## Key Design Decisions
 
-- **3-file storage (v7)**: project triggers in `docs/triggers.jsonl` (git); user triggers in `$XDG_CONFIG_HOME/know/triggers.jsonl` (user's dotfiles optional); runtime in single `$XDG_DATA_HOME/know/events.jsonl` (per-machine, with project_id + level fields). No per-project XDG directories.
-- **Schema 8 fields**: `tag / scope / summary / strict / ref / source / created / updated`. `strict` is bool for tag=rule and null for insight/trap. `ref` points to docs/ paragraph, code file, URL, or null.
-- **Tag selection priority**: trap > rule > insight (eliminates ambiguity when multiple fit).
-- **Two levels**: `project` (default for writes) and `user` (cross-project). Read commands default to both merged; `--level` overrides.
-- **Recall is unified**: no suggest/warn/block tiers. `tag=rule && strict=true` gets `⚠` prefix; AI infers severity from tag + strict.
-- **Decay is v7 no-op**: policy redesign in next sprint. Command remains callable for pipeline compatibility.
-- **metrics/stats derived**: computed from events.jsonl on each call; no aggregated caches.
-- **Storage format**: JSONL + Markdown — zero dependency, line-level append, team-reviewable diffs.
-- **Path resolution**: `$CLAUDE_PROJECT_DIR` with `pwd` fallback (plugin-mode safe).
-- **Legacy v6 data**: `migrate-v7` converts; legacy files not auto-deleted (user confirms).
-- **Document sufficiency**: High-risk types (prd/tech/arch/schema/decision/ui) pass question-based gate before creation.
-- **Data confidence**: All numeric values must cite source (实测/估算/目标/无数据).
-- **Milestone structure**: §1 目标 + §2 计划 (immutable) → §3 任务追踪 → §4 结果 (immutable)
+- **存储**：markdown bullet + HTML 注释嵌入 5 字段元数据（id/created/updated/tag/strict?），与 Claude Code 原生加载兼容；无私有 JSONL，无 events.jsonl。
+- **入口**：仅 `learn` + `write`，砍掉 recall / extract / review / report / decay。
+- **激活**：由 Claude Code 嵌套 CLAUDE.md 加载机制承担，know 不做运行时检索。
+- **learn 5 模式**：N 新增 / U 修改 / D 删除 / E 行为复盘（融合 evolution skill）/ F 流程内嵌（inline 注释 `// @know:flow=...` 或结构化 log）。
+- **6 类知识 × 3 级 level**：A 结构性 / B 决策 / C 教训 / D 方法论 / E AI 偏好 / F 数据流业务流；level = user / project / module。
+- **写入纪律**：entropy gate 三问（≥ 20% 拒绝率为目标），低熵 / 缺上下文的条目宁可拒绝。
+- **write 沿用 v1**：10 种文档类型 + 模板 + sufficiency gate + 数据置信规则；高风险类型（prd/tech/arch/schema/decision/ui）通过问题驱动的 sufficiency gate。
+- **数据置信**：所有数值必须标注来源（实测 / 估算 / 目标 / 无数据）。
+- **Milestone 文档**：§1 目标 + §2 计划（不可变）→ §3 任务追踪 → §4 结果（不可变）。
+
+## Pivot 后清理状态
+
+deep clean 已完成：删除 `PIPELINES.md` / `workflows/{extract,review,report}.md` / `docs/triggers.jsonl` / `docs/schema/` / `scripts/{know-ctl.sh,know-env.sh,lib/}` / `tests/{capability/{learn,recall,recall-pipeline},unit}/`。`workflows/learn.md` 与 `workflows/write.md` 仍保留旧 v7 引用（如 `triggers.jsonl`），由 v2 实现 sprint 重写时清理。

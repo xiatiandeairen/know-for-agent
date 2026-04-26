@@ -1,5 +1,0 @@
-{"id":"tc01-rule-strict-true","input":{"candidate":"webhook 必须先验签"},"expected":{"tag":"rule","strict":true,"summary_format":"{conclusion} — {reason}"}}
-{"id":"tc02-insight-null-strict","input":{"candidate":"选 JSONL 不选 SQLite"},"expected":{"tag":"insight","strict":null}}
-{"id":"tc03-trap-null-strict","input":{"candidate":"长连接闭包导致内存泄漏"},"expected":{"tag":"trap","strict":null}}
-{"id":"tc04-summary-over-80-rewrite","input":{"candidate":"非常长的结论描述超过 80 字符..."},"expected":{"summary_length_le":80}}
-{"id":"tc05-methodology-user-level","input":{"candidate":"benchmark 双策略设计"},"expected":{"scope_prefix":"methodology","level":"user"}}
