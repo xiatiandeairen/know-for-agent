@@ -4,13 +4,13 @@
     "name": "taoxia"
   },
   "metadata": {
-    "description": "Knowledge compiler for AI agents — persist tacit knowledge, generate structured documents, recall before code changes"
+    "description": "Knowledge compiler for AI agents — persist tacit knowledge with entropy gating, generate structured documents"
   },
   "plugins": [
     {
       "name": "know",
       "source": "./",
-      "description": "Project knowledge compiler — persist tacit knowledge, generate structured documents, recall before code changes",
+      "description": "Project knowledge compiler — persist tacit knowledge with entropy gating, generate structured documents",
       "version": "1.1.0",
       "author": {
         "name": "taoxia"
@@ -19,7 +19,7 @@
       "tags": [
         "knowledge",
         "context",
-        "retrieval",
+        "authoring",
         "mental-model",
         "compiler"
       ]

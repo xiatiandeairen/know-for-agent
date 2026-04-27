@@ -1,0 +1,6 @@
+{"id":"tc01-module-level","input":{"claim":"HKObserverQuery 回调必须 dispatch 回 main thread","code_context":"src/health/HealthKitManager.swift"},"expected":{"level":"module","file":"src/health/CLAUDE.md"}}
+{"id":"tc02-project-level-no-module","input":{"claim":"压测前必须 seed 10k 条数据","code_context":null},"expected":{"level":"project","file":"$ROOT/CLAUDE.md"}}
+{"id":"tc03-user-level-real-evidence","input":{"claim":"webhook 必须先验签再解 body","evidence":"在 know 项目和 airen 项目里都被 AI 写出了不验签的版本"},"expected":{"level":"user","file":"~/.claude/CLAUDE.md"}}
+{"id":"tc04-theory-not-enough-for-user","input":{"claim":"API key 不能硬编码","evidence":"理论上所有项目都适用"},"expected":{"level":"project","file":"$ROOT/CLAUDE.md","note":"理论成立不等于有跨项目实证，降回 project"}}
+{"id":"tc05-module-specific-dir","input":{"claim":"DataEngine 修改共享状态必须串行化","code_context":"src/engine/DataEngine.swift"},"expected":{"level":"module","file":"src/engine/CLAUDE.md"}}
+{"id":"tc06-avoid-defaults-project","input":{"claim":"不要在 worker 里 await DB 事务","code_context":null},"expected":{"level":"project","file":"$ROOT/CLAUDE.md","note":"avoid 类默认 project，无具体 module"}}

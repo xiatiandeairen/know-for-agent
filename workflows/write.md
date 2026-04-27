@@ -2,32 +2,39 @@
 
 基于对话内容生成结构化 markdown 文档。10 种 type，分三种布局（单文件、目录、需求）。
 
-流程：参数推断 → 信息充分性检查 → 确认 → 加载 template → 填充 → 写入 → 校验 → 回写。
+5 stage 串行：infer → gate → confirm → draft → write。
 
-## 路径
+每个 stage 入口先输出两行：
 
-```bash
-KNOW_PATHS="$(git rev-parse --show-toplevel)/scripts/know-paths.sh"
-DOCS=$(bash "$KNOW_PATHS" docs)
-TEMPLATES=$(bash "$KNOW_PATHS" templates)
+```
+[write] stage X/5 — {name}
+目的：{purpose}
 ```
 
-type 对应输出路径：
-- roadmap / capabilities / ops / marketing → `$DOCS/{type}.md`
-- arch / ui / schema / decision → `$DOCS/{type}/{name}.md`
-- prd / tech → `$DOCS/requirements/{name}/{type}.md`
+Stage 概览：
 
-层级：roadmap → prd → tech，其余独立。roadmap 永远单文件，新版本属 update。
+- Stage 1 infer — 从 hint + 对话推断 type / name / mode / parent（Step 1）
+- Stage 2 gate — 充分性检查，内容不足则降级或补充（Step 2）
+- Stage 3 confirm — 展示推断结果，用户确认或修改字段（Step 3）
+- Stage 4 draft — 加载模板，填充内容（Step 4-5）
+- Stage 5 write — 预览、写入、校验、回写父文档（Step 6-8）
 
-## Step 1 — 参数推断
+## Stage 1: infer
 
-推断 type、name、mode、parent。统一逻辑：hint → 自动推断 → 一次澄清 → 完整列表回退 → 终止。
+```
+[write] stage 1/5 — infer
+目的：从 hint 和对话上下文推断 type / name / mode / parent 四个参数。
+```
 
-### type
+### Step 1 — 推断四个参数
 
-10 种 type：roadmap / prd / tech / arch / decision / schema / ui / capabilities / ops / marketing
+统一逻辑：hint → 自动推断 → 一次澄清 → 完整列表回退 → 终止。
 
-推断逻辑：
+**type**
+
+10 种：roadmap / prd / tech / arch / decision / schema / ui / capabilities / ops / marketing
+
+推断顺序：
 1. hint 是有效 type → 直接采用；hint 存在但不在 10 种内 → 视为 null，走推断
 2. 对话匹配 exemplar：唯一命中 → 采用；命中同一分组 → 细分问题；跨分组或零命中 → 大类问题再细分
 3. 无效回复 → 列出全部 10 种 → 再无效 → 终止
@@ -49,7 +56,7 @@ Exemplars（判断对话命中 type 的锚点句）：
 - ops："发布后收集反馈；两周一次迭代"
 - marketing："通过博客、Twitter、官网 landing 多渠道推广"
 
-### name
+**name**
 
 roadmap / capabilities / ops / marketing 不需要 name → null。
 
@@ -57,14 +64,28 @@ roadmap / capabilities / ops / marketing 不需要 name → null。
 1. hint 或对话中含明确名词短语 → 归一化（小写，空格/点/斜杠转 `-`，去非 `[a-z0-9-]` 字符，trim）
 2. 以上均无 → 问用户 → 无效 → 重试 1 次 → 终止
 
-### mode
+**mode**
 
 1. 目标文件不存在 → create
 2. type = roadmap → update（永远单文件）
 3. 目标文件存在 → 问用户：A) Update / B) 换名字（回 name 推断）/ C) 取消，等待回复
 
-### parent
+**parent**
 
+路径通过脚本解析：
+```bash
+KNOW_PATHS="$(git rev-parse --show-toplevel)/scripts/know-paths.sh"
+DOCS=$(bash "$KNOW_PATHS" docs)
+```
+
+type 对应输出路径：
+- roadmap / capabilities / ops / marketing → `$DOCS/{type}.md`
+- arch / ui / schema / decision → `$DOCS/{type}/{name}.md`
+- prd / tech → `$DOCS/requirements/{name}/{type}.md`
+
+层级：roadmap → prd → tech，其余独立。roadmap 永远单文件，新版本属 update。
+
+parent 映射：
 - prd → `$DOCS/roadmap.md`
 - tech → `$DOCS/requirements/{name}/prd.md`
 - 其他 → null
@@ -74,15 +95,38 @@ parent 缺失处理：
 - tech 且 prd 不存在 → 问用户：A) 直接继续 / B) 先创建 PRD，等待回复
 - prd 里程碑归属不明 → 询问里程碑编号
 
-## Step 2 — 信息充分性检查
+---
 
-仅对高风险 type（prd / tech / arch / schema / decision / ui）运行。
+## Stage 2: gate
+
+```
+[write] stage 2/5 — gate
+目的：对高风险 type 检查对话内容是否足以支撑文档；不足则降级或补充后重跑。
+```
+
+### Step 2 — 充分性检查
+
+仅对高风险 type（prd / tech / arch / schema / decision / ui）运行；其余 type 直接进 Stage 3。
+
+```bash
+TEMPLATES=$(bash "$KNOW_PATHS" templates)
+```
 
 1. 加载 `$TEMPLATES/sufficiency-gate.md` 的问题组
 2. 每题以对话原文引用或明确 "not present" 作答
-3. 全 yes → pass；混合或全 no → 问用户：A) 补充对话重跑 / B) 降级为建议 type（回 Step 1）/ C) 取消，等待回复
+3. 全 yes → pass，进 Stage 3
+4. 混合或全 no → 问用户：A) 补充对话重跑 / B) 降级为建议 type（回 Stage 1）/ C) 取消，等待回复
 
-## Step 3 — 确认
+---
+
+## Stage 3: confirm
+
+```
+[write] stage 3/5 — confirm
+目的：展示推断结果，等待用户确认或修改字段。
+```
+
+### Step 3 — 用户确认
 
 ```
 [write] Inferred from conversation
@@ -94,9 +138,18 @@ parent 缺失处理：
 Correct? (yes / change {field}={value})
 ```
 
-等待用户确认。修改某字段则其下游全部重跑（type → name → mode → parent）。
+修改某字段则其下游全部重跑（type → name → mode → parent），重跑后回到 Stage 2 或 Stage 3。
 
-## Step 4 — 加载 template
+---
+
+## Stage 4: draft
+
+```
+[write] stage 4/5 — draft
+目的：加载模板，按 mode 填充内容。
+```
+
+### Step 4 — 加载模板
 
 ```bash
 cat "$TEMPLATES/{type}.md"
@@ -104,7 +157,7 @@ cat "$TEMPLATES/{type}.md"
 
 template 不存在 → 合成 `# Title / ## Overview / ## Details / ## Open Questions`。
 
-## Step 5 — 填充
+### Step 5 — 填充内容
 
 **create 模式**：对每个 section 收集对话引文（按 summary 引用，禁止原文粘贴），遵守 `<!-- INCLUDE / EXCLUDE -->` 提示，产出结构化正文。证据不足写 `TBD — {缺失内容}`，数值标注来源（实测 / 估算 / 目标 / 无数据），不明确处以 `Open question:` 开头。交叉引用用项目根相对路径。
 
@@ -132,7 +185,16 @@ template 不存在 → 合成 `# Title / ## Overview / ## Details / ## Open Ques
 - prd → `{用户入口}`
 - tech → `{需求名} 技术方案`
 
-## Step 6 — 写入
+---
+
+## Stage 5: write
+
+```
+[write] stage 5/5 — write
+目的：预览草稿，写入文件，校验质量，回写父文档 progress 字段。
+```
+
+### Step 6 — 预览与写入
 
 写前预览：
 
@@ -156,7 +218,7 @@ TBD 超过 3 个 section 时，前置 `{n} sections marked TBD: {list}. Still wr
 
 Write / Edit 工具失败 → 暴露错误，禁止静默重试。
 
-## Step 7 — 校验
+### Step 7 — 校验
 
 `$TEMPLATES/{type}-checklist.md` 不存在则跳过。
 
@@ -169,7 +231,7 @@ Write / Edit 工具失败 → 暴露错误，禁止静默重试。
 
 违规 → 修复 → 重新预览，最多 3 轮。第 4 轮强制出文并标注 `[validate] forced through, {n} checks unresolved`。checklist 文件损坏 → 视为缺失，跳过并告警。
 
-## Step 8 — 回写
+### Step 8 — 回写父文档
 
 parent 不存在或文件缺失 → 静默跳过。
 

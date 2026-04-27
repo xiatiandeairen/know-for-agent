@@ -62,7 +62,7 @@ jobs:
       - name: Check workflow files exist
         run: |
           echo "Checking required workflow files..."
-          for f in learn.md write.md review.md; do
+          for f in learn.md write.md; do
             if [ ! -f "workflows/$f" ]; then
               echo "Missing: workflows/$f"
               exit 1

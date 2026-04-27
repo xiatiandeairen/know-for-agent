@@ -1,4 +1,4 @@
-{"id":"tc01-confirm","input":{"params":{"type":"arch","name":"cache","path":"docs/arch/cache.md","mode":"create","parent":null},"user_replies":["yes"]},"expected":{"outcome":"proceed-step3"}}
-{"id":"tc02-change-type","input":{"params":{"type":"arch","name":"cache","path":"docs/arch/cache.md","mode":"create","parent":null},"user_replies":["change type=decision"]},"expected":{"outcome":"re-enter-step1a"}}
-{"id":"tc03-change-name","input":{"params":{"type":"arch","name":"cache","path":"docs/arch/cache.md","mode":"create","parent":null},"user_replies":["change name=storage"]},"expected":{"outcome":"re-enter-step1c"}}
-{"id":"tc04-both-types","input":{"params":{"candidates":["arch","decision"]},"user_replies":["both"]},"expected":{"outcome":"sequential-steps-3-6"}}
+{"id":"tc01-confirm","input":{"params":{"type":"arch","name":"cache","path":"docs/arch/cache.md","mode":"create","parent":null},"user_replies":["yes"]},"expected":{"outcome":"proceed-stage4"}}
+{"id":"tc02-change-type","input":{"params":{"type":"arch","name":"cache","path":"docs/arch/cache.md","mode":"create","parent":null},"user_replies":["change type=decision"]},"expected":{"outcome":"re-run-stage1","note":"type 变更触发 name/mode/parent 全部重跑，回 Stage 1"}}
+{"id":"tc03-change-name","input":{"params":{"type":"arch","name":"cache","path":"docs/arch/cache.md","mode":"create","parent":null},"user_replies":["change name=storage"]},"expected":{"outcome":"re-run-stage1-from-mode","note":"name 变更，mode/parent 重跑，回 Stage 3 确认"}}
+{"id":"tc04-both-types","input":{"params":{"candidates":["arch","decision"]},"user_replies":["both"]},"expected":{"outcome":"sequential-stage4-stage5"}}

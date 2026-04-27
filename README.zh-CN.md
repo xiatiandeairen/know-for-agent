@@ -37,7 +37,7 @@
 curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/install.sh | bash
 ```
 
-需要 `git`。安装后重启 Claude Code。
+需要 `git` 和 `jq`。安装后重启 Claude Code。
 
 <details>
 <summary>卸载</summary>

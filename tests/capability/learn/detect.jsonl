@@ -1,0 +1,7 @@
+{"id":"tc01-correction-classified","input":{"conversation":"我之前说用 PUT，但你改成 PATCH 了。PUT 应该是全量替换，我们这里只更新部分字段，必须用 PATCH。"},"expected":{"candidates":[{"label":"纠正","summary":"局部更新用 PATCH 而非 PUT"}]}}
+{"id":"tc02-capture-tech-choice","input":{"conversation":"讨论了 SQLite 还是 PostgreSQL，最终选 SQLite 是因为部署简单，不需要独立服务，适合单机场景。"},"expected":{"candidates":[{"label":"捕捉","summary":"选 SQLite 而非 PostgreSQL：部署简单，无需独立服务"}]}}
+{"id":"tc03-mixed-labels","input":{"conversation":"你建议用全局 try-catch，但我们规定错误必须在 handler 层处理，不能冒泡到顶层。另外这次决定所有 API 返回统一用 { data, error } 结构。"},"expected":{"candidates":[{"label":"纠正","summary":"错误必须在 handler 层处理，不能冒泡到顶层"},{"label":"捕捉","summary":"API 统一返回 { data, error } 结构"}]}}
+{"id":"tc04-no-candidate","input":{"conversation":"帮我写一个排序函数，用 quicksort 实现。"},"expected":{"candidates":[],"prompt":"no claim detected — 请用一句话说出要沉淀的知识"}}
+{"id":"tc05-single-direct","input":{"conversation":"你写了 parseInt，但这里必须用 Number() 因为 parseInt 会忽略尾部非数字字符导致静默错误。"},"expected":{"candidates":[{"label":"纠正","summary":"字符串转数字用 Number() 而非 parseInt"}],"skip_selection_menu":true}}
+{"id":"tc06-user-takes-subset","input":{"conversation":"讨论了三件事：1) 选了 Redis 做缓存 2) API 限流阈值定 100/min 3) 用中文写注释","user_replies":["1,3"]},"expected":{"selected_count":2}}
+{"id":"tc07-user-cancels","input":{"conversation":"选了几个技术方向","user_replies":["none"]},"expected":{"outcome":"abort"}}

@@ -37,7 +37,7 @@
 curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/install.sh | bash
 ```
 
-Requires `git`. Restart Claude Code after install.
+Requires `git` and `jq`. Restart Claude Code after install.
 
 <details>
 <summary>Uninstall</summary>

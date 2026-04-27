@@ -1,5 +1,5 @@
 {
   "name": "know",
   "version": "1.1.0",
-  "description": "Knowledge compiler for AI agents — persist tacit knowledge, generate structured documents, recall before code changes"
+  "description": "Knowledge compiler for AI agents — persist tacit knowledge with entropy gating, generate structured documents"
 }
