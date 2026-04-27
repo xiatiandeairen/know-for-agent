@@ -22,8 +22,9 @@
 
 - SKILL.md 路由 — 解析 `/know` 命令分发到 learn 或 write workflow；仅路由，不含执行逻辑
 - Learn pipeline — detect → gate → refine → locate → write，5 stage 串行，每条 claim 独立走完
-- Write pipeline — 参数推断 → 充分性检查 → 确认 → 模板填充 → 写入 → 校验 → 回写父文档
-- know-paths.sh — 路径解析脚本，支持 env 覆盖（root / docs / templates / project-claude-md / user-claude-md）
+- Write pipeline — 参数推断 → 充分性检查 → 确认 → 模板填充 → 写入 → 校验 → 回写父文档 → 索引注入
+
+无运行时脚本：路径表全部内联在 workflow 内，learn 与 write 都不依赖 shell helper。
 
 ### 存储
 

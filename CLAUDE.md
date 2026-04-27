@@ -6,27 +6,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 know — AI 辅助的高熵知识单元 authoring 工具 + Claude Code 生态原生载体。Claude Code plugin。
 
-**当前状态**：v1 `write` 已实现可用；v2 `learn` 5 stage pipeline（detect → gate → refine → locate → write）已设计完成，进入 dogfood 阶段（N 模式）。运行时检索（recall / extract / review / report / decay）已下线，由 Claude Code 嵌套 CLAUDE.md 加载机制接管。
+**当前状态**：两条 pipeline 均已落地，无运行时脚本依赖，路径全部内联在 workflow 里。`learn` 5 stage（detect → gate → refine → locate → write），`write` 5 stage / 9 step（infer → gate → confirm → draft → write）。运行时检索（recall / extract / review / report / decay）已下线，由 Claude Code 嵌套 CLAUDE.md 加载机制接管。
 
-入口仅 `/know learn` + `/know write`。Roadmap 见 `docs/roadmap.md`，pivot 前迭代史归档在 `docs/milestones/history.md`。
+入口仅 `/know learn` + `/know write`。
 
 ## Architecture
 
 ```
 skills/know/SKILL.md          ← Skill 入口：仅 routing + conventions（最小常驻上下文）
-workflows/                     ← Pipeline 定义，按需加载
-  learn.md                       v2 learn pipeline（5 stage，N 模式可用）
-  write.md                       v1 文档撰写流程（8 步，10 种文档类型）
+workflows/
+  learn.md                       learn pipeline（5 stage / 15 step）
+  write.md                       write pipeline（5 stage / 9 step，10 种文档类型）
+  templates/                     write 用模板 + 检查清单
 docs/
-  templates/                   ← write 用文档模板 + 检查清单（workflows/templates/）
-  roadmap.md                     v2 路线图
-  capabilities.md / marketing.md / ops.md   产品文档
-  arch/ decision/ requirements/  架构记录与决策
-  milestones/history.md          pivot 前 v1-v7 / M1-M15 迭代归档
+  roadmap.md                     路线图
+  marketing.md                   推广材料
+  arch/                          架构记录（含 know.md 系统架构）
+  decision/                      关键决策记录
 tests/
-  capability/write/            ← write 能力 fixtures
-scripts/
-  know-paths.sh                ← 路径解析（root/docs/templates/project-claude-md/user-claude-md），支持 env 覆盖
+  unit/                          workflow 结构单元测试（test-learn-stages / test-write-stages）
 ```
 
 ## Key Design Decisions
@@ -36,7 +34,7 @@ scripts/
 - **激活**：由 Claude Code 嵌套 CLAUDE.md 加载机制承担，know 不做运行时检索。
 - **learn gate 5 道**：信息熵 → 复用 → 可触发 → 可执行 → 失效，从粗到细，每道先给调整方向再拒绝，目标拒绝率 ≥20%。
 - **claim 分类**：`[纠正]`（用户纠正 AI）bypass 信息熵 gate；`[捕捉]`（AI 自主捕捉）需完整 gate。
-- **locate 三级**：project（默认）/ module（有具体代码目录）/ user（需真实跨项目证据，"理论上成立"不够）。
+- **locate 三级**：user（需真实跨项目证据，"理论上成立"不够）/ module（有具体代码目录）/ project（默认）。优先级 user > module > project，路径内联在 learn workflow。
 - **write 沿用 v1**：10 种文档类型 + 模板 + sufficiency gate + 数据置信规则；高风险类型（prd/tech/arch/schema/decision/ui）通过问题驱动的 sufficiency gate。
 - **数据置信**：所有数值必须标注来源（实测 / 估算 / 目标 / 无数据）。
 
@@ -50,4 +48,4 @@ scripts/
 
 ## 清理状态
 
-deep clean 已完成（pivot 后）：删除 `PIPELINES.md` / `workflows/{extract,review,report}.md` / `docs/triggers.jsonl` / `docs/schema/` / `scripts/{know-ctl.sh,know-env.sh,lib/}` / `tests/capability/{learn,recall,recall-pipeline}/`。`tests/unit/` 存在，含 `test-know-paths.sh`（16 cases，验证路径解析含 project-claude-md / user-claude-md）。`workflows/learn.md` 与 `workflows/write.md` 均已重写，无旧 v7 残留。
+deep clean 已完成（pivot 后多轮）：删除 `PIPELINES.md` / `workflows/{extract,review,report}.md` / `scripts/{know-ctl.sh,know-paths.sh,know-env.sh,lib/}` / `install.sh` / `uninstall.sh` / `tests/capability/` / `tests/unit/test-know-paths.sh` / `docs/{triggers.jsonl,schema/,capabilities.md,ops.md,milestones/history.md,requirements/}`。`tests/unit/` 存 `test-learn-stages.sh` 与 `test-write-stages.sh`（workflow 结构断言）。`workflows/{learn,write}.md` 路径全部内联，无 `know-paths.sh` 残留。

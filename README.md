@@ -68,7 +68,7 @@ Paste to Claude Code:
 1. **detect** — scan the last ≤20 turns; classify as `[纠正]` (user corrected AI, fast-track) or `[捕捉]` (AI self-captured, full gate required)
 2. **gate** — 5 filters from coarse to fine: entropy → reuse → triggerable → actionable → invalidation. Each gate proposes an adjustment before rejecting; target rejection rate ≥20%
 3. **refine** — optional: generalize trigger scope, deepen rationale, split multi-logic entries
-4. **locate** — pick target CLAUDE.md (project / module / user level) via `know-paths.sh`
+4. **locate** — pick target CLAUDE.md by scope: user (cross-project evidence) > module (specific code dir) > project (default)
 5. **write** — produce YAML entry, check for duplicates, confirm, append
 
 Every entry written to a `## know` YAML block:

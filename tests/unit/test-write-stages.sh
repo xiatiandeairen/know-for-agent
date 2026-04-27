@@ -90,18 +90,23 @@ test_paths_no_standalone_section() {
   assert_not_contains "no standalone paths section" "## 路径" || return 1
 }
 
-test_doc_path_used_for_target() {
-  # Stage 1 用 doc-path 子命令解析文档路径，不再硬编码 $DOCS 映射
-  assert_contains "doc-path target" 'doc-path "$TYPE"' || return 1
+test_doc_paths_inlined() {
+  # Stage 1 内联文档路径表
+  assert_contains "roadmap path"      "docs/roadmap.md"      || return 1
+  assert_contains "prd path"          "docs/requirements/{name}/prd.md" || return 1
+  assert_contains "tech path"         "docs/requirements/{name}/tech.md" || return 1
+  assert_contains "arch path"         "docs/arch/{name}.md"  || return 1
 }
 
 test_templates_path_inlined() {
-  # $TEMPLATES 解析应内嵌在 Stage 2
-  assert_contains "TEMPLATES variable" 'TEMPLATES=$(bash "$KNOW_PATHS" templates)' || return 1
+  # 模板基目录在 Stage 2 / Step 4 / Step 7 内联引用
+  assert_contains "templates dir" "workflows/templates/" || return 1
 }
 
-test_know_paths_script() {
-  assert_contains "KNOW_PATHS usage" 'bash "$KNOW_PATHS"' || return 1
+test_no_script_dependency() {
+  # 不应再引用已删除的 know-paths.sh
+  assert_not_contains "no KNOW_PATHS"  "KNOW_PATHS"   || return 1
+  assert_not_contains "no know-paths"  "know-paths.sh" || return 1
 }
 
 test_gate_high_risk_only() {

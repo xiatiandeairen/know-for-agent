@@ -68,7 +68,7 @@
 1. **detect** — 扫描最近 ≤20 轮对话，分类为 `[纠正]`（用户纠正 AI，快速进入候选）或 `[捕捉]`（AI 自主捕捉，需完整 gate 验证）
 2. **gate** — 5 道从粗到细的过滤：信息熵 → 复用 → 可触发 → 可执行 → 失效检查。每道 gate 先给出调整方向再拒绝；目标拒绝率 ≥20%
 3. **refine** — 可选加工：泛化触发场景、补充理由根因、拆分多逻辑条目
-4. **locate** — 通过 `know-paths.sh` 决定写入哪个 CLAUDE.md（project / module / user 三级）
+4. **locate** — 按作用域选目标 CLAUDE.md：user（跨项目证据）> module（具体代码目录）> project（默认）
 5. **write** — 产出 YAML entry，查重，用户确认，追加写入
 
 写入目标文件的 `## know` YAML block：

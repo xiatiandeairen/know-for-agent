@@ -35,20 +35,23 @@ Stage 概览：
 10 种：roadmap / prd / tech / arch / decision / schema / ui / capabilities / ops / marketing
 
 推断顺序：
+
 1. hint 是有效 type → 直接采用；hint 存在但不在 10 种内 → 视为 null，走推断
 2. 对话匹配 exemplar：唯一命中 → 采用；命中同一分组 → 细分问题；跨分组或零命中 → 大类问题再细分
 3. 无效回复 → 列出全部 10 种 → 再无效 → 终止
 
 大类问题：你想产出的属于哪一组？
+
 - 路线 / 需求类：roadmap / prd
 - 技术 / 架构类：tech / arch / decision / schema
 - 能力 / 表达类：capabilities / ui / ops / marketing
 
 Exemplars（判断对话命中 type 的锚点句）：
+
 - roadmap："v1 交付 A/B/C；v2 扩展 D；Q2 发布"
 - prd："用户可上传 pdf；上传成功率目标 95%"
 - tech："采用 SQLite 存储；启用 WAL 模式；按 project_id 分表"
-- arch："recall 模块由 scope 推断、query、rank 三段构成"
+- arch："支付模块由验签、处理、上报三段构成"
 - decision："选用 JSONL 而非 SQLite，因其 diff 友好"
 - schema："POST /api/v2/users 请求体含 name、email"
 - capabilities："系统支持文件上传、OCR、全文检索"
@@ -61,6 +64,7 @@ Exemplars（判断对话命中 type 的锚点句）：
 roadmap / capabilities / ops / marketing 不需要 name → null。
 
 否则：
+
 1. hint 或对话中含明确名词短语 → 归一化（小写，空格/点/斜杠转 `-`，去非 `[a-z0-9-]` 字符，trim）
 2. 以上均无 → 问用户 → 无效 → 重试 1 次 → 终止
 
@@ -72,23 +76,31 @@ roadmap / capabilities / ops / marketing 不需要 name → null。
 
 **parent**
 
-路径通过脚本解析：
+文档路径表（相对 git root）：
 
-```bash
-# KNOW_PATHS：从 "Base directory for this skill: {base}" 去掉末尾 "/skills/know" 得 plugin root
-KNOW_PATHS="{plugin_root}/scripts/know-paths.sh"
-
-TARGET=$(bash "$KNOW_PATHS" doc-path "$TYPE" "$NAME")
-```
+| type | path |
+|------|------|
+| roadmap | `docs/roadmap.md` |
+| capabilities | `docs/capabilities.md` |
+| ops | `docs/ops.md` |
+| marketing | `docs/marketing.md` |
+| prd | `docs/requirements/{name}/prd.md` |
+| tech | `docs/requirements/{name}/tech.md` |
+| arch | `docs/arch/{name}.md` |
+| decision | `docs/decision/{name}.md` |
+| schema | `docs/schema/{name}.md` |
+| ui | `docs/ui/{name}.md` |
 
 层级：roadmap → prd → tech，其余独立。roadmap 永远单文件，新版本属 update。
 
 parent 映射：
-- prd → `$(bash "$KNOW_PATHS" doc-path roadmap)`
-- tech → `$(bash "$KNOW_PATHS" doc-path prd "$NAME")`
+
+- prd → `docs/roadmap.md`
+- tech → `docs/requirements/{name}/prd.md`（同 name）
 - 其他 → null
 
 parent 缺失处理：
+
 - prd 且 roadmap 不存在 → 继续，标注缺失
 - tech 且 prd 不存在 → 问用户：A) 直接继续 / B) 先创建 PRD，等待回复
 - prd 里程碑归属不明 → 询问里程碑编号
@@ -106,11 +118,9 @@ parent 缺失处理：
 
 仅对高风险 type（prd / tech / arch / schema / decision / ui）运行；其余 type 直接进 Stage 3。
 
-```bash
-TEMPLATES=$(bash "$KNOW_PATHS" templates)
-```
+模板基目录：`workflows/templates/`（相对 plugin root）。
 
-1. 加载 `$TEMPLATES/sufficiency-gate.md` 的问题组
+1. 加载 `workflows/templates/sufficiency-gate.md` 的问题组
 2. 每题以对话原文引用或明确 "not present" 作答
 3. 全 yes → pass，进 Stage 3
 4. 混合或全 no → 问用户：A) 补充对话重跑 / B) 降级为建议 type（回 Stage 1）/ C) 取消，等待回复
@@ -149,9 +159,7 @@ Correct? (yes / change {field}={value})
 
 ### Step 4 — 加载模板
 
-```bash
-cat "$TEMPLATES/{type}.md"
-```
+读 `workflows/templates/{type}.md`（update 模式额外读 `{type}-update.md`，不存在则跳过）。
 
 template 不存在 → 合成 `# Title / ## Overview / ## Details / ## Open Questions`。
 
@@ -160,6 +168,7 @@ template 不存在 → 合成 `# Title / ## Overview / ## Details / ## Open Ques
 **create 模式**：对每个 section 收集对话引文（按 summary 引用，禁止原文粘贴），遵守 `<!-- INCLUDE / EXCLUDE -->` 提示，产出结构化正文。证据不足写 `TBD — {缺失内容}`，数值标注来源（实测 / 估算 / 目标 / 无数据），不明确处以 `Open question:` 开头。交叉引用用项目根相对路径。
 
 **update 模式**：
+
 1. 完整读取现有文档
 2. 列出对话讨论过的全部 section
 3. 只重写列出的 section；其余 byte-identical
@@ -168,16 +177,19 @@ template 不存在 → 合成 `# Title / ## Overview / ## Details / ## Open Ques
 6. 无 section 被讨论 → 问用户：A) 新增 section / B) 取消，等待回复
 
 **progress fields（create）**：
+
 - roadmap 里程碑：进度（完成数/总数，按关联 PRD 统计）、需求列表（链接每个 PRD，空则 —）、编号（每版本从 M1 重置）
 - prd §4 方案任务表：每个 tech 文档一行，progress = 完成数/总数
 - tech §4 迭代记录：今日日期与 sprint 摘要置顶
 
 **update 特殊规则（tech）**：
+
 - §2 方案 → 随认知深化覆写
 - §3 关键决策 → 仅追加
 - §4 迭代记录 → 今日置顶，永不覆盖历史
 
 **H1 标题**：
+
 - 项目单文件 → `{项目名} {文档类型}`
 - 项目目录 → `{主题名} {文档类型}`
 - prd → `{用户入口}`
@@ -205,6 +217,7 @@ Write? (yes / edit {section} / no)
 TBD 超过 3 个 section 时，前置 `{n} sections marked TBD: {list}. Still write?`，等待二次确认。
 
 等待用户确认后执行：
+
 - 先创建目录：`mkdir -p "$(dirname "{path}")"`
 - create → Write 工具
 - update → 逐 section 用 Edit 工具；tech 的迭代记录条目置顶
@@ -218,9 +231,10 @@ Write / Edit 工具失败 → 暴露错误，禁止静默重试。
 
 ### Step 7 — 校验
 
-`$TEMPLATES/{type}-checklist.md` 不存在则跳过。
+`workflows/templates/{type}-checklist.md` 不存在则跳过。
 
 检查项：
+
 - 必需 section 和字段齐全
 - 字段满足语言约束
 - 每个数字有来源标注（实测 / 估算+依据 / 目标值待验证 / 无数据+原因）
@@ -234,8 +248,9 @@ Write / Edit 工具失败 → 暴露错误，禁止静默重试。
 parent 不存在或文件缺失 → 静默跳过。
 
 否则用 Edit 工具只改 parent 的 progress 字段：
-- tech 写完 → 更新 `$(bash "$KNOW_PATHS" doc-path prd "$NAME")` §4 方案任务表 progress 列
-- prd 写完 → 更新 `$(bash "$KNOW_PATHS" doc-path roadmap)` 里程碑表 `完成PRD数/总PRD数`
+
+- tech 写完 → 更新 `docs/requirements/{name}/prd.md` §4 方案任务表 progress 列
+- prd 写完 → 更新 `docs/roadmap.md` 里程碑表 `完成PRD数/总PRD数`
 
 ```
 [progress] {parent_path} updated ({value})
