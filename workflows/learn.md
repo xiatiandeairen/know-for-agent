@@ -170,29 +170,19 @@ Q1: 这条 claim 包含几个独立的"当 X 时做 Y"逻辑？
 
 ### Step 10 — locate
 
-Q1: 能指出一个具体代码目录吗？yes → module；no → Q2
-Q2: 在另一个项目里，AI 实际发生过这个错误，或有具体理由相信会发生？yes → user；no → project
+按作用域从大到小判，命中即停：
 
-升到 user 需要真实跨项目证据，"理论上成立"不够。
+1. **user** — 有真实跨项目证据（在另一个项目里 AI 实际发生过此错误，或有具体理由相信会发生）？yes → user。"理论上成立"不够。
+2. **module** — 能指出一个具体代码目录？yes → module
+3. **else** → project
 
-field 默认起点：
+路径规则：
 
-- `must` / `should` → project / module
-- `avoid` → module
-- `prefer` → project（除非有跨项目实例）
+- user → `~/.claude/rules/know.md`
+- project → `{git root}/.claude/rules/know.md`
+- module → `{对话涉及文件路径的最深代码目录}/CLAUDE.md`（从上下文推断，给 1-3 候选）
 
-路径通过脚本解析：
-
-```bash
-KNOW_PATHS="$(git rev-parse --show-toplevel)/scripts/know-paths.sh"
-# user level
-bash "$KNOW_PATHS" user-claude-md
-# project level
-bash "$KNOW_PATHS" project-claude-md
-# module level：取对话涉及文件路径的最深"有意义"目录，拼 /CLAUDE.md
-MODULE_DIR={从对话上下文提取，给 1-3 候选}
-echo "$MODULE_DIR/CLAUDE.md"
-```
+git root 从对话上下文的工作目录推断。
 
 输出：
 
@@ -221,9 +211,9 @@ echo "$MODULE_DIR/CLAUDE.md"
 
 ```yaml
 - when: {可触发产物}
-  must: {claim 主体} — {理由}    # 或 should / avoid / prefer
-  how: {可执行产物}              # 仅技术细节 rule
-  until: {失效检查产物}          # must 必填，其余选
+  {field}: {claim 主体}[ — {理由}]   # field ∈ must / should / avoid / prefer，理由可选（Step 8 充分时跳过）
+  how: {可执行产物}                  # 仅技术细节 rule
+  until: {失效检查产物}              # must 必填，其余选
 ```
 
 输出 `[learn] entry candidate:` + YAML block。
@@ -253,7 +243,7 @@ echo "$MODULE_DIR/CLAUDE.md"
 确认写入？(yes / no / 调整某字段)
 ```
 
-等待用户回复：`yes` → 写入；`no`/`cancel` → 终止；调整某字段 → 重走 Step 11 + Step 13。
+等待用户回复：`yes` → 写入；`no`/`cancel` → 终止；调整文案（`when` / `how` / `until` / 理由 / claim 主体）→ 重走 Step 11 + Step 13；改 classification（must↔should↔avoid↔prefer）→ 回 Stage 2 Step 2 重走。
 
 ### Step 14 — write
 
@@ -264,8 +254,6 @@ echo "$MODULE_DIR/CLAUDE.md"
 - `## know` 段存在 + 无 YAML block → 段末追加新 YAML block，已有自由内容不动
 - `## know` 段已有 YAML block → append entry 到 list 末尾
 
-输出 `[learn] written: {file}`。
-
 ### Step 15 — suggest-commit
 
 ```
@@ -274,4 +262,3 @@ echo "$MODULE_DIR/CLAUDE.md"
 ```
 
 不自动 commit。
-

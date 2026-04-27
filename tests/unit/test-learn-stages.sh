@@ -93,15 +93,23 @@ test_locate_levels() {
   assert_contains "user level"    "user"    || return 1
 }
 
-test_locate_uses_script() {
-  assert_contains "know-paths.sh" "know-paths.sh" || return 1
+test_locate_user_path() {
+  assert_contains "user level path" "~/.claude/rules/know.md" || return 1
+}
+
+test_locate_project_path() {
+  assert_contains "project level path" "{git root}/.claude/rules/know.md" || return 1
+}
+
+test_locate_module_path() {
+  assert_contains "module level path" "/CLAUDE.md" || return 1
 }
 
 test_yaml_entry_fields() {
-  assert_contains "when field"  "when:"  || return 1
-  assert_contains "must field"  "must:"  || return 1
-  assert_contains "how field"   "how:"   || return 1
-  assert_contains "until field" "until:" || return 1
+  assert_contains "when field"   "when:"    || return 1
+  assert_contains "field placeholder" "{field}:" || return 1
+  assert_contains "how field"    "how:"     || return 1
+  assert_contains "until field"  "until:"   || return 1
 }
 
 test_entry_content_field_names() {
@@ -116,7 +124,6 @@ test_know_section_target() {
 
 test_output_markers() {
   assert_contains "[learn] entry candidate" "[learn] entry candidate:" || return 1
-  assert_contains "[learn] written"         "[learn] written:"         || return 1
   assert_contains "[learn] reject"          "[learn] reject:"          || return 1
 }
 
