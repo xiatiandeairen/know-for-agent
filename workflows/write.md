@@ -17,7 +17,7 @@ Stage 概览：
 - Stage 2 gate — 充分性检查，内容不足则降级或补充（Step 2）
 - Stage 3 confirm — 展示推断结果，用户确认或修改字段（Step 3）
 - Stage 4 draft — 加载模板，填充内容（Step 4-5）
-- Stage 5 write — 预览、写入、校验、回写父文档（Step 6-8）
+- Stage 5 write — 预览、写入、校验、回写父文档、索引注入（Step 6-9）
 
 ## Stage 1: infer
 
@@ -73,21 +73,19 @@ roadmap / capabilities / ops / marketing 不需要 name → null。
 **parent**
 
 路径通过脚本解析：
-```bash
-KNOW_PATHS="$(git rev-parse --show-toplevel)/scripts/know-paths.sh"
-DOCS=$(bash "$KNOW_PATHS" docs)
-```
 
-type 对应输出路径：
-- roadmap / capabilities / ops / marketing → `$DOCS/{type}.md`
-- arch / ui / schema / decision → `$DOCS/{type}/{name}.md`
-- prd / tech → `$DOCS/requirements/{name}/{type}.md`
+```bash
+# KNOW_PATHS：从 "Base directory for this skill: {base}" 去掉末尾 "/skills/know" 得 plugin root
+KNOW_PATHS="{plugin_root}/scripts/know-paths.sh"
+
+TARGET=$(bash "$KNOW_PATHS" doc-path "$TYPE" "$NAME")
+```
 
 层级：roadmap → prd → tech，其余独立。roadmap 永远单文件，新版本属 update。
 
 parent 映射：
-- prd → `$DOCS/roadmap.md`
-- tech → `$DOCS/requirements/{name}/prd.md`
+- prd → `$(bash "$KNOW_PATHS" doc-path roadmap)`
+- tech → `$(bash "$KNOW_PATHS" doc-path prd "$NAME")`
 - 其他 → null
 
 parent 缺失处理：
@@ -191,7 +189,7 @@ template 不存在 → 合成 `# Title / ## Overview / ## Details / ## Open Ques
 
 ```
 [write] stage 5/5 — write
-目的：预览草稿，写入文件，校验质量，回写父文档 progress 字段。
+目的：预览草稿，写入文件，校验质量，回写父文档 progress 字段，注入项目 CLAUDE.md 文档索引。
 ```
 
 ### Step 6 — 预览与写入
@@ -236,11 +234,32 @@ Write / Edit 工具失败 → 暴露错误，禁止静默重试。
 parent 不存在或文件缺失 → 静默跳过。
 
 否则用 Edit 工具只改 parent 的 progress 字段：
-- tech 写完 → 更新 PRD `§4 方案` 任务表 progress 列
-- prd 写完 → 更新 roadmap 里程碑表 `完成PRD数/总PRD数`
+- tech 写完 → 更新 `$(bash "$KNOW_PATHS" doc-path prd "$NAME")` §4 方案任务表 progress 列
+- prd 写完 → 更新 `$(bash "$KNOW_PATHS" doc-path roadmap)` 里程碑表 `完成PRD数/总PRD数`
 
 ```
 [progress] {parent_path} updated ({value})
 ```
 
 parent 存在但无法编辑 → 记 `[progress] skip: {reason}` 后继续。
+
+### Step 9 — 索引注入
+
+仅 create 模式执行；update 模式跳过（路径未变）。
+
+目标：`{git root}/CLAUDE.md`。索引行格式 `- {type}[/{name}]: {相对项目根路径}`。
+
+按目标 file 状态执行 Edit：
+
+- 无 `## docs` 段 → 文件末尾追加 `## docs` 段 + 该行
+- `## docs` 段存在 + 不含该行 → 段末追加该行
+- `## docs` 段已含该行 → 跳过（幂等）
+
+输出：
+
+```
+[index] {git root}/CLAUDE.md updated (+ {type}[/{name}])
+[index] skip: already present
+```
+
+写失败 → 暴露错误，禁止静默重试。

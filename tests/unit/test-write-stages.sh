@@ -90,9 +90,9 @@ test_paths_no_standalone_section() {
   assert_not_contains "no standalone paths section" "## 路径" || return 1
 }
 
-test_docs_path_inlined() {
-  # $DOCS 解析应内嵌在 Stage 1
-  assert_contains "DOCS variable" 'DOCS=$(bash "$KNOW_PATHS" docs)' || return 1
+test_doc_path_used_for_target() {
+  # Stage 1 用 doc-path 子命令解析文档路径，不再硬编码 $DOCS 映射
+  assert_contains "doc-path target" 'doc-path "$TYPE"' || return 1
 }
 
 test_templates_path_inlined() {
@@ -101,7 +101,7 @@ test_templates_path_inlined() {
 }
 
 test_know_paths_script() {
-  assert_contains "know-paths.sh ref" "know-paths.sh" || return 1
+  assert_contains "KNOW_PATHS usage" 'bash "$KNOW_PATHS"' || return 1
 }
 
 test_gate_high_risk_only() {
