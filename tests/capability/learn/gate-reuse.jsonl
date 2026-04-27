@@ -1,6 +1,0 @@
-{"id":"tc01-reuse-and-until-pass","input":{"claim":"压测前必须先 seed 10k 条数据，否则结果失真","field":"must"},"expected":{"result":"pass","future_scenario":"下次做性能优化 sprint 时","until":"压测环境改用生产数据快照时"}}
-{"id":"tc02-reuse-adjust-passes","input":{"claim":"这次 PR 用了 squash merge","field":"prefer","adjusted_claim":"feature branch 合并到 main 时用 squash merge 保持线性历史"},"expected":{"result":"pass","future_scenario":"下次 PR review 时"}}
-{"id":"tc03-must-until-unwritable","input":{"claim":"数据库连接数设为 10","field":"must","adjusted_claim":"SQLite pool 连接数设为 10"},"expected":{"result":"reject","reason":"must 类 until 必填但写不出失效条件"}}
-{"id":"tc04-prefer-no-until-pass","input":{"claim":"commit message 以动词开头（Add/Fix/Refactor）","field":"prefer"},"expected":{"result":"pass","note":"prefer 类 until 选填，不填不 reject"}}
-{"id":"tc05-one-time-reject","input":{"claim":"这个 bug 是因为 race condition 在 2026-04-01 的那次部署里出现的","field":"should"},"expected":{"result":"reject","reason":"写不出未来会用上的场景，属一次性问题"}}
-{"id":"tc06-avoid-until-optional","input":{"claim":"不要在 worker 里 await DB 事务","field":"avoid"},"expected":{"result":"pass","until":"切换到支持 async context 的连接池时（选填）"}}

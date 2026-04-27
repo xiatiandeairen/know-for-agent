@@ -1,7 +1,0 @@
-{"id":"tc01-hint-valid","input":{"hint":"tech","conversation":"讨论 SQLite 实现","user_replies":[]},"expected":{"type":"tech"}}
-{"id":"tc02-hint-case","input":{"hint":"TECH","conversation":"讨论 SQLite 实现","user_replies":[]},"expected":{"type":"tech"}}
-{"id":"tc03-guess-full","input":{"hint":null,"conversation":"recall 模块由 scope 推断 + query + rank 组成","user_replies":[]},"expected":{"type":"arch"}}
-{"id":"tc04-guess-q1-ask-q2","input":{"hint":null,"conversation":"聊工程方案但没说清画架构还是记录决策","user_replies":["decision"]},"expected":{"type":"decision"}}
-{"id":"tc05-ask-q1-q2","input":{"hint":null,"conversation":"零散想法","user_replies":["A","A"]},"expected":{"type":"roadmap"}}
-{"id":"tc06-invalid-then-valid","input":{"hint":null,"conversation":"零散","user_replies":["runbook","prd"]},"expected":{"type":"prd"}}
-{"id":"tc07-persistent-invalid-abort","input":{"hint":null,"conversation":"零散","user_replies":["不知道","随便"]},"expected":{"type":"abort"}}

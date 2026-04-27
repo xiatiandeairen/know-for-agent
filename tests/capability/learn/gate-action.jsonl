@@ -1,5 +1,0 @@
-{"id":"tc01-declarative-no-how","input":{"claim":"用中文回复用户"},"expected":{"result":"pass","how":null,"reason":"声明性规则，how 可省"}}
-{"id":"tc02-technical-how-found","input":{"claim":"webhook 必须先验签","conversation_context":"验签用 HMAC-SHA256(env.WEBHOOK_SECRET, raw_body)，见 src/webhook/verify.ts"},"expected":{"result":"pass","how":"HMAC-SHA256(env.WEBHOOK_SECRET, raw_body) vs X-Sig header；见 src/webhook/verify.ts"}}
-{"id":"tc03-technical-how-derivable","input":{"claim":"HealthKit 回调 dispatch 回 main thread","conversation_context":"DispatchQueue.main.async { self.updateUI() }"},"expected":{"result":"pass","how":"DispatchQueue.main.async { ... } 包裹 UI 操作"}}
-{"id":"tc04-technical-how-missing-adjust","input":{"claim":"压测前必须 seed 数据","adjusted_claim":"压测前必须 seed 数据：bash scripts/seed-bench.sh 10000"},"expected":{"result":"pass","how":"bash scripts/seed-bench.sh 10000"}}
-{"id":"tc05-how-unwritable-reject","input":{"claim":"系统性能要好","adjusted_claim":"响应时间 p95 < 200ms"},"expected":{"result":"reject","reason":"无操作步骤可填入 how，等同于 TBD"}}

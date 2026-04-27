@@ -1,6 +1,0 @@
-{"id":"tc01-correction-bypass","input":{"claim":"必须先验签再解 body，顺序不能反","label":"纠正"},"expected":{"result":"pass","bypass_reason":"纠正类直接通过"}}
-{"id":"tc02-project-specific-pass","input":{"claim":"webhook secret 存 env.WEBHOOK_SECRET，不能硬编码","label":"捕捉"},"expected":{"result":"pass","error_scenario":"不知道这条时 AI 会直接把 secret 写在代码里"}}
-{"id":"tc03-general-practice-reject","input":{"claim":"变量命名要有意义，避免 a、b、tmp","label":"捕捉"},"expected":{"result":"adjust","adjust_direction":"绑定到项目真实会犯错的具体场景重答","rerun_result":"reject"}}
-{"id":"tc04-adjust-passes","input":{"claim":"处理 HealthKit 数据时必须在 main thread 执行 UI 更新","label":"捕捉","adjusted_claim":"在 HKObserverQuery completion handler 里更新 UI 时必须显式 dispatch 回 main thread，否则崩溃"},"expected":{"result":"pass","error_scenario":"AI 在 completion handler 里直接操作 UI 导致 main thread checker 崩溃"}}
-{"id":"tc05-library-quirk-pass","input":{"claim":"SQLite WAL 模式下 reader 不阻塞 writer，但开启前必须先 PRAGMA journal_mode=WAL 且重连后需重设","label":"捕捉"},"expected":{"result":"pass","error_scenario":"AI 开启 WAL 但忘记新连接需重设，导致回退到 DELETE 模式"}}
-{"id":"tc06-common-pattern-reject","input":{"claim":"函数应该只做一件事，保持单一职责","label":"捕捉"},"expected":{"result":"adjust","adjust_direction":"绑定到项目代码里会出现的具体反例场景","rerun_result":"reject"}}

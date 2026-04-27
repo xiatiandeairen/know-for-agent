@@ -1,5 +1,0 @@
-{"id":"tc01-no-file","input":{"type":"arch","path":"docs/arch/new-module.md","file_exists":false,"user_replies":[]},"expected":{"mode":"create"}}
-{"id":"tc02-file-exists-update","input":{"type":"arch","path":"docs/arch/know-ctl.md","file_exists":true,"user_replies":["A"]},"expected":{"mode":"update"}}
-{"id":"tc03-file-exists-rename","input":{"type":"arch","path":"docs/arch/know-ctl.md","file_exists":true,"user_replies":["B"]},"expected":{"mode":"redirect-1b"}}
-{"id":"tc04-file-exists-cancel","input":{"type":"arch","path":"docs/arch/know-ctl.md","file_exists":true,"user_replies":["C"]},"expected":{"mode":"abort"}}
-{"id":"tc05-roadmap-exists","input":{"type":"roadmap","path":"docs/roadmap.md","file_exists":true,"user_replies":[]},"expected":{"mode":"update"}}

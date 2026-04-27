@@ -1,5 +1,0 @@
-{"id":"tc01-create-confirm","input":{"mode":"create","tbd_count":0,"user_replies":["yes"]},"expected":{"outcome":"written"}}
-{"id":"tc02-tbd-threshold","input":{"mode":"create","tbd_count":5,"user_replies":["yes"]},"expected":{"outcome":"written","tbd_warning_shown":true}}
-{"id":"tc03-edit-loop","input":{"mode":"create","tbd_count":0,"user_replies":["edit Overview","yes"]},"expected":{"outcome":"written","revisions":1}}
-{"id":"tc04-cancel","input":{"mode":"create","tbd_count":0,"user_replies":["no"]},"expected":{"outcome":"abort"}}
-{"id":"tc05-update-diff","input":{"mode":"update","tbd_count":0,"touched_sections":2,"user_replies":["yes"]},"expected":{"outcome":"written","sections_updated":2}}

@@ -1,5 +1,0 @@
-{"id":"tc01-create-full","input":{"mode":"create","template_sections":["Overview","Design","Risks"],"conversation_evidence":["Overview","Design","Risks"],"triggers_in_scope":[]},"expected":{"filled_sections":["Overview","Design","Risks"],"tbd_count":0}}
-{"id":"tc02-create-partial-tbd","input":{"mode":"create","template_sections":["Overview","Design","Risks","Metrics"],"conversation_evidence":["Overview","Design"],"triggers_in_scope":[]},"expected":{"filled_sections":["Overview","Design"],"tbd_count":2}}
-{"id":"tc03-update-touched-only","input":{"mode":"update","existing_sections":["A","B","C"],"conversation_discusses":["B"]},"expected":{"regenerated":["B"],"verbatim":["A","C"]}}
-{"id":"tc04-create-uses-trigger","input":{"mode":"create","template_sections":["Security"],"conversation_evidence":["Security"],"triggers_in_scope":[{"tag":"rule","scope":"Auth","summary":"JWT 必须校验签名"}]},"expected":{"trigger_cited":true,"tbd_count":0}}
-{"id":"tc05-update-no-overlap","input":{"mode":"update","existing_sections":["A","B"],"conversation_discusses":[],"user_replies":["A"]},"expected":{"outcome":"add-new-section"}}

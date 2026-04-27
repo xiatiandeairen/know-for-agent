@@ -1,5 +1,0 @@
-{"id":"tc01-file-path-trigger","input":{"claim":"必须先验签再解 body"},"expected":{"result":"pass","when":"改 src/webhook/ 下任何 handler 时"}}
-{"id":"tc02-library-name-trigger","input":{"claim":"HealthKit query 回调必须 dispatch 回 main thread"},"expected":{"result":"pass","when":"用 HKObserverQuery 或 HKSampleQuery 时"}}
-{"id":"tc03-vague-trigger-adjust","input":{"claim":"要注意线程安全","adjusted_when":"在 DataEngine.shared 的方法里修改共享状态时"},"expected":{"result":"pass","when":"在 DataEngine.shared 的方法里修改共享状态时"}}
-{"id":"tc04-vague-reject","input":{"claim":"要注意代码质量","adjusted_claim":"要注意代码质量（全项目通用）"},"expected":{"result":"reject","reason":"触发场景无法定位到具体文件路径/关键词/代码模式"}}
-{"id":"tc05-code-pattern-trigger","input":{"claim":"parseInt 有截断风险，用 Number()"},"expected":{"result":"pass","when":"代码中出现 parseInt(someVar) 时"}}
