@@ -33,18 +33,25 @@
 
 ## 安装
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/install.sh | bash
-```
+无安装脚本——把下面这段 prompt 粘给 Claude Code，它会替你完成安装：
 
-需要 `git` 和 `jq`。安装后重启 Claude Code。
+> 帮我安装 `know` Claude Code 插件，仓库地址 `https://github.com/xiatiandeairen/know-for-agent`：
+> 1. 把仓库 clone 到 `~/.claude/plugins/know`
+> 2. 在 `~/.claude/settings.json` 中加 directory marketplace `extraKnownMarketplaces.know = { source: { source: "directory", path: "~/.claude/plugins/know" } }`，并设置 `enabledPlugins["know@know"] = true`
+> 3. 告诉我重启 Claude Code
+
+需要 `git`。安装后重启 Claude Code。
 
 <details>
 <summary>卸载</summary>
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/uninstall.sh | bash
-```
+粘这段给 Claude Code：
+
+> 帮我卸载 `know` Claude Code 插件：
+> 1. 删除 `~/.claude/plugins/know`
+> 2. 从 `~/.claude/settings.json` 删除 `extraKnownMarketplaces.know` 和 `enabledPlugins["know@know"]`
+> 3. 告诉我重启 Claude Code
+
 </details>
 
 ## 使用

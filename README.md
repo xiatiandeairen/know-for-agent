@@ -33,18 +33,25 @@
 
 ## Install
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/install.sh | bash
-```
+No installer script — paste this prompt to Claude Code and it will handle the install:
 
-Requires `git` and `jq`. Restart Claude Code after install.
+> Install the `know` Claude Code plugin from `https://github.com/xiatiandeairen/know-for-agent`:
+> 1. Clone the repo to `~/.claude/plugins/know`
+> 2. In `~/.claude/settings.json`, add a directory-source marketplace `extraKnownMarketplaces.know = { source: { source: "directory", path: "~/.claude/plugins/know" } }` and set `enabledPlugins["know@know"] = true`
+> 3. Tell me to restart Claude Code
+
+Requires `git`. Restart Claude Code after install.
 
 <details>
 <summary>Uninstall</summary>
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/uninstall.sh | bash
-```
+Paste to Claude Code:
+
+> Uninstall the `know` Claude Code plugin:
+> 1. Delete `~/.claude/plugins/know`
+> 2. From `~/.claude/settings.json`, delete `extraKnownMarketplaces.know` and `enabledPlugins["know@know"]`
+> 3. Tell me to restart Claude Code
+
 </details>
 
 ## Usage
