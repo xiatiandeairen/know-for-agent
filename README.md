@@ -1,11 +1,11 @@
 <h1 align="center">know</h1>
 
 <p align="center">
-  <strong>Your AI agent keeps making the same mistakes. This fixes that.</strong>
+  <strong>Give your CLAUDE.md authoring discipline — stop low-entropy rules from piling up.</strong>
 </p>
 
 <p align="center">
-  A <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> plugin that gives AI agents persistent, structured project memory — so lessons learned in one session are never forgotten.
+  A <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> plugin with two commands: <code>learn</code> gates and structures knowledge into CLAUDE.md, <code>write</code> turns discussions into versioned docs.
 </p>
 
 <p align="center">
@@ -22,14 +22,14 @@
 
 ## The Problem
 
-AI coding agents forget everything between sessions. They repeat the same mistakes, lose design decisions, and ignore lessons they've already learned — even with `CLAUDE.md` and auto-memory.
+`CLAUDE.md` is the right place for project knowledge — but without discipline, it degrades into a pile of low-entropy rules that don't change AI behavior. And design discussions just vanish after a session.
 
 | Without know | With know |
 |:---|:---|
-| AI makes the same architectural mistake for the 3rd time | `[recall]` fires before the mistake happens |
-| "Why did we choose X over Y?" — no one remembers | Rationale entry retrieved automatically by scope |
-| Design discussion results vanish after the session | Structured docs persisted in `docs/` |
-| Generated docs are thin and inconsistent | Template + checklist + update rules enforce quality |
+| AI keeps violating constraints it "knows" | Every entry passes a 5-gate entropy filter before it's written |
+| CLAUDE.md grows bloated with obvious rules | Gate rejects rules the model already knows — noise stays out |
+| Design discussion results vanish after the session | `/know write` turns the conversation into a structured doc |
+| Docs are thin and inconsistent | Template + checklist + sufficiency gate enforce quality |
 
 ## Install
 
@@ -37,7 +37,7 @@ AI coding agents forget everything between sessions. They repeat the same mistak
 curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/install.sh | bash
 ```
 
-Requires `jq` and `git`. Restart Claude Code after install.
+Requires `git`. Restart Claude Code after install.
 
 <details>
 <summary>Uninstall</summary>
@@ -45,147 +45,75 @@ Requires `jq` and `git`. Restart Claude Code after install.
 ```bash
 curl -fsSL https://raw.githubusercontent.com/xiatiandeairen/know-for-agent/main/uninstall.sh | bash
 ```
-
-Your knowledge data at `$XDG_DATA_HOME/know/` is preserved. Delete it manually if needed.
 </details>
 
 ## Usage
 
 ```bash
-/know learn     # Extract and persist knowledge from the current conversation
+/know learn     # Gate and persist knowledge from the current conversation
 /know write     # Turn discussion into a structured, versioned document
-/know extract   # Mine knowledge from source code
-/know review    # Audit stored knowledge — delete stale, update outdated
-/know report    # 6-section health diagnostic of your knowledge base
 ```
 
-### How Recall Works
+### How learn Works
 
-Know doesn't just store knowledge — it **uses** it. Before your agent modifies code, it automatically queries relevant entries by module scope:
+`learn` runs a 5-stage pipeline on each knowledge candidate:
 
-- **`active:defensive`** — warns or blocks operations that would violate known constraints
-- **`active:directive`** — suggests proven approaches before the agent guesses
-- **`passive`** — surfaces context only when the agent is about to repeat a known mistake
+1. **detect** — scan the last ≤20 turns; classify as `[纠正]` (user corrected AI, fast-track) or `[捕捉]` (AI self-captured, full gate required)
+2. **gate** — 5 filters from coarse to fine: entropy → reuse → triggerable → actionable → invalidation. Each gate proposes an adjustment before rejecting; target rejection rate ≥20%
+3. **refine** — optional: generalize trigger scope, deepen rationale, split multi-logic entries
+4. **locate** — pick target CLAUDE.md (project / module / user level) via `know-paths.sh`
+5. **write** — produce YAML entry, check for duplicates, confirm, append
 
-Every recall query is logged to `events.jsonl` for observability.
+Every entry written to a `## know` YAML block:
 
-### Document Quality Framework
+```yaml
+- when: editing webhook handler
+  must: verify signature before parsing body — prevents forged payloads
+  how: HMAC-SHA256(env.WEBHOOK_SECRET, raw_body) vs X-Sig header; see src/webhook/verify.ts
+  until: webhook provider switches to mTLS
+```
 
-Every document type has a **3-file quality chain**:
+Knowledge is activated by Claude Code's native nested CLAUDE.md loading — no runtime retrieval layer.
 
-| File | Purpose |
-|------|---------|
-| `{type}.md` | Structure template with inline field specs and ❌/✅ examples |
-| `{type}-checklist.md` | Full field specification (info, format, constraints, data confidence) |
-| `{type}-update.md` | Change rules per field (immutable, append-only, data-refresh, updatable) |
+### How write Works
 
-Additional quality infrastructure:
-- **Sufficiency gate** — question-based content check blocks thin documents for high-risk types (prd, tech, arch, schema, decision, ui). Insufficient content → downgrade to parent document instead of creating garbage.
-- **Diagram checklist** — 8 diagram types with when→action triggers (data flow, sequence, ER, state, etc.)
-- **Data confidence rules** — every number must cite its source (measured, estimated, target, or no-data). Fabricating precise numbers is prohibited.
+`write` infers document type and path from the conversation, runs a sufficiency gate for high-risk types, fills a template, and previews before writing:
 
-## What Gets Stored
-
-Know captures the knowledge that code and git history **can't express**:
-
-| Tag | What it captures | Example |
-|-----|-----------------|---------|
-| `rationale` | Why X, not Y | "Chose JSONL over SQLite — simpler recovery, no binary deps" |
-| `constraint` | What must not be done | "Never hardcode thresholds outside PressureLevel enum" |
-| `pitfall` | Known traps + root cause | "DataEngine singleton leaks state across test targets" |
-| `concept` | Core logic, algorithms | "Pressure scoring uses 3-tier weighted average" |
-| `reference` | External integrations | "HealthKit requires background mode entitlement" |
-
-Every entry is scoped (by module), tiered (critical vs memo), and automatically decayed when no longer useful.
-
-## How It Differs
-
-| | CLAUDE.md | Auto-memory | **know** |
-|---|:---:|:---:|:---:|
-| Scope | Global rules | Personal prefs | **Project knowledge** |
-| Structure | Flat text | Key-value | **Tagged, scoped, tiered** |
-| Retrieval | Always loaded | Always loaded | **On-demand by scope** |
-| Lifecycle | Manual | Manual | **Auto-decay + metrics** |
-| Documents | None | None | **11 types with quality framework** |
-| Limit | ~200 lines | ~200 lines | **No hard limit** |
+```bash
+/know write          # infer type from context
+/know write arch     # hint the type
+/know write decision payment-method   # hint type + name
+```
 
 ## Document Types
 
-11 types, each with template + checklist + update rules:
+10 types, each with a template + checklist + update rules:
 
-| Type | Level | Description |
-|------|-------|-------------|
-| roadmap | Project | Product vision, version planning, milestones |
-| milestone | Project | Goal/plan/tracking/results (plan immutable after start) |
-| capabilities | Project | Cross-version capability inventory |
-| ops | Project | Release strategy, feedback SLA, incident playbook |
-| marketing | Project | Audience, messaging, channels, timeline |
-| prd | Requirement | Problem, users, hypothesis, acceptance criteria |
-| tech | Requirement | Constraints, architecture, decisions, iteration log |
-| arch | Directory | Module structure, data flow, design decisions |
-| schema | Directory | Interface contracts, data models, error codes |
-| decision | Directory | Options comparison, impact analysis, status tracking |
-| ui | Directory | Layout, interaction flows, component states |
+| Type | Path | Description |
+|------|------|-------------|
+| roadmap | `docs/roadmap.md` | Product vision, version planning, milestones |
+| capabilities | `docs/capabilities.md` | Cross-version capability inventory |
+| ops | `docs/ops.md` | Release strategy, feedback SLA |
+| marketing | `docs/marketing.md` | Audience, messaging, channels |
+| prd | `docs/requirements/{name}/prd.md` | Problem, users, hypothesis, acceptance criteria |
+| tech | `docs/requirements/{name}/tech.md` | Constraints, architecture, decisions, iteration log |
+| arch | `docs/arch/{name}.md` | Module structure, data flow, design decisions |
+| schema | `docs/schema/{name}.md` | Interface contracts, data models, error codes |
+| decision | `docs/decision/{name}.md` | Options comparison, impact analysis |
+| ui | `docs/ui/{name}.md` | Layout, interaction flows, component states |
 
-## Storage (v7)
+**Sufficiency gate** — for high-risk types (prd / tech / arch / schema / decision / ui): if the conversation doesn't have enough to fill the template, know blocks the write and suggests a parent document instead.
 
-**3 JSONL files** — no per-project directories, no aggregate caches:
+**Data confidence** — every number must cite its source: measured / estimated / target / no-data. Fabricating precise numbers is prohibited.
 
-```
-<project>/
-└── docs/
-    ├── triggers.jsonl            # ← project source (git-tracked)
-    ├── roadmap.md / capabilities.md / ops.md / marketing.md
-    ├── arch/{topic}.md
-    ├── schema/{topic}.md
-    ├── decision/{topic}.md
-    ├── milestones/history.md
-    └── requirements/{req}/       # prd.md + tech.md
+## How It Differs
 
-$XDG_CONFIG_HOME/know/            # default: ~/.config/know/
-└── triggers.jsonl                # ← user source (cross-project methodology;
-                                  #    users can dotfiles-git this independently)
-
-$XDG_DATA_HOME/know/              # default: ~/.local/share/know/
-└── events.jsonl                  # ← runtime: all events (created/updated/
-                                  #    deleted/hit/recall_query). Each line
-                                  #    carries project_id + level fields.
-                                  #    metrics/stats derive from this.
-```
-
-**Entry schema (8 fields)**: `tag / scope / summary / strict / ref / source / created / updated`.
-- `strict`: bool for `tag=rule` (true = hard constraint, false = advisory); null for `insight`/`trap`.
-- `ref`: `docs/xxx.md#anchor` | `src/file.ts:42` | URL | null.
-
-`--level project|user` on every subcommand. Read commands default to both levels merged; write commands default to project.
-
-### Migration from v6
-
-v6 stored per-project data under `$XDG_DATA_HOME/know/projects/{id}/` plus `user/`, with an 11-field schema and `entries/{tag}/{slug}.md` detail files. v7 replaces this with 3 files and 8-field schema.
-
-Run the built-in migrator:
-
-```bash
-# Preview changes (no writes)
-bash scripts/know-ctl.sh migrate-v7 --dry-run
-
-# Execute
-bash scripts/know-ctl.sh migrate-v7
-
-# Verify
-bash scripts/know-ctl.sh self-test
-bash scripts/know-ctl.sh stats
-
-# After confirming the migration looks correct, remove legacy data:
-rm -rf ~/.local/share/know/projects ~/.local/share/know/user
-```
-
-The migrator:
-1. Converts 11-field entries to 8-field (drops `tier` / `tm` / `path` / `hits` / `revs`; adds `strict` / `ref`).
-2. Consolidates `entries/{tag}/{slug}.md` detail files into `<project>/docs/legacy-v6-details.md` for manual review; each converted entry's `ref` points to the new section anchor.
-3. Merges per-project `events.jsonl` + `user/events.jsonl` into the single `$XDG_DATA_HOME/know/events.jsonl`, adding `project_id` and `level` fields to each record.
-
-Legacy data is **not** auto-deleted; inspect the output first.
+| | CLAUDE.md (manual) | Auto-memory | **know** |
+|---|:---:|:---:|:---:|
+| Authoring discipline | None | None | **5-gate entropy filter** |
+| Structure | Flat text | Key-value | **4-field YAML (when/rule/how/until)** |
+| Activation | Always loaded | Always loaded | **Claude Code nested loading** |
+| Documents | None | None | **10 types with quality framework** |
 
 ## Contributing
 

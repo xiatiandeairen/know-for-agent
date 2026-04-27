@@ -1,213 +1,277 @@
 # learn — 知识沉淀
 
-## 1. Overview
+5 stage 串行：detect → gate → refine → locate → write。每条 claim 独立走完一次，某条 fail 不阻断其余。
 
-将对话中的洞察沉淀为 `triggers.jsonl` 中的 `trigger` 条目。流程：collect → generate → conflict → confirm → write。宁少勿滥，质优于量。
-
-## 2. Core Principles
-
-1. **一次收集**。单次扫描得出最终 candidates，不做多轮过滤。
-2. **质优于量**。能从代码直接看出的不写；只留非显性的隐性知识。
-3. **写前确认**。用户见到每条原文，控制最终落盘。
-4. **冲突不静默**。重复、矛盾、可合并重叠必须抛给用户决定。
-5. **level 必须显式**。每条 trigger 不是 `project`（本仓库）就是 `user`（跨项目），无模糊默认。
-6. **追问有限**。非法回复 → 兜底一次完整列表 → 再非法则 abort。
-
-## 3. Definitions
-
-| 术语 | 含义 |
-|---|---|
-| `trigger` | 一行 JSONL，8 字段：`tag, scope, summary, strict, ref, keywords, source, created/updated` |
-| `tag` | `rule`（必须/禁止）、`insight`（决策/心智模型）、`trap`（bug/坑）；歧义优先级：`trap > rule > insight` |
-| `scope` | 点分 keypath（`Auth.session`、`methodology.recall-design`），稳定可复用锚 |
-| `strict` | `rule` 时为 `true/false`；`insight/trap` 必须为 `null` |
-| `level` | `project` 或 `user`，决定文件位置 |
-| `candidate` | 未落盘的 trigger 中间态 |
-
-## 4. Rules
-
-### 4.1 Input handling
-
-- 字符串匹配一律 case-insensitive。
-- `STOP:choose` 阻塞流程，用户必须从展示的选项里挑。
-- 首次非法回复触发完整列表兜底；第二次非法则 `abort`。
-
-### 4.2 Entry integrity
-
-- 每条 candidate 产出合法 8 字段条目；禁止半条落盘。
-- `rule` 要求 `strict ∈ {true, false}`；`insight/trap` 要求 `strict = null`。
-- `summary` ≤ 80 字符，格式 `{结论} — {理由}`。
-- scope 取值顺序：明确文件路径 → 模块/子系统名 → 反复出现的功能域 → 大范围边界 → `"project"`（兜底）。
-- level 默认：scope 以 `methodology.*` 开头 → `user`；项目内标识 → `project`；歧义 → 问。
-
-### 4.3 Candidate quality
-
-任一条命中即丢弃：
-- 无明确结论或规则；
-- 描述一次性状态或孤立事实；
-- 从代码表面直读即可，无额外 why/约束/上下文；
-- 无可预见的复现或复用。
-
-### 4.4 Conflict handling
-
-| 关系 | 动作 |
-|---|---|
-| unrelated | 放行 |
-| merge（互补） | 提议合并，`STOP:choose` |
-| duplicate（结论相同） | 提议 skip 或 merge，`STOP:choose` |
-| conflict（对立） | 必须抛出，`STOP:choose` 裁决 |
-
-单凭语义相似度不拍板；同时权衡 scope、方向、tag、适用范围、时间先后。
-
-### 4.5 User touchpoints
-
-- `Collect` 后一次选择（选哪些 candidate 进入处理）。
-- 任一 conflict 一次选择。
-- `Write` 前一次确认。
-- 其余步骤除非显式兜底，不得再追问。
-
-## 5. Workflow
-
-模型：`opus` 做扫描与判断（1、2）；`sonnet` 做机械工作（3、5）。
-
-### 5.1 Step 1 — Collect
-
-**Input**：`conversation`，可选 `"<claim>"`，入口 `/know learn`。
-**Output**：`candidates[]`（≤ 5），每条带 `summary_draft` 与 `likely_tag`；无合格内容则为空。
+每个 stage 入口先输出两行：
 
 ```
-1. 入口为 /know learn "<claim>"：
-     → 单 candidate，跳过扫描。
-2. 否则扫描会话，筛出同时通过 §4.3 四条质量检查的内容。
-3. 拆分：一个结论 + 其直接理由 = 一条；两个独立事实 = 两条。
-4. 池 > 5 时按以下排序取前 5：
-     用户纠正 > 已收敛结论 > 可能复现 > 项目相关。
-5. 展示：
-     [learn] step: collect
-     会话价值摘要：{theme}
-     关键产出：
-       - {output 1}
-       - {output 2}
-     检测到 {N} 条可持久化知识：
-       1. [{likely_tag}] {summary_draft}
-       2. ...
-     持久化？[all / 编号 / skip]
-6. 选择时 STOP:choose。
+[learn] stage X/5 — {name}
+目的：{purpose}
 ```
 
-### 5.2 Step 2 — Generate
+Stage 概览：
 
-**Input**：被选中的 candidates。
-**Output**：每条 candidate 落成 `{tag, scope, strict, summary, ref, keywords, level}`。
+- Stage 1 detect — 从对话抽全部 claim 候选，用户取子集（Step 1）
+- Stage 2 gate — 5 道闸筛选，任一 fail 则 reject（Step 2-6）
+- Stage 3 refine — 从多个维度加工知识，提升 entry 质量（Step 7-9）
+- Stage 4 locate — 决定写入哪个 CLAUDE.md（Step 10）
+- Stage 5 write — 起草 entry，查重，确认，写入（Step 11-15）
 
-```
-对每条被选 candidate：
-  2a tag         trap > rule > insight；≥ 2 项同等合理 → 问用户。
-  2b scope       按 §4.2；避免过深或过泛。
-  2c strict      仅 rule 有值；insight/trap 必须 null。
-  2d summary     "{结论} — {理由}"，≤ 80 字符；不合则改写至合格。
-  2e ref         可选 docs 路径 / 代码锚 / URL；rule+strict=true 尽量给 ref。
-  2f keywords    5–8 个 kebab-case；优先复用现有词汇（know-ctl keywords）。
-  2g level       methodology.* → user；项目内 → project；歧义 → STOP:choose。
-```
+---
 
-**Keyword 规则**：小写，`[a-z0-9-]`，长度 2–40；除非确属新概念，否则复用现有词汇。
-
-### 5.3 Step 3 — Conflict
-
-**Input**：已生成条目。
-**Output**：已完成冲突解决的条目。
+## Stage 1: detect
 
 ```
-1. 对每条条目，用 scope keywords 跑 know-ctl search：
-     bash "$KNOW_CTL" search "<kw1>|<kw2>"
-2. 对每条候选匹配归类：unrelated | merge | duplicate | conflict。
-3. 非 unrelated 即抛出：
-     [conflict] Similar entry found:
-       Existing: {summary}
-       New:      {summary}
-       Relation: {merge | duplicate | conflict}
-       Choose:   A) Update existing  B) Keep both  C) Merge  D) Skip new
-   STOP:choose 裁决。
+[learn] stage 1/5 — detect
+目的：从最近 ≤20 轮对话中抽出全部 claim 候选并由用户取子集；找不到就请用户用一句话给出。
 ```
 
-### 5.4 Step 4 — Confirm
+### Step 1 — detect
 
-**Input**：已解决冲突的条目。
-**Output**：可写入的最终列表；每条最多 3 轮编辑。
+先按来源分类，再扫描：
+
+**A 类（用户纠正了 AI 的判断）** — 直接进候选，无需额外验证：
+
+- 用户指出 AI 的输出有误，给出了正确做法
+- 用户否定了 AI 的方案，提出了不同方向
+- 用户补充了 AI 遗漏的约束或前提
+
+**B 类（AI 主动捕捉）** — 列为候选，但需通过强化版信息熵才能留下：
+
+- 本次对话做了哪些技术选择，且说明了理由？
+- 遇到了什么问题，总结出什么经验？
+- 用户表达了什么倾向或风格要求？
+
+A 类标注 `[纠正]`，B 类标注 `[捕捉]`，输出时一并列出。
+
+输出模版：
 
 ```
-对每条条目：
-  展示 tag / scope / strict / summary / ref / keywords / level。
-  询问：confirm / edit <field>=<value> / skip / merge-with <existing>。
-  第 3 轮编辑后强制 A) confirm current，B) cancel。
-user-level 条目需二次确认，列出所有受影响 scope。
+[learn] 检出 {N} 条 claim 候选：
+  1. {claim 主体}
+  2. {claim 主体}
+  ...
+请回复编号（如 "1,3" 取子集 / "all" 全要 / "none" 取消 / 自由文本补一条）
 ```
 
-### 5.5 Step 5 — Write
+等待用户回复后继续。用户确认子集后，Stage 2-5 对每条 claim 独立各走一遍。
 
-**Input**：已确认条目。
-**Output**：追加 triggers.jsonl 行 + `created` 事件。
+- 无候选 → 输出 `[learn] no claim detected — 请用一句话说出要沉淀的知识`，等待用户输入
+- 单条候选 → 直接进 Stage 2，不走选择菜单
+
+---
+
+## Stage 2: gate
+
+```
+[learn] stage 2/5 — gate
+目的：对每条 claim 独立跑 5 道闸；某条 fail 仅 reject 该条，不影响其余。
+```
+
+每道闸：pass → 继续；未通过 → 给出调整建议等用户确认，重跑一次；仍不过 → `[learn] reject: {原因}`。
+
+闸从大到小排列，越靠前能过滤的范围越广。classify 不是过滤闸，先于 gate 执行。
+
+### Step 2 — classify
+
+违反这条会有什么后果？
+
+- 不可逆（安全 / 数据 / 金钱损失）→ `must`
+- 可恢复 → `should`
+- 触发陷阱 → `avoid`
+- 只是倾向 → `prefer`
+
+输出 `[learn] 选 {field}（{中文标签}）`。
+
+### Step 3 — 信息熵
+
+**[纠正] 类**：直接 pass，跳过信息熵检验——用户纠正本身即证明 AI 会犯错。
+
+**[捕捉] 类**：
+
+Q1: 在只有项目 CLAUDE.md 的全新会话里，AI 会在什么具体操作中犯什么具体错误？
+
+- 能写出具体错误场景 → pass
+- 写不出 → 未通过。调整：把 claim 绑定到一个 AI 真实会犯错的场景重答。仍写不出 → reject
+
+### Step 4 — 复用
+
+Q1: 除了当前任务，列出一个未来会用上这条的场景。
+
+- 列得出 → 通过（产物不入 entry）
+- 列不出 → 把 claim 改写为能跨任务迁移的表述，重列。仍列不出 → reject
+
+Q2: 什么条件下这条不再成立？→ 填入 `until` 字段（`must` 必填，其余选填）
+
+- 想不出 → 推断框架版本 / 配置开关 / 外部服务的变化点重答。仍想不出 → reject
+
+### Step 5 — 可触发
+
+Q1: 改哪个文件、用哪个库、遇到什么代码模式时，AI 应该想起这条？→ 填入 `when` 字段
+Q2: 这个触发描述能定位到具体文件路径 / 关键词 / 代码模式吗？
+
+- 能 → pass
+- 不能 → 未通过。从对话涉及的路径、函数名、库名重答 Q1
+
+### Step 6 — 可执行
+
+Q1: 这条是声明性规则还是需要操作步骤？
+
+- 声明性（如"用中文回答"）→ pass，省略 `how`
+- 需要操作步骤 → 继续 Q2
+
+Q2: 具体怎么做？代码在哪 / 文档在哪？→ 填入 `how` 字段
+
+- 写得出 → pass
+- 写不出 → 从对话中找操作步骤或文档引用重答。仍写不出 → reject
+
+---
+
+## Stage 3: refine
+
+```
+[learn] stage 3/5 — refine
+目的：从场景泛化、知识深化、颗粒度校准三个维度加工 claim，提升 entry 的覆盖面和推理质量。
+```
+
+每个步骤均为可跳过的加工，无需调整则直接继续。有改动时输出调整内容等用户确认。
+
+### Step 7 — 场景泛化
+
+Q1: `when` 描述的触发场景，背后的本质操作是什么？
+Q2: 还有哪些文件路径 / 库 / 代码模式在本质上属于同一类场景，却没被当前 `when` 覆盖？
+
+- 有 → 提出更通用但仍精准的 `when` 描述，等用户确认后更新
+- 无 → 跳过
+
+### Step 8 — 知识深化
+
+Q1: 这条规则为什么成立？违反后发生的机制是什么（不只是后果描述）？
+Q2: 这个根因能用一句话补入 claim 的理由部分，让 AI 在边界情况下能推断而不是机械执行吗？
+
+- 能且当前理由不够充分 → 提出补充后的 claim 表述，等用户确认后更新
+- 已充分 → 跳过
+
+### Step 9 — 颗粒度校准
+
+Q1: 这条 claim 包含几个独立的"当 X 时做 Y"逻辑？
+
+- 1 个 → 跳过
+- 多个 → 拆分为多条独立 claim，列出拆分方案等用户确认；确认后每条从 Step 7 重走
+
+---
+
+## Stage 4: locate
+
+```
+[learn] stage 4/5 — locate
+目的：决定 entry 写到哪个 CLAUDE.md（level: user / project / module → file path）。
+```
+
+### Step 10 — locate
+
+Q1: 能指出一个具体代码目录吗？yes → module；no → Q2
+Q2: 在另一个项目里，AI 实际发生过这个错误，或有具体理由相信会发生？yes → user；no → project
+
+升到 user 需要真实跨项目证据，"理论上成立"不够。
+
+field 默认起点：
+
+- `must` / `should` → project / module
+- `avoid` → module
+- `prefer` → project（除非有跨项目实例）
+
+路径通过脚本解析：
 
 ```bash
-TODAY=$(date +%Y-%m-%d)
-bash "$KNOW_CTL" append --level {level} '{
-  "tag":"{tag}","scope":"{scope}","summary":"{summary}",
-  "strict":{strict_or_null},"ref":{ref_or_null},
-  "keywords":{keywords_array_or_null},
-  "source":"learn","created":"'"$TODAY"'","updated":"'"$TODAY"'"
-}'
+KNOW_PATHS="$(git rev-parse --show-toplevel)/scripts/know-paths.sh"
+# user level
+bash "$KNOW_PATHS" user-claude-md
+# project level
+bash "$KNOW_PATHS" project-claude-md
+# module level：取对话涉及文件路径的最深"有意义"目录，拼 /CLAUDE.md
+MODULE_DIR={从对话上下文提取，给 1-3 候选}
+echo "$MODULE_DIR/CLAUDE.md"
 ```
 
-```
-[persisted] {scope} :: {summary} ({level})
-```
-
-Decay 在 pipeline 入口跑一次（`know-ctl decay`）。
-
-## 6. Examples
-
-### 一次纠正落为 rule
+输出：
 
 ```
-user: "你忘了 webhook 必须先验签再解 body"
-→ Collect：1 条 candidate，likely_tag=rule。
-→ Generate：tag=rule, scope=Payment.webhook, strict=true,
-   summary="webhook 必须先验签再解 body — 防注入",
-   keywords=["webhook","signature-verification","security"], level=project。
-→ Conflict：无匹配。
-→ Confirm → Write。
+[learn] 候选落位:
+  level: {level}
+  file:  {path}
+  module 候选（如适用）: {dir1} / {dir2} / {dir3}
+请确认 / 改 level / 改 file / cancel
 ```
 
-### 方法论 insight 升到 user level
+等待用户确认后进入 Stage 5。
+
+---
+
+## Stage 5: write
 
 ```
-conversation：讨论 benchmark 双策略设计
-→ Collect：1 条 candidate。
-→ Generate：tag=insight, scope=methodology.benchmark,
-   summary="benchmark = A 现状算法 + B 上界模拟 — 对照出天花板",
-   level=user。
-→ Conflict：无匹配。
-→ Confirm → user level 二次确认 → Write。
+[learn] stage 5/5 — write
+目的：产出 YAML entry → 查重 → 用户确认 → 写文件 → 给 commit 建议。
 ```
 
-### 通过合并解决冲突
+### Step 11 — format
+
+仅产出已通过 gate + refine 加工后的字段，不加额外字段：
+
+```yaml
+- when: {可触发产物}
+  must: {claim 主体} — {理由}    # 或 should / avoid / prefer
+  how: {可执行产物}              # 仅技术细节 rule
+  until: {失效检查产物}          # must 必填，其余选
+```
+
+输出 `[learn] entry candidate:` + YAML block。
+
+### Step 12 — conflict
+
+读目标 file 的 `## know` YAML block（不存在则跳过）。`when` 重合 + 内容字段重合 → 视为重复。
+
+发现重复：
 
 ```
-Existing: "session 过期必须刷新 — 避免静默登出"
-New:      "session 超时不要拒绝，必须刷新 — 提升留存"
-→ Conflict 归类为 duplicate。
-→ 用户选 C) Merge；Step 3 合并为单条；Step 5 更新。
+[learn] 近似条目已存在:
+  {existing entry YAML}
+本流程不修改已有 entry。请选: skip / add anyway / cancel
 ```
 
-## 7. Edge Cases
+等待用户回复：`skip`（默认）→ 终止；`add anyway` → 继续写入；`cancel` → 取消。
 
-| 情形 | 行为 |
-|---|---|
-| 会话无合格内容 | `[learn] No high-value knowledge detected.` |
-| `/know learn "<claim>"` claim 畸形 | 单 candidate，`likely_tag=insight`，照常继续。 |
-| candidate > 5 | 按 §5.1 步骤 4 排序截断。 |
-| 所选 candidate 全被质量预检丢弃 | 每条给 `[skipped]`，不 Write 直接退出。 |
-| 编辑超过 3 轮 | 强制 confirm-current 或 cancel。 |
-| `know-ctl append` 失败 | 抛错，不静默重试。 |
-| user-level 写入未过二次确认 | 仅中止该条，其他条目继续。 |
+### Step 13 — confirm
+
+```
+[learn] 即将写入:
+  file: {path}
+  section: ## know (YAML block)
+  entry:
+    {YAML}
+确认写入？(yes / no / 调整某字段)
+```
+
+等待用户回复：`yes` → 写入；`no`/`cancel` → 终止；调整某字段 → 重走 Step 11 + Step 13。
+
+### Step 14 — write
+
+按目标 file 状态执行 Edit：
+
+- file 不存在 → 创建，内容为 `## know` + YAML block 含 entry
+- file 存在 + 无 `## know` 段 → 文件末尾追加 `## know` + YAML block 含 entry
+- `## know` 段存在 + 无 YAML block → 段末追加新 YAML block，已有自由内容不动
+- `## know` 段已有 YAML block → append entry 到 list 末尾
+
+输出 `[learn] written: {file}`。
+
+### Step 15 — suggest-commit
+
+```
+[learn] suggested commit message:
+  know: add {field} ({when 简短化}) — {claim 简短化}
+```
+
+不自动 commit。
+

@@ -27,9 +27,9 @@ AI agent 跨会话重复犯错——隐性知识（为什么选 A 不选 B、已
 
 ## 4. 方案
 
-- **Before**: 隐性知识散落在对话中，会话结束即丢失，下次 agent 从零开始 → **After**: `/know learn` 或隐式信号触发，用户确认后知识持久化为结构化条目，下次会话自动可用
-- **Before**: 重复知识无检测，多次记录同一件事 → **After**: 冲突自动检测，用户决定更新/保留/合并/跳过
-- **Before**: 知识越积越多，加载成本不可控 → **After**: 分层（critical/memo）+ 自动衰减，保持知识库精简
+- **Before**: 隐性知识散落在对话中，会话结束即丢失，下次 agent 从零开始 → **After**: `/know learn` 触发，用户确认后知识持久化为 CLAUDE.md 中的 YAML entry，下次会话由 Claude Code 嵌套加载机制自动激活
+- **Before**: 低熵规则混入 CLAUDE.md，降低 AI 行为可预期性 → **After**: entropy gate 5 道依次过滤，拒绝率目标 ≥20%
+- **Before**: 重复知识无检测，多次记录同一件事 → **After**: 冲突检测（`## know` block 语义重合），用户决定 skip / add anyway
 
 ### 任务
 
@@ -39,11 +39,10 @@ AI agent 跨会话重复犯错——隐性知识（为什么选 A 不选 B、已
 
 ## 5. 验收标准
 
-- 用户调用 `/know learn` → 从对话提取知识、展示完整条目 → 确认后持久化
-- AI 检测到隐式信号 → 批量提议 → 用户选择后逐条处理
-- 低价值信息被拦截 → 展示拦截原因
-- 与已有条目冲突 → 展示选项（更新/保留/合并/跳过）
-- 所有写入前 → 展示完整条目 → 用户确认后才写入
+- 用户调用 `/know learn` → detect stage 提取候选，用户取子集 → 每条 claim 独立过 5 道 gate → refine 加工 → locate 决定写入位置 → 用户确认 YAML entry → 写入目标 CLAUDE.md
+- 低熵 claim 被 gate 拦截 → 展示具体拒绝原因和调整方向
+- 与已有条目语义重合 → 展示现有 entry，用户选择 skip / add anyway
+- 所有写入前 → 展示完整 YAML entry → 用户确认后才写入
 
 ## 6. 排除项
 

@@ -1,107 +1,48 @@
 # Learn 架构设计
 
-## 1. 定位与边界
+## 1. 职责
 
-### 职责
+从对话中提取 claim，经 5 道 gate 筛选后结构化写入目标 CLAUDE.md 的 `## know` 段。
 
-负责从对话文本中检测、筛选、结构化隐性知识并写入知识库，为 recall 提供可召回的条目来源。
+不负责：
+- 写结构化文档（write.md workflow）
+- 运行时召回（Claude Code 嵌套加载机制接管）
 
-### 不负责
+## 2. 管线
 
-- 条目的召回与提示（→ recall 架构）
-- 过期条目清理（→ decay 架构，仅在 learn 入口调一次）
-- 从源码挖掘知识（→ extract.md workflow，独立管线）
-- 写 Markdown 文档（→ write.md workflow）
+4 个 stage 串行，每条 claim 独立走完一次：
 
-## 2. 结构与交互
+- detect — 从对话提取全部 claim 候选，用户取子集
+- gate — 5 道闸依次过滤，任一 fail 即 reject 该 claim
+- locate — 决定写入哪个 CLAUDE.md（user / project / module）
+- write — 产出 YAML entry，查重，写文件
 
-### 组件图
+## 3. Gate 顺序（粗到细）
 
-```
-[入口]                       [信号管线]
-  /know learn                  Step 1 Detect (signal types)
-  decay no-op 前置              Step 2 Extract (split into units)
-                                Step 3 Filter (drop noise)
-                                        │
-                                        ▼
-[条目构建]                    [Level 决策]
-  Step 4 Generate               Step 7 Level
-    tag → scope →               scope 前缀推断
-    (if rule) strict →          project / user 选择
-    summary → ref               user 二次确认
-  Step 5 Conflict (existing)
-  Step 6 Challenge (5 Qs)
-                                        │
-                                        ▼
-[持久化]
-  Step 8 Confirm (user)
-  Step 9 Write
-  know-ctl append --level X
-```
+gate 按拒绝成本从低到高排序，越早越粗，越晚越细：
 
-### 组件表
+1. 信息熵 — AI 不知道这条时会得到不同结论吗？否 → reject。最粗，过滤通用编程常识。
+2. 复用价值 — 能写出至少 1 个未来场景吗？否 → reject。确认不是一次性结论。
+3. 失效检查 — 能写出"什么时候本条不再成立"吗？否 → reject（must 类必填）。
+4. 可触发 — AI 在什么具体操作下应该想起这条？写不出或过宽泛 → reject。
+5. 可执行 — 仅凭这条 entry，AI 能完成动作吗？技术类写不出 how → reject。
 
-| 组件 | 职责 | 边界规则 |
-|---|---|---|
-| 信号管线 | 从对话扫描 ≤5 个候选知识点 | 禁止无结论信号入候选；必须 top 5 截断 |
-| 条目构建 | 把候选转为带 8 字段的 entry | 禁止猜测字段；Generate 子步：tag→scope→(if rule) strict→summary→ref |
-| Challenge | 对每条 entry 跑 5 道对抗问题 | ≥3 道失败 → drop；必须明示变更（drop/rewrite/adjust） |
-| Level 决策 | 选择 project 或 user 存储目标 | 禁止 CLI 默认绕过；必须对 user 二次确认 |
-| 持久化 | append 到 triggers.jsonl（对应 level） | 禁止绕过 know-ctl append；写入时触发 created event |
+classify（分配字段 must / should / avoid / prefer）在信息熵之前执行，决定字段名，不是过滤闸。
 
-### 数据流
+## 4. 写入格式
 
-```
-对话文本 --scan--> 信号候选(≤5) --filter--> claim 集
-   claim --Generate(tag/scope/strict/summary/ref)--> 草稿 entry
-   草稿 --Conflict(search existing)--> 决定（新增/merge/skip）
-   草稿 --Challenge(5 Qs)--> 最终 entry 集
-   entry --Level 推断/选择--> (entry, level)
-   (entry, level) --know-ctl append --level X--> triggers.jsonl (对应 level)
-                                          │
-                                          └--> events.jsonl: created
+entry 写入目标文件的 `## know` YAML block：
+
+```yaml
+- when: {触发场景}
+  must: {claim} — {理由}   # 或 should / avoid / prefer
+  how: {操作指引}           # 仅技术类必填
+  until: {失效条件}         # must 必填，其余选填
 ```
 
-| 来源 | 目标 | 数据格式 | 类型 | 说明 |
-|---|---|---|---|---|
-| 对话 | 信号管线 | 自然语言文本 | 强 | 无对话输入无法启动管线 |
-| Conflict | know-ctl search | 2-4 个 keyword | 弱 | search 失败可降级为无冲突 |
-| Level 决策 | 用户 | 选择 + 可选覆盖 | 强 | 默认值可被用户改写；user 必须二次确认 |
-| 持久化 | know-ctl append | 8 字段 JSON + `--level` | 强 | append 校验 + strict 规则，失败则 claim 被跳过 |
+## 5. 关键约束
 
-## 3. 设计决策
-
-### 驱动因素
-
-| 因素 | 类型 | 对架构的影响 |
-|---|---|---|
-| 对话中 90%+ 信息不值得存 | 业务需求 | 必须有多级过滤（Filter + Assess + Challenge） |
-| AI 倾向扩张候选集 | 质量要求 | 必须 top 5 截断 + Challenge 5 问对抗 |
-| 同一结论在多处讨论会重复入库 | 质量要求 | 必须 Conflict 步骤比对既有 entries |
-| user level 影响所有项目 | 质量要求 | 必须工作流层二次确认，CLI 层保持幂等 |
-| strict=true rule 的 context 应被人浏览 | 业务需求 | 建议配 ref 指向 docs 段；不存独立详情文件 |
-
-### 关键选择
-
-| 决策 | 选择 | 被拒方案 | 为什么 |
-|---|---|---|---|
-| 条目产出 | 10 步串行管线 | 一次性 LLM 产出完整 entry | 串行让每步可验证、可 drop；一次性产出难以约束质量 |
-| Level 步骤位置 | Challenge 之后、Confirm 之前 | Generate 时同步决定 | Level 与 entry 质量正交；Challenge 可能 drop 整条，先定 level 浪费 |
-| 冲突解决 | 每 claim 单独比对既有库 | 批量比对 | 串行更精确；批量会掩盖 merge/duplicate 边界 |
-| critical 的 context | 通过 ref 指向 docs/ 现有段 | 独立 md 散文件 | 散文件孤岛，不在 docs/ 体系；ref 让 context 复用叙事文档 |
-
-### 约束
-
-- 禁止 Step 1 Detect 产出 >5 候选（超出按优先级截断）
-- 禁止 Challenge 产出 >50% drop 时仍继续（说明过滤层前面失效）
-- 必须 user level 写入前经 workflow 层 `[STOP:confirm]`（防止误污染所有项目）
-- 必须每条 append 成功后立即写入（禁止批量延迟，防中断丢失）
-
-## 4. 质量要求
-
-| 属性 | 指标 | 目标 |
-|---|---|---|
-| 候选准确率 | top 5 候选中真正被持久化的比例 | >40%（目标值，待验证） |
-| Challenge 过滤率 | Challenge 后 drop/demote 的比例 | 20%-50% 为健康区间（实测无数据） |
-| 管线耗时 | 单次 /know learn 端到端 | <30s（目标值，待验证） |
-| append 失败率 | append 子命令报错比例 | <1%（目标值，待验证） |
+- claim 独立过 gate：一条 fail 不影响其余
+- 无 `## know` 段时追加到文件末尾；段已存在则 append 到 list 末尾
+- 发现语义重复条目时停止，不覆盖已有 entry
+- 不自动 commit

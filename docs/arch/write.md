@@ -4,7 +4,7 @@
 
 ### 职责
 
-负责按固定模板生成 11 类结构化文档，把对话中的讨论结果沉淀到项目根 `docs/`，保持与代码同版本演进。
+负责按固定模板生成 10 种结构化文档，把对话中的讨论结果沉淀到项目根 `docs/`，保持与代码同版本演进。
 
 ### 不负责
 
@@ -40,7 +40,7 @@
 
 | 组件 | 职责 | 边界规则 |
 |---|---|---|
-| Resolve | 从 hint + 对话推断 type + path | 禁止产出不在 11 类内的 type；必须用 Path Resolution 表（write.md §2） |
+| Resolve | 从 hint + 对话推断 type + path | 禁止产出不在 10 种内的 type；必须用 Path Resolution 表（write.md §2） |
 | Sufficiency gate | 判断内容量是否撑得起高风险文档类型 | 不足 → 降级为父文档；必须对 prd/tech/arch/schema/decision/ui 强制 |
 | Template→Draft | 按模板填充、生成 Markdown | 禁止结构外 section；必须保留 HTML 注释引导（跨句协作） |
 | Validate | 对照 checklist + diagram-checklist 检查 | 禁止绕过数据置信规则；必须标来源或"目标值，待验证" |
@@ -91,7 +91,7 @@ hint + 对话 --> Resolve --(type, path)--> Sufficiency
 
 ### 约束
 
-- 禁止产出 11 类外的文档类型（roadmap / capabilities / ops / marketing / arch / ui / schema / decision / prd / tech / milestone）
+- 禁止产出 10 种外的文档类型（roadmap / capabilities / ops / marketing / arch / ui / schema / decision / prd / tech）
 - 禁止写不到 Sufficiency gate 所需信息量的高风险类型（必须降级）
 - 禁止在文档里编造精确数字（必须标来源 / 估算 / 目标 / 无数据）
 - 必须使用 Path Resolution 表（write.md §2），禁止硬编码字面路径
@@ -100,7 +100,7 @@ hint + 对话 --> Resolve --(type, path)--> Sufficiency
 
 | 属性 | 指标 | 目标 |
 |---|---|---|
-| 类型覆盖 | 支持的文档类型数 | 11 种（当前实测：完整）|
+| 类型覆盖 | 支持的文档类型数 | 10 种（当前实测：完整）|
 | 结构一致性 | check 命令偏差率 | 0 个（当前实测：无偏差） |
 | Sufficiency 通过率 | 高风险类型首次通过 gate 的比例 | >60%（目标值，待验证） |
 | 数据编造率 | 精确数字无来源标注的比例 | 0%（必须零容忍） |
