@@ -34,7 +34,7 @@
 - **省略**: 不可（无依赖写"无"）
 - **数据**: —
 - ❌ "需要先搭好框架"
-- ✅ "know-ctl.sh append 命令 — 已完成"
+- ✅ "learn workflow gate 阶段定义 — 已完成"
 
 ### §2 方案
 
@@ -45,8 +45,8 @@
 - **禁止**: 只列文件名不写职责；把实现细节（函数名、算法）写进职责描述
 - **省略**: 不可
 - **数据**: —
-- ❌ "scripts/know-ctl.sh"（无职责）
-- ✅ "scripts/know-ctl.sh — CLI 入口，分发子命令到对应函数"
+- ❌ "workflows/learn.md"（无职责）
+- ✅ "workflows/learn.md — learn pipeline 流程定义，按 5 stage 顺序串接"
 
 #### 核心流程
 
@@ -56,7 +56,7 @@
 - **省略**: 不可
 - **数据**: —
 - ❌ "首先解析参数，然后调用函数处理，最后输出结果"
-- ✅ "1. CLI 解析子命令 → 路由到 handler\n2. handler 读取 triggers.jsonl → 筛选匹配条目\n3. 格式化输出 → stdout"
+- ✅ "1. SKILL.md 解析子命令 → 路由到 workflow\n2. workflow 顺序执行各 stage → 产出中间结果\n3. 写入 CLAUDE.md ## know block → 落盘"
 
 #### 数据结构
 
@@ -90,7 +90,7 @@
 - **省略**: 不可
 - **数据**: —
 - ❌ "做了很多优化改进"
-- ✅ "### 2026-04-15\n- 新增 self-test 子命令（覆盖 append/query/hit 三条路径）"
+- ✅ "### 2026-04-15\n- 新增 learn gate stage 单元测试（覆盖 信息熵 / 复用 / 可触发 三道 gate）"
 
 ## 图表检查
 

@@ -29,9 +29,9 @@
   - EXCLUDE: 技术约束（放上面）
   - 禁止: 把技术约束伪装成依赖；无状态标注的裸列表
   - ❌ "需要先搭好框架"
-  - ✅ "know-ctl.sh append 命令 — 已完成"
+  - ✅ "learn workflow gate 阶段定义 — 已完成"
   - ❌ "依赖数据库"
-  - ✅ "triggers.jsonl schema v7 迁移 — 进行中" -->
+  - ✅ "## know YAML block schema 字段对齐 — 进行中" -->
 
 - {依赖项} — {状态}
 
@@ -46,8 +46,8 @@
 <!-- 必填。树形或表格，每项标注职责（1 句话）。
   - 格式: 树形（缩进列表）或表格（文件/模块 | 职责）
   - 禁止: 只列文件名不写职责；把实现细节写进职责描述
-  - ❌ "scripts/know-ctl.sh"（无职责）
-  - ✅ "scripts/know-ctl.sh — CLI 入口，分发子命令到对应函数"
+  - ❌ "workflows/learn.md"（无职责）
+  - ✅ "workflows/learn.md — learn pipeline 流程定义，按 5 stage 顺序串接"
   - ❌ "utils.sh — 包含 parse_json 函数，用 jq 解析 .name 字段提取..."（实现细节）
   - ✅ "utils.sh — 公共工具函数（JSON 解析、路径处理）" -->
 
@@ -59,7 +59,7 @@
   - 格式: 编号步骤列表 "1. {动作主体} → {动作} → {产出}"，≥3 步
   - 禁止: 展开每步实现细节；用自然语言段落代替步骤列表
   - ❌ "首先解析参数，然后调用函数处理，最后输出结果"（段落）
-  - ✅ "1. CLI 解析子命令 → 路由到 handler\n2. handler 读取 triggers.jsonl → 筛选匹配条目\n3. 格式化输出 → stdout" -->
+  - ✅ "1. SKILL.md 解析子命令 → 路由到 workflow\n2. workflow 顺序执行各 stage → 产出中间结果\n3. 写入 CLAUDE.md ## know block → 落盘" -->
 
 1. {动作主体} → {动作} → {产出}
 2. {动作主体} → {动作} → {产出}
@@ -98,9 +98,9 @@
   - 内容格式: 无序列表，每条 "{做了什么}（{关键变更}）"
   - 禁止: 无日期的裸内容；修改历史条目；用段落代替列表
   - ❌ "做了很多优化改进"
-  - ✅ "- 新增 self-test 子命令（覆盖 append/query/hit 三条路径）"
+  - ✅ "- 新增 learn gate stage 单元测试（覆盖 信息熵 / 复用 / 可触发 三道 gate）"
   - ❌ "重构了代码"
-  - ✅ "- 重构 recall 流程（query → filter → rank 三阶段拆分，原单函数 → 3 个独立函数）" -->
+  - ✅ "- 重构 learn 流程（detect → gate → refine 三阶段拆分，原单 step → 3 个独立 stage）" -->
 
 ### {YYYY-MM-DD}
 

@@ -35,7 +35,7 @@
 - **省略**: 不可
 - **数据**: —
 - ❌ "所有服务"
-- ✅ "Claude Code agent（通过 know-ctl CLI）"
+- ✅ "支付网关（通过 webhook HTTP 回调）"
 
 #### 协议类型
 

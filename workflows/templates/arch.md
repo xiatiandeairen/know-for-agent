@@ -17,8 +17,8 @@
 <!-- 模块的核心职责。
   - 格式: 1-2 句。"负责{做什么}，为{谁}提供{什么能力}"
   - 禁止: 功能列表；实现细节
-  - ❌ "负责 append、query、hit、delete、decay、metrics、history、self-test、check 等命令"
-  - ✅ "负责知识条目的持久化存取，为 learn/recall/review 管线提供数据操作能力" -->
+  - ❌ "负责 detect、gate、refine、locate、write、validate、prepend、normalize 等步骤"
+  - ✅ "负责把对话信号转化为合规的 ## know YAML block，为 learn 管线提供从原始 claim 到落盘条目的转换能力" -->
 
 {模块职责}
 
@@ -76,7 +76,7 @@
   - 类型: 枚举 强（缺失不可用）/ 弱（缺失可降级）
   - 禁止: 无标注的裸箭头；省略数据格式
   - ❌ "A --> B"
-  - ✅ "know-ctl --JSONL--> triggers.jsonl --grep--> recall" -->
+  - ✅ "learn workflow --YAML block--> 项目 CLAUDE.md --嵌套加载--> Claude Code 上下文" -->
 
 ```
 {ASCII 数据流图}

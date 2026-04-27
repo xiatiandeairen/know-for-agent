@@ -15,7 +15,7 @@
 - **格式**: `组件A --{数据格式}--> 组件B`，每条流向独立一行
 - **禁止**: 无标注的裸箭头；省略数据格式
 - ❌ `A --> B`
-- ✅ `know-ctl --JSONL--> triggers.jsonl --grep--> recall`
+- ✅ `learn workflow --YAML block--> 项目 CLAUDE.md --嵌套加载--> Claude Code 上下文`
 
 ### 依赖图
 
@@ -25,7 +25,7 @@
 - **格式**: `模块A ==(强)==> 模块B` 或 `模块A --(弱)--> 模块B`
 - **禁止**: 不区分强弱依赖；循环依赖不标注
 - ❌ `A -> B -> C`
-- ✅ `SKILL.md ==(强)==> know-ctl.sh --(弱)--> events.jsonl`
+- ✅ `SKILL.md ==(强)==> workflows/learn.md --(弱)--> docs/templates/`
 
 ### 时序图
 
@@ -38,8 +38,8 @@
 - ✅
 ```
 User -> CLI: /know learn
-CLI -> know-ctl: append '{json}'
-know-ctl --> CLI: "Appended: {summary}"
+CLI -> learn workflow: 启动 5 stage pipeline
+learn workflow --> CLI: "Persisted: {summary}"
 CLI --> User: [persisted] {summary}
 ```
 
@@ -73,17 +73,17 @@ CLI --> User: [persisted] {summary}
 - ❌
 ```
 know/
-  scripts/
+  skills/
   workflows/
 ```
 - ✅
 ```
 know/
-  scripts/         # CLI 命令实现
-    know-ctl.sh    # 12 个子命令的入口
+  skills/          # Skill 入口
+    know/SKILL.md  # 路由 + conventions（最小常驻上下文）
   workflows/       # 管线流程定义
-    learn.md       # 知识提取 8 步管线
-    write.md       # 文档生成 7 步管线
+    learn.md       # 知识写入 5 stage 管线
+    write.md       # 文档撰写 5 stage 管线
 ```
 
 ### 交互流程图

@@ -45,7 +45,7 @@
 - **省略**: 不可
 - **数据**: —
 - ❌ "系统支持指标查看功能"
-- ✅ "用户可通过命令查看 learn/recall/write 各维度指标"
+- ✅ "用户可通过 /know learn 与 /know write 在对话中沉淀和复用项目知识"
 
 #### 假设
 
@@ -85,7 +85,7 @@
 - **省略**: 不可（≥1 项）
 - **数据**: —
 - ❌ "优化了知识提取流程"
-- ✅ "代码: know-ctl append/query/hit/delete 命令"
+- ✅ "代码: learn workflow 5 stage（detect/gate/refine/locate/write）"
 
 #### 达标标准（5 维表）
 
