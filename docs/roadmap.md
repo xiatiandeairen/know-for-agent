@@ -44,7 +44,7 @@
 | 版本 | 核心方向 | 状态 | 里程碑 |
 | ---- | ---- | ---- | ---- |
 | v1 | write 能力——10 种结构化文档生成 | 已实现 | M1 |
-| v2 | learn 体系——5 stage pipeline + entropy gate | 进行中 | M2-M4 |
+| v2 | learn 体系——5 stage pipeline + entropy gate | M2 已交付，M3 dogfood 进行中 | M2-M4 |
 
 ### 版本详情
 
@@ -53,13 +53,13 @@
 - **战略意图**: 提供结构化文档生成能力，10 种类型（roadmap / capabilities / ops / marketing / arch / ui / schema / decision / prd / tech）+ 模板 + sufficiency gate + 数据置信规则
 - **状态**: write 管线已实现，workflows/write.md 可用
 
-#### v2 — learn 体系（进行中）
+#### v2 — learn 体系（M2 已交付，M3 进行中）
 
-- **战略意图**: 把 know 重新定位为"高熵知识单元 authoring + 生态原生载体"，对齐 Claude Code 加载机制；保留独有的 authoring 纪律和 entropy gate；命令面收敛至 learn + write 双入口
-- **当前状态**: workflows/learn.md 已设计完成（5 stage：detect → gate → refine → locate → write），待 dogfood 验证
-- **投入产出**: 26h 开发 + 30 天 dogfood → 预期消除运行时检索基础设施维护负担，把工程预算挪到 entropy gate 与位置决策的打磨
-- **风险与依赖**: entropy gate 5 道能否稳定拒绝低熵；位置决策（project/module/user）依赖 AI 推荐质量；user level 升级需要真实跨项目证据
-- **成功指标**: 30 天 dogfood，累计 ≥30 条规则，entropy gate 拒绝率 ≥20%，AI 后续会话主动遵守 ≥1 例
+- **战略意图**: 把 know 重新定位为"高熵知识单元 authoring + 生态原生载体"，对齐 Claude Code 嵌套 CLAUDE.md 加载机制；保留 authoring 纪律和 entropy gate；命令面收敛至 learn + write 双入口
+- **当前状态**: workflows/learn.md 已落地（5 stage：detect → gate → refine → locate → write），无运行时脚本；M3 dogfood 启动待执行
+- **投入产出**: 26h 开发（measured，已交付）+ 30 天 dogfood（target）→ 已消除运行时检索基础设施负担，工程预算后续聚焦 entropy gate 与落点决策的打磨
+- **风险与依赖**: entropy gate 5 道在 dogfood 期能否稳定拒绝低熵（待 M3 验证）；落点决策（project/module/user）依赖 AI 推荐质量；user level 升级需要真实跨项目证据
+- **成功指标**: 30 天 dogfood，累计 ≥30 条规则（target），entropy gate 拒绝率 ≥20%（target），AI 后续会话主动遵守 ≥1 例（target）
 
 **核心指标**（基线 → v2）：
 

@@ -19,22 +19,25 @@
 
 ```
 [入口]                          [Resolve / Sufficiency]
-  /know write [hint]              Step 1 Resolve type + path
+  /know write [hint]              Step 1 Infer type + name + mode + parent
                                   Step 2 Sufficiency gate
                                   （prd/tech/arch/schema/decision/ui）
                                          │
                                          ▼
 [Template → Draft]              [Validate]
   Step 3 Confirm                  Step 7 Validate
-  Step 4 Template                 - against checklist
-  Step 5 Fill                     - diagram triggers
-  Step 6 Write                    - data confidence
+  Step 4 Load template            - against checklist
+  Step 5 Fill content             - diagram triggers
+  Step 6 Preview & write          - data confidence
   docs/{path}.md                         │
                                          ▼
-[Progress]
-  Step 8 Progress
-  更新父文档引用（roadmap→prd→tech）
+[Progress / Index]
+  Step 8 Write back parent doc
+  Step 9 Index injection
+  更新父文档引用（roadmap→prd→tech）+ 索引注入
 ```
+
+5 stage / 9 step：infer → gate → confirm → draft → write。
 
 ### 组件表
 
@@ -44,7 +47,7 @@
 | Sufficiency gate | 判断内容量是否撑得起高风险文档类型 | 不足 → 降级为父文档；必须对 prd/tech/arch/schema/decision/ui 强制 |
 | Template→Draft | 按模板填充、生成 Markdown | 禁止结构外 section；必须保留 HTML 注释引导（跨句协作） |
 | Validate | 对照 checklist + diagram-checklist 检查 | 禁止绕过数据置信规则；必须标来源或"目标值，待验证" |
-| Progress | 写入父文档引用（roadmap 的 milestone 行 / prd 的 tech 链接等） | 禁止双向引用（→ rule: 向下引用不回指父级）；必须 append-only 到父文档 |
+| Progress | 写入父文档引用（roadmap 的 milestone 行 / prd 的 tech 链接等）+ 索引注入（Step 9）| 禁止双向引用（→ rule: 向下引用不回指父级）；必须 append-only 到父文档 |
 
 ### 数据流
 
@@ -77,7 +80,7 @@ hint + 对话 --> Resolve --(type, path)--> Sufficiency
 |---|---|---|
 | AI 倾向写结构散乱 / 冗长 / 无数据的文档 | 质量要求 | 必须有模板 + checklist + 数据置信三道约束 |
 | 高风险文档类型（prd/tech/arch）内容不足时产物无用 | 质量要求 | Sufficiency gate 强制；不足则降级 |
-| 11 种类型的路径分布不同（单文件 / 目录 / 需求嵌套） | 技术约束 | 必须统一 Path Resolution 表为单一数据源 |
+| 10 种类型的路径分布不同（单文件 / 目录 / 需求嵌套） | 技术约束 | 必须统一 Path Resolution 表为单一数据源 |
 | 文档与代码同步演进 | 业务需求 | 文档放项目根 `docs/`，随 git 跟踪 |
 
 ### 关键选择

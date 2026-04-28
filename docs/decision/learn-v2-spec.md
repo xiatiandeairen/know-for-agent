@@ -1,8 +1,10 @@
 # learn v2 spec（M2）
 
-> 状态：设计锁定（2026-04-26 sprint 收敛）
+> 状态：M2 设计阶段 spec，已交付（2026-04-26 sprint 收敛 → 2026-04-27 实现完成）
 > 范围：M2，仅 N（新增）模式。U / D / E / F 留 M3。
 > 实现产物：`workflows/learn.md` + `tests/{unit,capability}/learn/`
+>
+> ⚠ **当前实现见 `workflows/learn.md`**——实现已演化（如 entropy gate 由 4 题合并表述为 5 概念闸；pipeline 加入 refine stage 共 5 步）。本档保留作 **M2 设计期决策记录**，不作当前指南。架构概览见 `docs/arch/learn.md`。
 
 ## 1. 知识的功能定义
 
