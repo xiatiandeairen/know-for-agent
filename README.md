@@ -1,11 +1,11 @@
 <h1 align="center">know</h1>
 
 <p align="center">
-  <strong>Give your CLAUDE.md authoring discipline — stop low-entropy rules from piling up.</strong>
+  <strong>Authoring discipline for CLAUDE.md — stop low-entropy rules from piling up.</strong>
 </p>
 
 <p align="center">
-  A <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> plugin with two commands: <code>learn</code> gates and structures knowledge into CLAUDE.md, <code>write</code> turns discussions into versioned docs.
+  A <a href="https://docs.anthropic.com/en/docs/claude-code">Claude Code</a> plugin. Two commands: <code>/know learn</code> gates lessons into CLAUDE.md; <code>/know write</code> turns discussions into versioned docs.
 </p>
 
 <p align="center">
@@ -20,112 +20,61 @@
 
 ---
 
-## The Problem
+## Why
 
-`CLAUDE.md` is the right place for project knowledge — but without discipline, it degrades into a pile of low-entropy rules that don't change AI behavior. And design discussions just vanish after a session.
+|                         | CLAUDE.md (manual) | Auto-memory | **know**                              |
+| ----------------------- | :----------------: | :---------: | :-----------------------------------: |
+| Authoring discipline    | none               | none        | **5-gate entropy filter**             |
+| Structure               | flat text          | key-value   | **4-field YAML (when/rule/how/until)**|
+| Activation              | always loaded      | always loaded | **Claude Code nested loading**      |
+| Document templates      | —                  | —           | **10 types + sufficiency gate**       |
 
-| Without know | With know |
-|:---|:---|
-| AI keeps violating constraints it "knows" | Every entry passes a 5-gate entropy filter before it's written |
-| CLAUDE.md grows bloated with obvious rules | Gate rejects rules the model already knows — noise stays out |
-| Design discussion results vanish after the session | `/know write` turns the conversation into a structured doc |
-| Docs are thin and inconsistent | Template + checklist + sufficiency gate enforce quality |
+## What you get
+
+Every entry carries weight on every field:
+
+```yaml
+- when: editing the webhook handler
+  must: verify signature before parsing body — prevents forged payloads
+  how: HMAC-SHA256(env.WEBHOOK_SECRET, raw_body) vs X-Sig header; see src/webhook/verify.ts
+  until: provider switches to mTLS
+```
+
+Each candidate runs through 5 gates in order — **entropy → reuse → triggerable → actionable → invalidation**. Target rejection rate ≥20%. Most "rules" are noise; they don't survive.
+
+For longer artifacts, `/know write` fills a typed template — **10 types**: roadmap, capabilities, prd, tech, arch, schema, decision, ui, ops, marketing. High-risk types pass a sufficiency gate before writing; numbers must cite source (`measured` / `estimated` / `target` / `no-data`).
+
+## Use
+
+```bash
+/know learn                            # gate the current conversation, append surviving entries to CLAUDE.md
+/know write                            # infer doc type from context
+/know write arch                       # hint the type
+/know write decision payment-method    # hint type + name
+```
+
+Activation is delegated to Claude Code's native nested CLAUDE.md loading — no runtime retrieval layer.
 
 ## Install
 
-No installer script — paste this prompt to Claude Code and it will handle the install:
+Paste this to Claude Code:
 
 > Install the `know` Claude Code plugin from `https://github.com/xiatiandeairen/know-for-agent`:
-> 1. Clone the repo to `~/.claude/plugins/know`
-> 2. In `~/.claude/settings.json`, add a directory-source marketplace `extraKnownMarketplaces.know = { source: { source: "directory", path: "~/.claude/plugins/know" } }` and set `enabledPlugins["know@know"] = true`
-> 3. Tell me to restart Claude Code
+> 1. Clone to `~/.claude/plugins/know`
+> 2. In `~/.claude/settings.json`, add `extraKnownMarketplaces.know = { source: { source: "directory", path: "~/.claude/plugins/know" } }` and set `enabledPlugins["know@know"] = true`
+> 3. Restart Claude Code
 
-Requires `git`. Restart Claude Code after install.
+Requires `git`.
 
 <details>
 <summary>Uninstall</summary>
 
 Paste to Claude Code:
 
-> Uninstall the `know` Claude Code plugin:
-> 1. Delete `~/.claude/plugins/know`
-> 2. From `~/.claude/settings.json`, delete `extraKnownMarketplaces.know` and `enabledPlugins["know@know"]`
-> 3. Tell me to restart Claude Code
+> Uninstall the `know` Claude Code plugin: delete `~/.claude/plugins/know`, remove `extraKnownMarketplaces.know` and `enabledPlugins["know@know"]` from `~/.claude/settings.json`, restart Claude Code.
 
 </details>
 
-## Usage
-
-```bash
-/know learn     # Gate and persist knowledge from the current conversation
-/know write     # Turn discussion into a structured, versioned document
-```
-
-### How learn Works
-
-`learn` runs a 5-stage pipeline on each knowledge candidate:
-
-1. **detect** — scan the last ≤20 turns; classify as `[纠正]` (user corrected AI, fast-track) or `[捕捉]` (AI self-captured, full gate required)
-2. **gate** — 5 filters from coarse to fine: entropy → reuse → triggerable → actionable → invalidation. Each gate proposes an adjustment before rejecting; target rejection rate ≥20%
-3. **refine** — optional: generalize trigger scope, deepen rationale, split multi-logic entries
-4. **locate** — pick target CLAUDE.md by scope: user (cross-project evidence) > module (specific code dir) > project (default)
-5. **write** — produce YAML entry, check for duplicates, confirm, append
-
-Every entry written to a `## know` YAML block:
-
-```yaml
-- when: editing webhook handler
-  must: verify signature before parsing body — prevents forged payloads
-  how: HMAC-SHA256(env.WEBHOOK_SECRET, raw_body) vs X-Sig header; see src/webhook/verify.ts
-  until: webhook provider switches to mTLS
-```
-
-Knowledge is activated by Claude Code's native nested CLAUDE.md loading — no runtime retrieval layer.
-
-### How write Works
-
-`write` infers document type and path from the conversation, runs a sufficiency gate for high-risk types, fills a template, and previews before writing:
-
-```bash
-/know write          # infer type from context
-/know write arch     # hint the type
-/know write decision payment-method   # hint type + name
-```
-
-## Document Types
-
-10 types, each with a template + checklist + update rules:
-
-| Type | Path | Description |
-|------|------|-------------|
-| roadmap | `docs/roadmap.md` | Product vision, version planning, milestones |
-| capabilities | `docs/capabilities.md` | Cross-version capability inventory |
-| ops | `docs/ops.md` | Release strategy, feedback SLA |
-| marketing | `docs/marketing.md` | Audience, messaging, channels |
-| prd | `docs/requirements/{name}/prd.md` | Problem, users, hypothesis, acceptance criteria |
-| tech | `docs/requirements/{name}/tech.md` | Constraints, architecture, decisions, iteration log |
-| arch | `docs/arch/{name}.md` | Module structure, data flow, design decisions |
-| schema | `docs/schema/{name}.md` | Interface contracts, data models, error codes |
-| decision | `docs/decision/{name}.md` | Options comparison, impact analysis |
-| ui | `docs/ui/{name}.md` | Layout, interaction flows, component states |
-
-**Sufficiency gate** — for high-risk types (prd / tech / arch / schema / decision / ui): if the conversation doesn't have enough to fill the template, know blocks the write and suggests a parent document instead.
-
-**Data confidence** — every number must cite its source: measured / estimated / target / no-data. Fabricating precise numbers is prohibited.
-
-## How It Differs
-
-| | CLAUDE.md (manual) | Auto-memory | **know** |
-|---|:---:|:---:|:---:|
-| Authoring discipline | None | None | **5-gate entropy filter** |
-| Structure | Flat text | Key-value | **4-field YAML (when/rule/how/until)** |
-| Activation | Always loaded | Always loaded | **Claude Code nested loading** |
-| Documents | None | None | **10 types with quality framework** |
-
-## Contributing
-
-Contributions welcome! Please [open an issue](https://github.com/xiatiandeairen/know-for-agent/issues) first to discuss what you'd like to change.
-
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE) — contributions welcome via [issues](https://github.com/xiatiandeairen/know-for-agent/issues).
