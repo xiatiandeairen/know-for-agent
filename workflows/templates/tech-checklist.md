@@ -1,101 +1,101 @@
-# Tech 检查清单
+# Tech Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1 背景 | 技术约束 | 不可（≥1 条） |
-| | 前置依赖 | 不可（无依赖写"无"） |
-| §2 方案 | 文件/模块结构 | 不可 |
-| | 核心流程 | 不可（≥3 步） |
-| | 数据结构 | 可省略（无公开结构时） |
-| §3 关键决策 | 决策行 | 不可（≥1 行） |
-| §4 迭代记录 | 迭代条目 | 不可（≥1 条） |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1 Background | Technical Constraints | No (≥1 item) |
+| | Prerequisites | No (write "none" when no dependencies) |
+| §2 Solution | File / Module Structure | No |
+| | Core Flow | No (≥3 steps) |
+| | Data Structure | May be omitted (when no public structure) |
+| §3 Key Decisions | Decision Row | No (≥1 row) |
+| §4 Iteration Log | Iteration Item | No (≥1 item) |
 
-## 字段定义
+## Field Definitions
 
-### §1 背景
+### §1 Background
 
-#### 技术约束
+#### Technical Constraints
 
-- **信息**: 影响方案选择的硬限制
-- **格式**: 无序列表，每条 "{约束主体}: {约束内容}"，≥1 条
-- **禁止**: "需要X""要求Y"（那是需求不是约束）；无主体的泛泛描述；产品愿景/用户画像
-- **省略**: 不可
-- **数据**: —
-- ❌ "需要支持大文件"
-- ✅ "Claude Code hook: 单次 stdout 上限 10KB，超出截断"
+- **Information**: Hard limits that affect solution choice
+- **Format**: Unordered list, each item "{constraint subject}: {constraint content}", ≥1 item
+- **Forbidden**: "Need X", "require Y" (those are requirements, not constraints); subject-less generic descriptions; product vision / user persona
+- **Omit**: No
+- **Data**: —
+- ❌ "Need to support large files"
+- ✅ "Claude Code hook: single stdout limit 10KB, truncated when exceeded"
 
-#### 前置依赖
+#### Prerequisites
 
-- **信息**: 必须先完成的任务/模块/外部条件
-- **格式**: 无序列表，每条 "{依赖项} — {状态: 已完成|进行中|未开始}"。无依赖时写"无"
-- **禁止**: 把技术约束伪装成依赖；无状态标注的裸列表
-- **省略**: 不可（无依赖写"无"）
-- **数据**: —
-- ❌ "需要先搭好框架"
-- ✅ "learn workflow gate 阶段定义 — 已完成"
+- **Information**: Tasks / modules / external conditions that must be completed first
+- **Format**: Unordered list, each item "{dependency} — {status: completed | in progress | not started}". When there are no dependencies, write "none"
+- **Forbidden**: Disguising technical constraints as dependencies; bare lists without status annotations
+- **Omit**: No (write "none" when no dependencies)
+- **Data**: —
+- ❌ "Need to set up the framework first"
+- ✅ "learn workflow gate stage definitions — completed"
 
-### §2 方案
+### §2 Solution
 
-#### 文件/模块结构
+#### File / Module Structure
 
-- **信息**: 实现涉及的文件/模块及各自职责
-- **格式**: 树形（缩进列表）或表格（文件/模块 | 职责），每项标注职责（1 句话）
-- **禁止**: 只列文件名不写职责；把实现细节（函数名、算法）写进职责描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "workflows/learn.md"（无职责）
-- ✅ "workflows/learn.md — learn pipeline 流程定义，按 5 stage 顺序串接"
+- **Information**: The files / modules involved in the implementation and their respective responsibilities
+- **Format**: Tree (indented list) or table (file/module | responsibility); each item annotated with a one-sentence responsibility
+- **Forbidden**: Listing only file names without responsibilities; embedding implementation details (function names, algorithms) into the responsibility description
+- **Omit**: No
+- **Data**: —
+- ❌ "workflows/learn.md" (no responsibility)
+- ✅ "workflows/learn.md — learn pipeline flow definition; chains the 5 stages in order"
 
-#### 核心流程
+#### Core Flow
 
-- **信息**: 关键路径的执行顺序
-- **格式**: 编号步骤列表 "{动作主体} → {动作} → {产出}"，≥3 步
-- **禁止**: 展开每步实现细节；用自然语言段落代替步骤列表
-- **省略**: 不可
-- **数据**: —
-- ❌ "首先解析参数，然后调用函数处理，最后输出结果"
-- ✅ "1. SKILL.md 解析子命令 → 路由到 workflow\n2. workflow 顺序执行各 stage → 产出中间结果\n3. 写入 CLAUDE.md ## know block → 落盘"
+- **Information**: The execution order of the critical path
+- **Format**: Numbered step list "{action subject} → {action} → {output}", ≥3 steps
+- **Forbidden**: Expanding implementation details for each step; using natural-language paragraphs in place of a step list
+- **Omit**: No
+- **Data**: —
+- ❌ "First parse the arguments, then call a function to process, finally output the result"
+- ✅ "1. SKILL.md parses the subcommand → routes to the workflow\n2. workflow executes each stage sequentially → produces intermediate results\n3. Write to CLAUDE.md ## know block → persist to disk"
 
-#### 数据结构
+#### Data Structure
 
-- **信息**: 公开接口级的数据结构定义
-- **格式**: 表格 "字段 | 类型 | 用途"，每行 1 个字段
-- **禁止**: 内部私有结构；运行时临时变量；函数内部局部变量
-- **省略**: 可省略（无公开数据结构时整节省略）
-- **数据**: —
-- ❌ 列出函数内部的 `local tmp_file` 变量
-- ✅ "| id | string | 条目唯一标识，UUID v4 |"
+- **Information**: Data-structure definitions at the public-interface level
+- **Format**: Table "Field | Type | Purpose", one field per row
+- **Forbidden**: Internal private structures; runtime temporary variables; function-local variables
+- **Omit**: May be omitted (when no public data structure, omit the entire section)
+- **Data**: —
+- ❌ Listing a function-internal `local tmp_file` variable
+- ✅ "| id | string | unique entry identifier, UUID v4 |"
 
-### §3 关键决策
+### §3 Key Decisions
 
-#### 决策行
+#### Decision Row
 
-- **信息**: 技术选型点、最终选择、选择原因
-- **格式**: 表格行 "决策 | 选择 | 为什么"，≥1 行。为什么列必须包含被拒方案及拒绝原因
-- **禁止**: 为什么列缺少被拒方案；决策描述过于笼统（"存储"→应为"知识条目持久化格式"）；产品方向决策
-- **省略**: 不可
-- **数据**: —
-- ❌ "| 存储 | JSONL | 性能好 |"
-- ✅ "| 知识条目持久化格式 | JSONL | SQLite 引入二进制依赖，JSONL 纯文本可 git 追踪且无依赖 |"
+- **Information**: Technical-selection points, the chosen option, and the reason for the choice
+- **Format**: Table row "Decision | Choice | Why", ≥1 row. The Why column must include the rejected alternatives and the rejection reasons
+- **Forbidden**: The Why column missing rejected alternatives; decision descriptions that are too generic ("storage" → should be "knowledge-entry persistence format"); product-direction decisions
+- **Omit**: No
+- **Data**: —
+- ❌ "| Storage | JSONL | Good performance |"
+- ✅ "| Knowledge-entry persistence format | JSONL | SQLite introduces a binary dependency; JSONL is plain text, can be tracked by git, and has no dependencies |"
 
-### §4 迭代记录
+### §4 Iteration Log
 
-#### 迭代条目
+#### Iteration Item
 
-- **信息**: 每次 sprint 实现了什么
-- **格式**: 日期 heading（### YYYY-MM-DD）+ 无序列表，每条 "{做了什么}（{关键变更}）"。新增在前，≥1 条
-- **禁止**: 无日期的裸内容；用段落代替列表；修改已有条目
-- **省略**: 不可
-- **数据**: —
-- ❌ "做了很多优化改进"
-- ✅ "### 2026-04-15\n- 新增 learn gate stage 单元测试（覆盖 信息熵 / 复用 / 可触发 三道 gate）"
+- **Information**: What each sprint implemented
+- **Format**: Date heading (### YYYY-MM-DD) + unordered list, each item "{what was done} ({key change})". Newest first, ≥1 item
+- **Forbidden**: Bare content without a date; using paragraphs in place of a list; modifying existing items
+- **Omit**: No
+- **Data**: —
+- ❌ "Did a lot of optimizations and improvements"
+- ✅ "### 2026-04-15\n- Added unit tests for the learn gate stage (covering the information-entropy / reuse / triggerability gates)"
 
-## 图表检查
+## Diagram Checks
 
-见 `templates/diagram-checklist.md`，适用 tech 的图表类型：数据流图、时序图、状态图、ER/数据模型图。
+See `templates/diagram-checklist.md`. Diagram types applicable to tech: data flow diagram, sequence diagram, state diagram, ER / data model diagram.
 
-## 数据置信规则
+## Data Confidence Rules
 
-同 roadmap-checklist.md：实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。
+Same as roadmap-checklist.md: measured > annotate source; estimated > annotate basis; target > "pending validation"; no data > annotate reason. No fabrication.

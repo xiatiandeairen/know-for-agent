@@ -1,196 +1,196 @@
-# Milestone 更新规则
+# Milestone Update Rules
 
-## 变更类型
+## Change Types
 
-| 类型 | 含义 |
-|------|------|
-| **不可变** | 一旦写入不再修改 |
-| **追加** | 只能新增条目，不能改已有的 |
-| **数据刷新** | 已有值可被更准确的数据替换 |
-| **可更新** | 内容可修改，但有约束 |
-| **结果填充** | 里程碑完成后从空填入，填入后不可变 |
+| Type | Meaning |
+|------|---------|
+| **immutable** | Once written, never modified |
+| **append-only** | Only new entries can be added; existing ones cannot be modified |
+| **data refresh** | Existing values may be replaced with more accurate data |
+| **updatable** | Content can be modified, but with constraints |
+| **outcome fill-in** | Filled in from empty after the milestone completes; immutable once filled |
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 变更类型 |
-|------|------|---------|
-| §1 目标 | 完成定义 | 不可变 |
-| | 价值目标 | 不可变 |
-| | 假设 | 不可变 |
-| | 假设.类型 | 不可变 |
-| | 假设.验证方式 | 不可变 |
-| §2 计划 | 预期交付物 | 不可变 |
-| | 达标标准（5 维） | 不可变 |
-| | 预估投入 | 不可变 |
-| | 决策路径 | 不可变 |
-| | 风险 | 可更新 |
-| §3 结果 | 实际交付物 | 结果填充 |
-| | 假设验证结论 | 结果填充 |
-| | 达标评估（5 维） | 结果填充 |
-| | 实际投入 | 结果填充 |
-| | 决策结论 | 结果填充 |
-| 关联文档 | PRD / Tech | 可更新 |
+| Location | Field | Change Type |
+|----------|-------|-------------|
+| §1 Goal | Definition of Done | immutable |
+| | Value Target | immutable |
+| | Hypothesis | immutable |
+| | Hypothesis.Type | immutable |
+| | Hypothesis.Validation Method | immutable |
+| §2 Plan | Planned Deliverables | immutable |
+| | Go/No-Go Criteria (5 dimensions) | immutable |
+| | Estimated Effort | immutable |
+| | Decision Path | immutable |
+| | Risks | updatable |
+| §3 Outcome | Actual Deliverables | outcome fill-in |
+| | Hypothesis-Validation Conclusion | outcome fill-in |
+| | Go/No-Go Assessment (5 dimensions) | outcome fill-in |
+| | Actual Effort | outcome fill-in |
+| | Decision Outcome | outcome fill-in |
+| Linked Documents | PRD / Tech | updatable |
 
-## 字段变更规则
+## Field Change Rules
 
-### §1 目标（全部不可变）
+### §1 Goal (all immutable)
 
-#### 完成定义
+#### Definition of Done
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 里程碑启动后修改
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the milestone has started
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
 
-#### 价值目标
+#### Value Target
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 里程碑启动后修改
-- **触发**: —
-- **校验**: 同上
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the milestone has started
+- **Trigger**: —
+- **Check**: Same as above
 
-#### 假设 / 类型 / 验证方式
+#### Hypothesis / Type / Validation Method
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 里程碑启动后修改（不可因验证失败而改假设）
-- **触发**: —
-- **校验**: 同上
-- ❌ 验证失败后把假设改成已验证的版本
-- ✅ 保留原假设，在 §3 结论中写"不成立"
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the milestone has started (do not amend the hypothesis because validation failed)
+- **Trigger**: —
+- **Check**: Same as above
+- ❌ Rewriting the hypothesis to a validated version after validation fails
+- ✅ Keep the original hypothesis and write "did not hold" in the §3 conclusion
 
-### §2 计划（除风险外全部不可变）
+### §2 Plan (all immutable except Risks)
 
-#### 预期交付物
+#### Planned Deliverables
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 里程碑启动后修改（实际交付在 §3 体现）
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the milestone has started (actual deliverables go in §3)
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
 
-#### 达标标准（5 维表）
+#### Go/No-Go Criteria (5-dimension table)
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 事后降低标准。评分在 §3 达标评估体现
-- **触发**: —
-- **校验**: 标准列在 §3 评估表中原样复制，不可修改
-- ❌ 发现达不到 80% 后把标准改成 60%
-- ✅ 标准保持 80%，§3 评分填 3（部分达标），说明实际值
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Lowering the bar after the fact. Scoring goes in the §3 Go/No-Go Assessment
+- **Trigger**: —
+- **Check**: The criteria column is copied verbatim into the §3 assessment table and must not be modified
+- ❌ Lowering the bar from 80% to 60% after seeing the result fall short
+- ✅ Keep the bar at 80%; fill the §3 score as 3 (partially met) and explain the actual value
 
-#### 预估投入
+#### Estimated Effort
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 事后修改（实际投入在 §3 体现）
-- **触发**: —
-- **校验**: —
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the fact (actual effort goes in §3)
+- **Trigger**: —
+- **Check**: —
 
-#### 决策路径
+#### Decision Path
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 事后修改（实际决策在 §3 体现）
-- **触发**: —
-- **校验**: —
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the fact (the actual decision goes in §3)
+- **Trigger**: —
+- **Check**: —
 
-#### 风险
+#### Risks
 
-- **变更类型**: 可更新
-- **允许**: 追加新风险/依赖；已识别项追加状态标注
-- **禁止**: 删除已识别的风险/依赖
-- **触发**: 开发过程中发现新风险
-- **校验**: 状态标注追加在原文后，不覆盖
-- ❌ 删除"风险：JSONL 性能未验证"
-- ✅ "风险：JSONL 性能未验证 →已验证，54 条下 <1s"
+- **Change Type**: updatable
+- **Allowed**: Appending new risks / dependencies; appending status annotations to identified items
+- **Forbidden**: Deleting identified risks / dependencies
+- **Trigger**: New risks are found during development
+- **Check**: Status annotations are appended after the original text, never overwriting it
+- ❌ Deleting "Risk: JSONL performance not validated"
+- ✅ "Risk: JSONL performance not validated → validated, <1s with 54 entries"
 
-### §3 结果（全部结果填充）
+### §3 Outcome (all outcome fill-in)
 
-#### 实际交付物
+#### Actual Deliverables
 
-- **变更类型**: 结果填充
-- **允许**: 里程碑完成后从空填入
-- **禁止**: 填入后修改；里程碑未完成时填写
-- **触发**: 里程碑完成/搁置
-- **校验**: 与 §2 预期交付物可对照
+- **Change Type**: outcome fill-in
+- **Allowed**: Filling in from empty after the milestone completes
+- **Forbidden**: Modifying once filled; filling in while the milestone is incomplete
+- **Trigger**: Milestone completed / shelved
+- **Check**: Comparable against §2 Planned Deliverables
 
-#### 假设验证结论
+#### Hypothesis-Validation Conclusion
 
-- **变更类型**: 结果填充
-- **允许**: 里程碑完成后从空填入
-- **禁止**: 填入后修改；无数据编造结论
-- **触发**: 里程碑完成
-- **校验**: 数据字段必须标注来源
-- ❌ "成立"（无数据）
-- ✅ "成立。10 次 learn 中 8 次准确（know 项目实测）"
+- **Change Type**: outcome fill-in
+- **Allowed**: Filling in from empty after the milestone completes
+- **Forbidden**: Modifying once filled; fabricating conclusions without data
+- **Trigger**: Milestone completed
+- **Check**: Data fields must annotate their source
+- ❌ "Holds" (no data)
+- ✅ "Holds. 8 of 10 learn runs were accurate (measured on the know project)"
 
-#### 达标评估（5 维表）
+#### Go/No-Go Assessment (5-dimension table)
 
-- **变更类型**: 结果填充
-- **允许**: 里程碑完成后从空填入评分/说明/遗留列
-- **禁止**: 填入后修改评分；修改标准列（从 §2 复制）
-- **触发**: 里程碑完成
-- **校验**: 标准列与 §2 一致；说明含数据或可验证事实；遗留标注去向
+- **Change Type**: outcome fill-in
+- **Allowed**: After the milestone completes, fill in the score / explanation / leftover columns from empty
+- **Forbidden**: Modifying scores once filled; modifying the criteria column (copied from §2)
+- **Trigger**: Milestone completed
+- **Check**: The criteria column is consistent with §2; the explanation contains data or verifiable facts; leftovers indicate where they go
 
-#### 实际投入
+#### Actual Effort
 
-- **变更类型**: 结果填充
-- **允许**: 里程碑完成后从空填入
-- **禁止**: 填入后修改
-- **触发**: 里程碑完成
-- **校验**: 格式含预估值对比
+- **Change Type**: outcome fill-in
+- **Allowed**: Filling in from empty after the milestone completes
+- **Forbidden**: Modifying once filled
+- **Trigger**: Milestone completed
+- **Check**: The format includes a comparison with the estimated value
 
-#### 决策结论
+#### Decision Outcome
 
-- **变更类型**: 结果填充
-- **允许**: 里程碑完成后从空填入
-- **禁止**: 填入后修改
-- **触发**: 里程碑完成
-- **校验**: 与 §2 决策路径可对照
+- **Change Type**: outcome fill-in
+- **Allowed**: Filling in from empty after the milestone completes
+- **Forbidden**: Modifying once filled
+- **Trigger**: Milestone completed
+- **Check**: Comparable against §2 Decision Path
 
-### 关联文档
+### Linked Documents
 
 #### PRD / Tech
 
-- **变更类型**: 可更新
-- **允许**: 新增关联；路径变更时更新
-- **禁止**: 删除已有关联（文档被删除时标注"已归档"）
-- **触发**: 新建/移动关联文档
-- **校验**: 链接路径可访问
+- **Change Type**: updatable
+- **Allowed**: Adding new links; updating when paths change
+- **Forbidden**: Deleting existing links (when a document is deleted, annotate it as "archived")
+- **Trigger**: A linked document is created or moved
+- **Check**: Link paths are reachable
 
-## 操作流程
+## Operating Procedure
 
-### 创建里程碑
+### Create a Milestone
 
-1. 填写 §1 目标（完成定义 + 价值目标 + 关键假设）
-2. 填写 §2 计划（交付物 + 标准 + 投入 + 决策路径 + 风险）
-3. §3 结果留空
-4. 填写关联文档
-5. 同步更新 roadmap §3 汇总表
+1. Fill in §1 Goal (Definition of Done + Value Target + Key Hypothesis)
+2. Fill in §2 Plan (Deliverables + Criteria + Effort + Decision Path + Risks)
+3. Leave §3 Outcome empty
+4. Fill in Linked Documents
+5. Sync the roadmap §3 summary table
 
-### 完成里程碑
+### Complete a Milestone
 
-1. 填写 §3 实际交付物（对照 §2 预期）
-2. 填写 §3 假设验证结论（对照 §1 假设）
-3. 填写 §3 达标评估（从 §2 复制标准列，填评分/说明/遗留）
-4. 填写 §3 实际投入（对照 §2 预估）
-5. 填写 §3 决策结论（对照 §2 决策路径）
-6. 同步更新 roadmap §3 汇总表（状态/达成情况/日期）
+1. Fill in §3 Actual Deliverables (against §2 Planned)
+2. Fill in §3 Hypothesis-Validation Conclusion (against §1 Hypothesis)
+3. Fill in §3 Go/No-Go Assessment (copy the criteria column from §2; fill score / explanation / leftovers)
+4. Fill in §3 Actual Effort (against §2 Estimated)
+5. Fill in §3 Decision Outcome (against §2 Decision Path)
+6. Sync the roadmap §3 summary table (status / outcome / date)
 
-### 搁置里程碑
+### Shelve a Milestone
 
-1. §3 决策结论填"已搁置 → {原因} → {后续计划}"
-2. §3 其余字段按实际情况填写（已完成的部分如实填）
-3. 同步更新 roadmap §3 汇总表（状态→已搁置）
+1. §3 Decision Outcome reads "shelved → {reason} → {follow-up plan}"
+2. Fill in the remaining §3 fields based on actual progress (record what was completed honestly)
+3. Sync the roadmap §3 summary table (status → shelved)
 
-## 校验规则
+## Validation Rules
 
-1. **§1 §2 未被修改** — 里程碑启动后 diff 中不应出现 §1 §2 字段变化（风险追加除外）
-2. **§3 不提前填写** — 里程碑未完成时 §3 应为空
-3. **§3 填入后不可变** — 结果一旦填入不再修改
-4. **标准列一致** — §3 达标评估的标准列与 §2 逐字一致
-5. **数据有来源** — §3 所有数值标注来源
-6. **roadmap 同步** — 里程碑状态变更必须同步 roadmap §3 汇总表
+1. **§1 §2 unchanged** — After the milestone has started, the diff must not contain changes to §1 / §2 fields (risk appending excepted)
+2. **§3 not filled early** — While the milestone is incomplete, §3 must remain empty
+3. **§3 immutable once filled** — Outcomes are never modified after being filled in
+4. **Criteria column consistent** — The criteria column of the §3 Go/No-Go Assessment is verbatim identical to §2
+5. **Data has source** — Every numeric value in §3 annotates its source
+6. **Roadmap synced** — Milestone status changes must sync the roadmap §3 summary table

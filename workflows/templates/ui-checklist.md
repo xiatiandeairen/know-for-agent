@@ -1,66 +1,66 @@
-# UI 检查清单
+# UI Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1 布局 | ASCII 草图 | 不可 |
-| | 区域说明表 | 不可（≥1 行） |
-| §2 交互流程 | 步骤 | 不可（≥3 步） |
-| §3 状态与样式 | 组件状态表 | 不可（每组件 ≥4 状态） |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1 Layout | ASCII Sketch | No |
+| | Region Description Table | No (≥1 row) |
+| §2 Interaction Flow | Step | No (≥3 steps) |
+| §3 States and Styles | Component-state Table | No (≥4 states per component) |
 
-## 字段定义
+## Field Definitions
 
-### §1 布局
+### §1 Layout
 
-#### ASCII 草图
+#### ASCII Sketch
 
-- **信息**: 页面/模块的区域排布
-- **格式**: ASCII 图。用 `+--+` `|  |` 等字符画出区域边界和嵌套关系
-- **禁止**: CSS 代码；截图描述（"参考设计稿"）
-- **省略**: 不可
-- **数据**: —
-- ❌ "参考 Figma 设计稿"
+- **Information**: Region layout of the page / module
+- **Format**: ASCII diagram. Use characters such as `+--+` and `|  |` to draw region borders and nesting
+- **Forbidden**: CSS code; descriptions of screenshots ("refer to the design mockup")
+- **Omit**: No
+- **Data**: —
+- ❌ "Refer to the Figma mockup"
 - ✅ `+--[header]--+ | [sidebar] | [main] | +--[footer]--+`
 
-#### 区域说明表
+#### Region Description Table
 
-- **信息**: 每个区域放什么内容、优先级
-- **格式**: 表格，≥1 行。列: 区域 | 内容 | 优先级。区域名与 ASCII 草图对应
-- **禁止**: 与 ASCII 草图不一致的区域名
-- **省略**: 不可
-- **数据**: —
-- ❌ `| 上面那块 | 一些东西 | 高 |`
-- ✅ `| header | 产品 logo + 全局导航（首页/文档/设置） | 高 |`
+- **Information**: What goes in each region and its priority
+- **Format**: Table, ≥1 row. Columns: Region | Content | Priority. Region names match the ASCII sketch
+- **Forbidden**: Region names inconsistent with the ASCII sketch
+- **Omit**: No
+- **Data**: —
+- ❌ `| Top block | Some stuff | High |`
+- ✅ `| header | Product logo + global navigation (home / docs / settings) | High |`
 
-### §2 交互流程
+### §2 Interaction Flow
 
-#### 步骤
+#### Step
 
-- **信息**: 用户在本页面的操作路径
-- **格式**: 编号列表，≥3 步。每步 = "**触发:** {用户动作} → **响应:** {系统反馈} → **下一步:** {后续状态}"
-- **禁止**: 缺少三要素之一（触发/响应/下一步）；后端实现描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "1. 用户点击按钮 2. 显示结果"
-- ✅ "1. **触发:** 用户点击搜索按钮 → **响应:** 输入框下方展开结果列表，显示 loading → **下一步:** 结果加载完成后列表显示匹配项"
+- **Information**: The user's operation path on this page
+- **Format**: Numbered list, ≥3 steps. Each step = "**Trigger:** {user action} → **Response:** {system feedback} → **Next:** {subsequent state}"
+- **Forbidden**: Missing any of the three elements (trigger / response / next); backend-implementation descriptions
+- **Omit**: No
+- **Data**: —
+- ❌ "1. User clicks the button 2. Result is displayed"
+- ✅ "1. **Trigger:** user clicks the search button → **Response:** the result list expands below the input box and shows loading → **Next:** once results have loaded, the list shows the matching items"
 
-### §3 状态与样式
+### §3 States and Styles
 
-#### 组件状态表
+#### Component-state Table
 
-- **信息**: 组件在各种状态下的视觉表现
-- **格式**: 每组件一个表格。列: state | trigger | visual | timing。每表 ≥4 行，必须覆盖 hover / disabled / loading / error
-- **禁止**: 缺少 hover/disabled/loading/error 中任意一种；CSS 代码
-- **省略**: 不可
-- **数据**: —
-- ❌ 只列 default 和 hover 两种状态
-- ✅ 至少覆盖 hover / disabled / loading / error 四种状态
+- **Information**: The visual presentation of the component in various states
+- **Format**: One table per component. Columns: state | trigger | visual | timing. Each table has ≥4 rows and must cover hover / disabled / loading / error
+- **Forbidden**: Missing any of hover / disabled / loading / error; CSS code
+- **Omit**: No
+- **Data**: —
+- ❌ Listing only default and hover states
+- ✅ Cover at least the four states hover / disabled / loading / error
 
-## 图表检查
+## Diagram Checks
 
-见 `templates/diagram-checklist.md`，适用 ui 的图表类型：交互流程图、布局草图。
+See `templates/diagram-checklist.md`. Diagram types applicable to ui: interaction flow diagram, layout sketch.
 
-## 数据置信规则
+## Data Confidence Rules
 
-同 roadmap-checklist.md：实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。
+Same as roadmap-checklist.md: measured > annotate source; estimated > annotate basis; target > "pending validation"; no data > annotate reason. No fabrication.

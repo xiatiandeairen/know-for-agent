@@ -1,88 +1,88 @@
-# 能力全景 更新规则
+# Capability Inventory Update Rules
 
-## 变更类型
+## Change Types
 
-| 类型 | 含义 |
-|------|------|
-| **追加** | 只能新增条目，不能改已有的 |
-| **可更新** | 内容可修改，但有约束 |
+| Type | Meaning |
+|------|---------|
+| **append-only** | Only new entries can be added; existing ones cannot be modified |
+| **updatable** | Content can be modified, but with constraints |
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 变更类型 |
-|------|------|---------|
-| §1 能力清单 | 整行 | 追加 |
-| | 状态 | 可更新 |
-| §2 覆盖范围 | 已知限制 | 追加 + 可更新 |
-| | 未覆盖场景 | 追加 + 可更新 |
+| Location | Field | Change Type |
+|----------|-------|-------------|
+| §1 Capability Inventory | Whole row | append-only |
+| | Status | updatable |
+| §2 Coverage | Known Limitations | append-only + updatable |
+| | Uncovered Scenarios | append-only + updatable |
 
-## 字段变更规则
+## Field Change Rules
 
-### §1 能力清单
+### §1 Capability Inventory
 
-#### 整行
+#### Whole row
 
-- **变更类型**: 追加
-- **允许**: 新增能力行
-- **禁止**: 删除已有行；修改已有行的能力名/描述/版本
-- **触发**: 产品新增用户可感知能力
-- **校验**: 新行满足 checklist 所有列约束（能力=用户视角、描述=1 句话、状态=枚举、版本=v{n}）
-- ❌ 删除已过时的能力行
-- ✅ 新增一行记录新上线的能力
+- **Change Type**: append-only
+- **Allowed**: Adding new capability rows
+- **Forbidden**: Deleting existing rows; modifying the capability name / description / version of an existing row
+- **Trigger**: A new user-perceivable capability ships
+- **Check**: New rows satisfy all column constraints in the checklist (capability = user perspective, description = one sentence, status = enum, version = v{n})
+- ❌ Deleting an obsolete capability row
+- ✅ Adding a new row to record a newly launched capability
 
-#### 状态
+#### Status
 
-- **变更类型**: 可更新
-- **允许**: 正向流转：计划→实验→可用
-- **禁止**: 回退（可用→实验、实验→计划）
-- **触发**: 能力成熟度变化
-- **校验**: 状态只能正向流转
-- ❌ 可用→实验（功能回退）
-- ✅ 实验→可用（功能稳定上线）
+- **Change Type**: updatable
+- **Allowed**: Forward-only transition: planned → experimental → available
+- **Forbidden**: Reverting (available → experimental, experimental → planned)
+- **Trigger**: Capability maturity changes
+- **Check**: Status moves forward only
+- ❌ available → experimental (capability regression)
+- ✅ experimental → available (the capability stabilizes and ships)
 
-### §2 覆盖范围
+### §2 Coverage
 
-#### 已知限制
+#### Known Limitations
 
-- **变更类型**: 追加 + 可更新
-- **允许**: 新增限制条目；已解决的限制标记"已解决 in v{n}"
-- **禁止**: 删除已有条目；修改已有条目的限制描述
-- **触发**: 发现新限制 或 已有限制被解决
-- **校验**: 新条目满足格式 "{限制}（{影响}）"；已解决条目保留原文并追加标记
-- ❌ 直接删除已解决的限制
-- ✅ "单次导入上限 1000 行（超出需分批操作）— 已解决 in v2"
+- **Change Type**: append-only + updatable
+- **Allowed**: Adding new limitation entries; marking resolved limitations as "resolved in v{n}"
+- **Forbidden**: Deleting existing entries; modifying the description of existing limitation entries
+- **Trigger**: A new limitation is found, or an existing limitation has been resolved
+- **Check**: New entries match the format "{limitation} ({impact})"; resolved entries keep their original text and append the marker
+- ❌ Directly deleting a resolved limitation
+- ✅ "Single import capped at 1000 rows (larger imports require batching) — resolved in v2"
 
-#### 未覆盖场景
+#### Uncovered Scenarios
 
-- **变更类型**: 追加 + 可更新
-- **允许**: 新增场景条目；已覆盖的场景标记"已解决 in v{n}"
-- **禁止**: 删除已有条目；修改已有条目的场景描述
-- **触发**: 明确新的未覆盖场景 或 已有场景被新版本覆盖
-- **校验**: 新条目满足格式 "{场景}（{原因}）"；已解决条目保留原文并追加标记
-- ❌ 直接删除已覆盖的场景
-- ✅ "跨组织数据共享（当前架构为单租户设计）— 已解决 in v3"
+- **Change Type**: append-only + updatable
+- **Allowed**: Adding new scenario entries; marking covered scenarios as "resolved in v{n}"
+- **Forbidden**: Deleting existing entries; modifying the description of existing scenario entries
+- **Trigger**: A new uncovered scenario is identified, or an existing scenario is covered by a new version
+- **Check**: New entries match the format "{scenario} ({reason})"; resolved entries keep their original text and append the marker
+- ❌ Directly deleting a now-covered scenario
+- ✅ "Cross-organization data sharing (current architecture is single-tenant) — resolved in v3"
 
-## 操作流程
+## Operating Procedure
 
-### 新增能力
+### Add a Capability
 
-1. §1 能力清单追加新行
-2. 确认状态为 计划 | 实验 | 可用
-3. 如新能力解决了 §2 中已有限制/未覆盖场景，标记"已解决 in v{n}"
+1. Append a new row to §1 Capability Inventory
+2. Confirm the status is one of planned | experimental | available
+3. If the new capability resolves an existing limitation / uncovered scenario in §2, mark it as "resolved in v{n}"
 
-### 能力状态变更
+### Capability Status Change
 
-1. §1 能力清单中对应行状态正向流转
-2. 如状态变为"可用"且解决了 §2 中已有限制，同步标记
+1. Move the corresponding row in §1 Capability Inventory forward
+2. If the status changes to "available" and resolves an existing limitation in §2, sync the marker
 
-### 新增限制/未覆盖场景
+### Add a Limitation / Uncovered Scenario
 
-1. §2 对应小节追加新条目
-2. 满足格式约束
+1. Append a new entry to the corresponding subsection of §2
+2. Satisfy the format constraint
 
-## 校验规则
+## Validation Rules
 
-1. **能力行只增不减** — §1 行数只增不减
-2. **状态只正向流转** — 计划→实验→可用，不可回退
-3. **已有描述不可修改** — 能力名/描述/版本/限制描述/场景描述写入后不可改
-4. **已解决标记格式** — "已解决 in v{n}"，保留原文
+1. **Capability rows only grow** — §1 row count only grows
+2. **Status moves forward only** — planned → experimental → available, no reverting
+3. **Existing descriptions are immutable** — Once written, the capability name / description / version / limitation description / scenario description cannot be changed
+4. **Resolved-marker format** — "resolved in v{n}", original text retained

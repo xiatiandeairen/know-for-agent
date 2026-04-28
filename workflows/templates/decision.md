@@ -1,80 +1,80 @@
-# {{决策主题}} 决策记录
+# {{decision topic}} Decision Record
 
-<!-- 核心问题: 为什么做这个决定、考虑过什么？
-     定位: 决策记录
-     不属于本文档: 完整技术方案（→ tech）、产品需求（→ PRD） -->
+<!-- Core question: why was this decision made and what was considered?
+     Positioning: decision record
+     Out of scope: complete technical solution (→ tech), product requirements (→ PRD) -->
 
-## 1. 背景
+## 1. Background
 
-<!-- 触发决策的上下文和约束。回答"为什么要做决策"
-  - INCLUDE: 触发事件、相关约束、决策范围
-  - EXCLUDE: 完整技术方案（在 tech 里）、产品需求描述（在 PRD 里） -->
+<!-- The context and constraints that triggered the decision. Answers "why a decision is needed".
+  - INCLUDE: triggering event, relevant constraints, decision scope
+  - EXCLUDE: complete technical solution (in tech), product requirement description (in PRD) -->
 
-**触发事件:** {{1-2 句描述触发决策的事件}}
+**Triggering event:** {{1-2 sentences describing the event that triggered the decision}}
 
-**约束:**
-- {{约束条件1}}
+**Constraints:**
+- {{constraint 1}}
 
-**决策范围:** {{本次决策要解决的问题边界}}
+**Decision scope:** {{the boundary of the problem this decision is meant to resolve}}
 
-## 2. 决策
+## 2. Decision
 
-<!-- 一句话最终结论 + 核心理由。回答"决定了什么"
-  - INCLUDE: 结论 + 核心理由（一两句话）
-  - EXCLUDE: 详细论证过程（放在备选方案对比里） -->
+<!-- One-sentence final conclusion + core rationale. Answers "what was decided".
+  - INCLUDE: conclusion + core rationale (one or two sentences)
+  - EXCLUDE: detailed argumentation (kept in the alternatives comparison) -->
 
-**我们决定:** {{决策结论}}
+**We decided:** {{decision outcome}}
 
-{{核心理由，1-2 句}}
+{{core rationale, 1-2 sentences}}
 
-## 3. 备选方案
+## 3. Alternatives
 
-<!-- 每个方案的优缺点对比。回答"考虑过什么"
-  - INCLUDE: 每个方案的核心优缺点、关键差异维度
-  - EXCLUDE: 方案的完整实现细节（选定方案后写 tech）
-  - 至少 2 个备选方案，每个方案优点 ≥2、缺点 ≥2 -->
+<!-- Pros and cons of each alternative. Answers "what was considered".
+  - INCLUDE: each alternative's core pros and cons, key differentiating dimensions
+  - EXCLUDE: full implementation details of an alternative (write tech once one is selected)
+  - At least 2 alternatives, each with ≥2 pros and ≥2 cons -->
 
-### 方案 A: {{方案名称}}
+### Alternative A: {{alternative name}}
 
-**优点:**
-- {{优点1}}
-- {{优点2}}
+**Pros:**
+- {{pro 1}}
+- {{pro 2}}
 
-**缺点:**
-- {{缺点1}}
-- {{缺点2}}
+**Cons:**
+- {{con 1}}
+- {{con 2}}
 
-### 方案 B: {{方案名称}}
+### Alternative B: {{alternative name}}
 
-**优点:**
-- {{优点1}}
-- {{优点2}}
+**Pros:**
+- {{pro 1}}
+- {{pro 2}}
 
-**缺点:**
-- {{缺点1}}
-- {{缺点2}}
+**Cons:**
+- {{con 1}}
+- {{con 2}}
 
-## 4. 影响
+## 4. Impact
 
-<!-- 正面/负面影响 + 后续行动。回答"会带来什么后果"
-  - INCLUDE: 对系统/团队/用户的影响、需要跟进的行动
-  - EXCLUDE: 具体实施步骤（在 tech 或 plan 里） -->
+<!-- Positive/negative impact + follow-up actions. Answers "what consequences will this bring".
+  - INCLUDE: impact on the system/team/users, follow-up actions to track
+  - EXCLUDE: specific implementation steps (in tech or plan) -->
 
-**正面影响:**
-- {{正面影响1}}
+**Positive impact:**
+- {{positive impact 1}}
 
-**负面影响:**
-- {{负面影响1}}
+**Negative impact:**
+- {{negative impact 1}}
 
-**后续行动:**
-- {{后续行动1}}
+**Follow-up actions:**
+- {{follow-up action 1}}
 
-## 5. 状态
+## 5. Status
 
-<!-- 当前决策状态。回答"决策处于什么阶段"
-  - 状态枚举: proposed | accepted | deprecated | superseded -->
+<!-- Current decision status. Answers "what stage the decision is in".
+  - Status enum: proposed | accepted | deprecated | superseded -->
 
 **{{proposed | accepted | deprecated | superseded}}**
 
-> 决策日期: {{YYYY-MM-DD}}
-> 决策人: {{决策人}}
+> Decision date: {{YYYY-MM-DD}}
+> Decision maker: {{decision maker}}

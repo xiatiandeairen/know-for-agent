@@ -1,152 +1,152 @@
-# Ops 检查清单
+# Ops Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1 发布策略 | 发布渠道 | 不可（≥1 项） |
-| | 发布节奏 | 不可 |
-| | 版本规则 | 不可 |
-| §2 反馈闭环 | 渠道 | 不可 |
-| | 分类 | 不可 |
-| | 响应 SLA | 不可 |
-| §3 关键指标 | 指标 | 不可 |
-| | 目标 | 不可 |
-| | 报警阈值 | 不可 |
-| §4 异常预案 | 场景 | 不可 |
-| | 应对措施 | 不可 |
-| | 升级路径 | 不可 |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1 Release Strategy | Release Channels | No (≥1 item) |
+| | Release Cadence | No |
+| | Versioning Rule | No |
+| §2 Feedback Loop | Channel | No |
+| | Category | No |
+| | Response SLA | No |
+| §3 Key Metrics | Metric | No |
+| | Target | No |
+| | Alert Threshold | No |
+| §4 Incident Playbook | Scenario | No |
+| | Response Procedure | No |
+| | Escalation Path | No |
 
-## 字段定义
+## Field Definitions
 
-### §1 发布策略
+### §1 Release Strategy
 
-#### 发布渠道
+#### Release Channels
 
-- **信息**: 产品到达用户的所有途径
-- **格式**: 列表，每项 "{渠道名}: {用途/说明}"。≥1 项
-- **禁止**: "线上""线下"等泛称；包含 CI/CD 实现细节
-- **省略**: 不可
-- **数据**: —
-- ❌ "线上渠道发布"
-- ✅ "npm registry: 正式版分发"
+- **Information**: All paths through which the product reaches users
+- **Format**: List, each item "{channel name}: {purpose / description}". ≥1 item
+- **Forbidden**: Generic terms such as "online" or "offline"; including CI/CD implementation details
+- **Omit**: No
+- **Data**: —
+- ❌ "Released through online channels"
+- ✅ "npm registry: distribution of stable releases"
 
-#### 发布节奏
+#### Release Cadence
 
-- **信息**: 多久发一次、什么条件触发发布
-- **格式**: 1-2 句。必须包含频率或触发条件
-- **禁止**: "定期发布""按需发布"等无具体频率描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "定期发布"
-- ✅ "功能驱动，里程碑完成即发布，预期 1-2 周一次"
+- **Information**: How often releases happen and what triggers a release
+- **Format**: 1-2 sentences. Must include a frequency or trigger condition
+- **Forbidden**: Descriptions without a concrete frequency such as "regular releases" or "on-demand releases"
+- **Omit**: No
+- **Data**: —
+- ❌ "Regular releases"
+- ✅ "Feature-driven; release on milestone completion, expected to be once every 1-2 weeks"
 
-#### 版本规则
+#### Versioning Rule
 
-- **信息**: 版本号命名和递增规则
-- **格式**: 1-2 句。说明什么情况 bump 哪一级
-- **禁止**: 仅写"SemVer"不展开
-- **省略**: 不可
-- **数据**: —
-- ❌ "语义化版本"
-- ✅ "SemVer: MAJOR 破坏性变更，MINOR 新功能，PATCH bug 修复；pre-release 用 -alpha.N 后缀"
+- **Information**: Naming and increment rules for version numbers
+- **Format**: 1-2 sentences. Specifies the conditions under which each level is bumped
+- **Forbidden**: Just writing "SemVer" without expansion
+- **Omit**: No
+- **Data**: —
+- ❌ "Semantic versioning"
+- ✅ "SemVer: MAJOR for breaking changes, MINOR for new features, PATCH for bug fixes; pre-releases use the -alpha.N suffix"
 
-### §2 反馈闭环
+### §2 Feedback Loop
 
-#### 渠道
+#### Channel
 
-- **信息**: 哪里收集反馈
-- **格式**: 具体名称
-- **禁止**: "各渠道""多种方式"等泛称
-- **省略**: 不可
-- **数据**: —
-- ❌ "线上渠道"
+- **Information**: Where feedback is collected
+- **Format**: A specific name
+- **Forbidden**: Generic terms such as "various channels" or "multiple ways"
+- **Omit**: No
+- **Data**: —
+- ❌ "Online channels"
 - ✅ "GitHub Issues"
 
-#### 分类
+#### Category
 
-- **信息**: 该渠道收集什么类型反馈
-- **格式**: 枚举反馈类型，逗号分隔
-- **禁止**: "各种""所有类型"
-- **省略**: 不可
-- **数据**: —
-- ❌ "各种反馈"
-- ✅ "bug report、feature request"
+- **Information**: What types of feedback this channel collects
+- **Format**: Enumerated feedback types, comma-separated
+- **Forbidden**: "All kinds", "every type"
+- **Omit**: No
+- **Data**: —
+- ❌ "All kinds of feedback"
+- ✅ "bug report, feature request"
 
-#### 响应 SLA
+#### Response SLA
 
-- **信息**: 多快给用户首次响应
-- **格式**: 必须是具体时间量（含数字 + 时间单位）
-- **禁止**: "尽快""及时""ASAP"
-- **省略**: 不可
-- **数据**: —
-- ❌ "尽快响应"
-- ✅ "工作日 24h 内首次响应"
+- **Information**: How fast users get the first response
+- **Format**: A concrete time amount (with a number + time unit)
+- **Forbidden**: "ASAP", "as quickly as possible", "in a timely manner"
+- **Omit**: No
+- **Data**: —
+- ❌ "Respond as quickly as possible"
+- ✅ "First response within 24h on business days"
 
-### §3 关键指标
+### §3 Key Metrics
 
-#### 指标
+#### Metric
 
-- **信息**: 运营健康度的可观测指标
-- **格式**: 具体指标名，可直接用于监控仪表盘
-- **禁止**: "用户体验""系统健康"等不可直接观测的描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "用户体验好不好"
-- ✅ "P95 响应时间"
+- **Information**: An observable metric for operational health
+- **Format**: A specific metric name that can be plugged directly into a monitoring dashboard
+- **Forbidden**: Non-directly-observable descriptions such as "user experience" or "system health"
+- **Omit**: No
+- **Data**: —
+- ❌ "Whether user experience is good"
+- ✅ "P95 response time"
 
-#### 目标
+#### Target
 
-- **信息**: 该指标的健康目标值
-- **格式**: 必须有数字（含单位）
-- **禁止**: "越低越好""尽量高"等无数字描述
-- **省略**: 不可
-- **数据**: 有实测基线用实测标来源；无基线标"目标值，待验证"
-- ❌ "越快越好"
+- **Information**: The healthy target value for this metric
+- **Format**: Must include a number (with a unit)
+- **Forbidden**: Numberless descriptions such as "the lower the better" or "as high as possible"
+- **Omit**: No
+- **Data**: When a measured baseline exists, use measured and annotate the source; when no baseline, mark "target value, pending validation"
+- ❌ "The faster the better"
 - ✅ "<200ms"
 
-#### 报警阈值
+#### Alert Threshold
 
-- **信息**: 触发告警的具体条件
-- **格式**: 必须有数字 + 触发条件（如持续时长、频次）
-- **禁止**: "异常时告警""超标报警"等无数字描述
-- **省略**: 不可
-- **数据**: 同目标
-- ❌ "异常时告警"
-- ✅ ">500ms 持续 5min"
+- **Information**: The specific condition that triggers an alert
+- **Format**: Must include a number + trigger condition (such as duration or frequency)
+- **Forbidden**: Numberless descriptions such as "alert when abnormal" or "alert when over the limit"
+- **Omit**: No
+- **Data**: Same as Target
+- ❌ "Alert when abnormal"
+- ✅ ">500ms sustained for 5min"
 
-### §4 异常预案
+### §4 Incident Playbook
 
-#### 场景
+#### Scenario
 
-- **信息**: 用户可感知的异常状况
-- **格式**: 具体的异常表现，用户视角
-- **禁止**: "系统出错""服务异常"等泛称
-- **省略**: 不可
-- **数据**: —
-- ❌ "系统出错"
-- ✅ "核心服务不可用超过 10min"
+- **Information**: A user-perceivable abnormal situation
+- **Format**: Specific symptoms, from the user's perspective
+- **Forbidden**: Generic terms such as "system error" or "service abnormal"
+- **Omit**: No
+- **Data**: —
+- ❌ "System error"
+- ✅ "Core service unavailable for more than 10min"
 
-#### 应对措施
+#### Response Procedure
 
-- **信息**: 第一响应人的具体操作步骤
-- **格式**: 编号步骤列表或短句描述具体动作
-- **禁止**: "修复""处理"等无具体步骤描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "尽快修复"
-- ✅ "1. 切换到备用服务 2. 通知用户降级说明 3. 排查根因"
+- **Information**: Specific operating steps for the first responder
+- **Format**: Numbered step list or short sentences describing concrete actions
+- **Forbidden**: Step-free descriptions such as "fix" or "handle"
+- **Omit**: No
+- **Data**: —
+- ❌ "Fix as soon as possible"
+- ✅ "1. Switch to the backup service 2. Notify users with degradation messaging 3. Investigate the root cause"
 
-#### 升级路径
+#### Escalation Path
 
-- **信息**: 第一响应人无法解决时的升级链路
-- **格式**: 必须指名具体角色或负责人 + 时间条件
-- **禁止**: "升级处理""找人解决"等无具体角色描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "升级给领导"
-- ✅ "15min 未恢复 → 升级至 {项目负责人}，30min 未恢复 → 升级至 {技术总监}"
+- **Information**: The escalation chain when the first responder cannot resolve the issue
+- **Format**: Must name a specific role or owner + time condition
+- **Forbidden**: Role-free descriptions such as "escalate" or "find someone to fix it"
+- **Omit**: No
+- **Data**: —
+- ❌ "Escalate to the manager"
+- ✅ "Not recovered in 15min → escalate to {project owner}; not recovered in 30min → escalate to {tech director}"
 
-## 数据置信规则
+## Data Confidence Rules
 
-同 roadmap-checklist.md：实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。
+Same as roadmap-checklist.md: measured > annotate source; estimated > annotate basis; target > "pending validation"; no data > annotate reason. No fabrication.

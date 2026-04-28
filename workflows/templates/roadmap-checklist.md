@@ -1,492 +1,492 @@
-# Roadmap 检查清单
+# Roadmap Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1.1 产品核心 | 定位 | 不可 |
-| | 动机 | 不可 |
-| | 长远愿景 | 不可 |
-| §1.2 价值体系 | 即时价值.价值 | 不可 |
-| | 即时价值.衡量指标 | 不可 |
-| | 累积价值.价值 | 不可 |
-| | 累积价值.衡量指标 | 不可 |
-| | 战略价值.价值 | 不可 |
-| | 战略价值.衡量指标 | 不可 |
-| §1.3 核心问题 | 问题 | 不可 |
-| | 发生频率 | 无法估算填"待量化（原因）" |
-| | 单次成本 | 无法估算填"待量化（原因）" |
-| | 影响面 | 不可 |
-| | 现有应对 | 无现有方案填"无替代方案" |
-| §1.4 目标用户 | 角色 | 不可 |
-| | 典型场景 | 不可 |
-| | Before | 不可 |
-| | After | 不可 |
-| | 预估提效 | 早期无数据填"待验证（预期: 估值）" |
-| §1.5 竞品对比 | 方案 | 不可 |
-| | 定位 | 不可 |
-| | 目标用户 | 不可 |
-| | 核心功能 | 不可 |
-| | 优势 | 不可 |
-| | 局限 | 不可 |
-| §2.1 版本汇总 | 版本 | 不可 |
-| | 核心方向 | 不可 |
-| | 核心指标变化 | 规划中填"待定" |
-| | 状态 | 不可 |
-| | 周期 | 未开始填"待定" |
-| | 里程碑 | 不可 |
-| §2.2 版本详情 | 战略意图 | 不可 |
-| | 投入产出 | 不可 |
-| | 优先级依据 | 不可 |
-| | 风险与依赖 | 无风险填"无已识别风险和外部依赖" |
-| | 成功指标 | 不可 |
-| | 核心价值 | 不可 |
-| | 用户覆盖 | 不可 |
-| | 核心指标表 | 规划中只填目标值列 |
-| §3 里程碑 | # | 不可 |
-| | 核心方向 | 不可 |
-| | 目标达成情况 | 未开始填"—" |
-| | 状态 | 不可 |
-| | 完成日期 | 未完成填"—" |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1.1 Product Essence | Positioning | No |
+| | Motivation | No |
+| | Long-term Vision | No |
+| §1.2 Value System | Immediate Value.Value | No |
+| | Immediate Value.Metric | No |
+| | Cumulative Value.Value | No |
+| | Cumulative Value.Metric | No |
+| | Strategic Value.Value | No |
+| | Strategic Value.Metric | No |
+| §1.3 Core Problem | Problem | No |
+| | Occurrence Frequency | When unable to estimate, fill "to be quantified (reason)" |
+| | Per-occurrence Cost | When unable to estimate, fill "to be quantified (reason)" |
+| | Reach | No |
+| | Existing Workaround | When no existing solution, fill "no alternative" |
+| §1.4 Target Users | Role | No |
+| | Typical Scenario | No |
+| | Before | No |
+| | After | No |
+| | Estimated Productivity Gain | When no early data, fill "pending validation (expected: estimate)" |
+| §1.5 Competitive Comparison | Solution | No |
+| | Positioning | No |
+| | Target Users | No |
+| | Core Features | No |
+| | Strengths | No |
+| | Limitations | No |
+| §2.1 Version Summary | Version | No |
+| | Core Direction | No |
+| | Core-metric Delta | When in planning, fill "TBD" |
+| | Status | No |
+| | Cycle | When not started, fill "TBD" |
+| | Milestones | No |
+| §2.2 Version Details | Strategic Intent | No |
+| | Input/Output | No |
+| | Priority Rationale | No |
+| | Risks and Dependencies | When no risks, fill "no identified risks or external dependencies" |
+| | Success Metric | No |
+| | Core Value | No |
+| | User Coverage | No |
+| | Core Metric Table | When in planning, fill only the target-value column |
+| §3 Milestones | # | No |
+| | Core Direction | No |
+| | Goal Achievement | When not started, fill "—" |
+| | Status | No |
+| | Completion Date | When not finished, fill "—" |
 
-## 字段定义
+## Field Definitions
 
-### §1.1 产品核心
+### §1.1 Product Essence
 
-#### 定位
+#### Positioning
 
-- **信息**: 产品是什么，给谁用的什么东西
-- **格式**: 1 句。"面向{用户}的{品类}"
-- **禁止**: 形容词堆砌（强大/先进/智能）
-- **省略**: 不可
-- **数据**: —
-- ❌ "一个强大的知识管理工具"
-- ✅ "面向 AI 编程助手的项目知识编译器"
+- **Information**: What the product is and what it provides to whom
+- **Format**: 1 sentence. "A {category} for {users}"
+- **Forbidden**: A pile of adjectives (powerful / advanced / smart)
+- **Omit**: No
+- **Data**: —
+- ❌ "A powerful knowledge-management tool"
+- ✅ "A project-knowledge compiler for AI coding assistants"
 
-#### 动机
+#### Motivation
 
-- **信息**: 为什么做这个产品，触发事件是什么
-- **格式**: 1-2 句。必须包含痛点 + 现有方案不足
-- **禁止**: "市场需要""用户需要"等空话
-- **省略**: 不可
-- **数据**: —
-- ❌ "市场需要一个更好的知识管理方案"
-- ✅ "AI agent 跨会话丢失隐性知识导致重复犯错，现有方案（CLAUDE.md）无法分层管理"
+- **Information**: Why the product is being built; what the triggering event is
+- **Format**: 1-2 sentences. Must include the pain point + the inadequacy of existing solutions
+- **Forbidden**: Empty phrases such as "the market needs" or "users need"
+- **Omit**: No
+- **Data**: —
+- ❌ "The market needs a better knowledge-management solution"
+- ✅ "AI agents lose implicit knowledge across sessions and repeat the same mistakes; existing solutions (CLAUDE.md) cannot manage knowledge in layers"
 
-#### 长远愿景
+#### Long-term Vision
 
-- **信息**: 产品成熟后的终态
-- **格式**: 1-2 句。用类比或画面感描述终态
-- **禁止**: "最好的""领先的""最强的"等自吹
-- **省略**: 不可
-- **数据**: —
-- ❌ "成为最好的 AI 知识管理工具"
-- ✅ "AI agent 在项目中像有经验的成员一样工作：了解历史、尊重约束、不重蹈覆辙"
+- **Information**: The terminal state once the product matures
+- **Format**: 1-2 sentences. Use analogy or imagery to depict the terminal state
+- **Forbidden**: Self-aggrandizement such as "the best", "leading", "the strongest"
+- **Omit**: No
+- **Data**: —
+- ❌ "Become the best AI knowledge-management tool"
+- ✅ "AI agents work in a project like an experienced team member: aware of history, respectful of constraints, and not repeating the same mistakes"
 
-### §1.2 价值体系
+### §1.2 Value System
 
-#### 即时价值.价值
+#### Immediate Value.Value
 
-- **信息**: 每次使用直接获得的好处
-- **格式**: 1 句。主语是用户/agent 的行为变化，不是产品功能
-- **禁止**: 以产品功能为主语（"本产品提供..."）
-- **省略**: 不可
-- **数据**: —
-- ❌ "本产品提供自动知识召回功能"
-- ✅ "消除跨会话上下文重建成本"
+- **Information**: The benefit obtained directly from each use
+- **Format**: 1 sentence. The subject is a behavior change of the user/agent, not a product feature
+- **Forbidden**: A product feature as the subject ("our product offers...")
+- **Omit**: No
+- **Data**: —
+- ❌ "Our product offers automatic knowledge recall"
+- ✅ "Eliminates the cost of context rebuild across sessions"
 
-#### 即时价值.衡量指标
+#### Immediate Value.Metric
 
-- **信息**: 怎么量化即时收益
-- **格式**: "{指标名}（目标: {值}）"，多个逗号分隔
-- **禁止**: 无指标名的裸数字；无目标值的纯描述
-- **省略**: 不可
-- **数据**: 有实测用实测并标来源；无实测标"目标值，待验证"
-- ❌ "效率提升很多"
-- ✅ "/know learn 拒绝放行的低质 claim 次数（当前实测: 2 次）、单次 learn 完整流程耗时（实测: <30s）"
+- **Information**: How to quantify the immediate gain
+- **Format**: "{metric name} (target: {value})", multiple metrics comma-separated
+- **Forbidden**: Bare numbers without metric names; pure descriptions without target values
+- **Omit**: No
+- **Data**: When measured, use measured and annotate the source; when not measured, mark "target value, pending validation"
+- ❌ "Efficiency much improved"
+- ✅ "/know learn rejected low-quality claim count (current measured: 2 occurrences); end-to-end duration of a single learn run (measured: <30s)"
 
-#### 累积价值.价值
+#### Cumulative Value.Value
 
-- **信息**: 持续使用后的复合收益
-- **格式**: 1 句。强调"随时间增长"的特征
-- **禁止**: 静态描述（不体现时间维度）
-- **省略**: 不可
-- **数据**: —
-- ❌ "知识库很有价值"
-- ✅ "项目知识资产持续沉淀"
+- **Information**: The compounding benefit from continuous use
+- **Format**: 1 sentence. Emphasizes the "grows over time" property
+- **Forbidden**: Static descriptions (no time dimension)
+- **Omit**: No
+- **Data**: —
+- ❌ "The knowledge base is valuable"
+- ✅ "Project-knowledge assets are continuously captured"
 
-#### 累积价值.衡量指标
+#### Cumulative Value.Metric
 
-- **信息**: 怎么量化累积趋势
-- **格式**: 指标必须是可观测趋势（增长率、覆盖率等）
-- **禁止**: 静态指标（不体现趋势）
-- **省略**: 不可
-- **数据**: 有实测用实测；无实测标"目标值，待验证"
-- ❌ "知识条目数量"
-- ✅ "CLAUDE.md ## know 条目总数（当前实测: 54 条）、learn gate 拒绝率（当前实测: 18%，目标: ≥20%）"
+- **Information**: How to quantify the cumulative trend
+- **Format**: The metric must be an observable trend (growth rate, coverage rate, etc.)
+- **Forbidden**: Static metrics (no trend)
+- **Omit**: No
+- **Data**: When measured, use measured; when not measured, mark "target value, pending validation"
+- ❌ "Number of knowledge entries"
+- ✅ "Total ## know entries in CLAUDE.md (current measured: 54 entries); learn-gate rejection rate (current measured: 18%, target: ≥20%)"
 
-#### 战略价值.价值
+#### Strategic Value.Value
 
-- **信息**: 改变工作方式的长期影响
-- **格式**: 1 句。"从{旧范式}到{新范式}"
-- **禁止**: 不体现范式转变的描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "提升 AI 协作体验"
-- ✅ "AI 协作从无状态对话升级为有记忆的持续协作"
+- **Information**: The long-term impact of changing the way of working
+- **Format**: 1 sentence. "From {old paradigm} to {new paradigm}"
+- **Forbidden**: Descriptions that do not embody a paradigm shift
+- **Omit**: No
+- **Data**: —
+- ❌ "Improves AI collaboration experience"
+- ✅ "AI collaboration upgrades from stateless conversations to memory-bearing continuous collaboration"
 
-#### 战略价值.衡量指标
+#### Strategic Value.Metric
 
-- **信息**: 怎么量化范式转变
-- **格式**: 可以是间接衡量指标
-- **禁止**: 无法观测的指标
-- **省略**: 不可
-- **数据**: 有实测用实测；无实测标"目标值，待验证"；无法测量标"无数据（原因）"
-- ❌ "AI 变得更智能"
-- ✅ "新会话首次有效协作时间（目标值，待验证: <2min）、跨会话知识复用率（无数据，尚无测量手段）"
+- **Information**: How to quantify the paradigm shift
+- **Format**: May be an indirect metric
+- **Forbidden**: Unobservable metrics
+- **Omit**: No
+- **Data**: When measured, use measured; when not measured, mark "target value, pending validation"; when not measurable, mark "no data (reason)"
+- ❌ "AI becomes smarter"
+- ✅ "Time to first effective collaboration in a new session (target value, pending validation: <2min); cross-session knowledge reuse rate (no data, no measurement method yet)"
 
-### §1.3 核心问题
+### §1.3 Core Problem
 
-#### 问题
+#### Problem
 
-- **信息**: 用户视角的具体痛点
-- **格式**: 主语是用户或 agent。描述现象，不描述缺失
-- **禁止**: "缺乏X""没有Y"等缺失描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "缺乏知识管理工具"
-- ✅ "AI 在新会话中重复犯已知错误"
+- **Information**: The user-perspective concrete pain point
+- **Format**: The subject is the user or agent. Describe the phenomenon, not what is missing
+- **Forbidden**: Missing-style descriptions such as "lack of X" or "no Y"
+- **Omit**: No
+- **Data**: —
+- ❌ "Lack of a knowledge-management tool"
+- ✅ "AI repeats known mistakes in new sessions"
 
-#### 发生频率
+#### Occurrence Frequency
 
-- **信息**: 这个问题多频繁发生
-- **格式**: 必须带数字或频次词（日均/每次/每周）
-- **禁止**: "经常""频繁""偶尔"等无量化词
-- **省略**: 无法估算填"待量化（{原因}）"
-- **数据**: 必须有依据（实测/行业数据/合理推算）。无依据标注推算方式
-- ❌ "经常发生"
-- ✅ "每次新会话（估算: 日均 5-20 次，基于作者使用频率）"
+- **Information**: How frequently the problem occurs
+- **Format**: Must include a number or frequency word (per day / per occurrence / per week)
+- **Forbidden**: Non-quantified words such as "often", "frequently", "occasionally"
+- **Omit**: When unable to estimate, fill "to be quantified ({reason})"
+- **Data**: A basis is required (measured / industry data / reasonable derivation). When no basis, annotate the derivation method
+- ❌ "Occurs frequently"
+- ✅ "Every new session (estimated: 5-20 times per day, based on the author's usage frequency)"
 
-#### 单次成本
+#### Per-occurrence Cost
 
-- **信息**: 每次发生的代价
-- **格式**: 用时间/金钱/风险量化
-- **禁止**: "浪费时间""有影响"等无量化描述
-- **省略**: 无法估算填"待量化（{原因}）"
-- **数据**: 同发生频率
-- ❌ "浪费时间和精力"
-- ✅ "估算 10-30 分钟重新探索 + 引入回归 bug 风险（基于作者体感，未精确计时）"
+- **Information**: The cost of each occurrence
+- **Format**: Quantified by time / money / risk
+- **Forbidden**: Non-quantified descriptions such as "wastes time" or "has impact"
+- **Omit**: When unable to estimate, fill "to be quantified ({reason})"
+- **Data**: Same as Occurrence Frequency
+- ❌ "Wastes time and energy"
+- ✅ "Estimated 10-30 minutes for re-exploration + risk of introducing regression bugs (based on the author's perception, not precisely timed)"
 
-#### 影响面
+#### Reach
 
-- **信息**: 多少人/场景受影响
-- **格式**: 群体特征 + 规模描述
-- **禁止**: "很多人""大量用户"等无特征描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "很多开发者都有这个问题"
-- ✅ "所有使用 AI 助手维护中大型项目的开发者"
+- **Information**: How many people / scenarios are affected
+- **Format**: Group characteristics + scale description
+- **Forbidden**: Featureless descriptions such as "many people" or "many users"
+- **Omit**: No
+- **Data**: —
+- ❌ "Many developers have this problem"
+- ✅ "All developers maintaining mid-to-large projects with AI assistants"
 
-#### 现有应对
+#### Existing Workaround
 
-- **信息**: 用户现在怎么解决这个问题
-- **格式**: "{方案}，{不足}"。必须包含不足之处
-- **禁止**: 只说方案不说不足
-- **省略**: 无现有方案填"无替代方案"
-- **数据**: —
-- ❌ "用 CLAUDE.md 管理"
-- ✅ "手动维护 CLAUDE.md，条目膨胀后 token 成本不可控且无法分层检索"
+- **Information**: How users solve this problem today
+- **Format**: "{solution}, {limitation}". Must include the limitation
+- **Forbidden**: Stating the solution without the limitation
+- **Omit**: When no existing solution, fill "no alternative"
+- **Data**: —
+- ❌ "Use CLAUDE.md to manage it"
+- ✅ "Manually maintain CLAUDE.md; once entries inflate, the token cost is uncontrollable and there is no layered retrieval"
 
-### §1.4 目标用户
+### §1.4 Target Users
 
-#### 角色
+#### Role
 
-- **信息**: 谁会用这个产品
-- **格式**: "{限定条件}的{角色名}"
-- **禁止**: 无限定条件的泛称
-- **省略**: 不可
-- **数据**: —
-- ❌ "开发者"
-- ✅ "使用 Claude Code 的独立开发者"
+- **Information**: Who will use the product
+- **Format**: "{qualifier}'s {role name}"
+- **Forbidden**: Unqualified generic names
+- **Omit**: No
+- **Data**: —
+- ❌ "Developer"
+- ✅ "Independent developer using Claude Code"
 
-#### 典型场景
+#### Typical Scenario
 
-- **信息**: 什么时候触发使用
-- **格式**: 描述具体触发场景
-- **禁止**: "日常使用""开发时"等泛描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "日常开发中"
-- ✅ "跨会话维护中大型项目，需 AI 记住项目约束和历史决策"
+- **Information**: When use is triggered
+- **Format**: Describes the specific trigger scenario
+- **Forbidden**: Generic descriptions such as "daily use" or "during development"
+- **Omit**: No
+- **Data**: —
+- ❌ "During daily development"
+- ✅ "Maintaining a mid-to-large project across sessions, requiring the AI to remember project constraints and historical decisions"
 
 #### Before
 
-- **信息**: 使用前用户的痛感
-- **格式**: 具体行为 + 结果，量化
-- **禁止**: "效率低""体验差"等无行为描述
-- **省略**: 不可
-- **数据**: 有实测用实测；无实测标"估算"
-- ❌ "效率很低"
-- ✅ "每次新会话花数分钟重建上下文，关键约束仍会遗漏（估算，未精确计时）"
+- **Information**: The user's pain before use
+- **Format**: Specific behavior + outcome, quantified
+- **Forbidden**: Behavior-free descriptions such as "low efficiency" or "poor experience"
+- **Omit**: No
+- **Data**: When measured, use measured; when not measured, mark "estimated"
+- ❌ "Very low efficiency"
+- ✅ "Spends several minutes rebuilding context every new session, and key constraints are still missed (estimated, not precisely timed)"
 
 #### After
 
-- **信息**: 使用后用户的状态
-- **格式**: 与 Before 对称呼应，量化改善
-- **禁止**: 与 Before 无对应关系的描述
-- **省略**: 不可
-- **数据**: 同 Before
-- ❌ "效率大幅提升"
-- ✅ "agent 自动获取相关知识，已知错误可被拦截（已验证 2 次防御成功）"
+- **Information**: The user's state after use
+- **Format**: Symmetric with Before, quantified improvement
+- **Forbidden**: Descriptions with no correspondence to Before
+- **Omit**: No
+- **Data**: Same as Before
+- ❌ "Efficiency greatly improved"
+- ✅ "The agent automatically obtains relevant knowledge; known mistakes can be intercepted (verified successfully 2 times)"
 
-#### 预估提效
+#### Estimated Productivity Gain
 
-- **信息**: ROI 量化
-- **格式**: "{节省什么} {数值}"，多维度逗号分隔
-- **禁止**: "大幅提升""显著改善"等无数值描述
-- **省略**: 早期无数据填"待验证（预期: {估值}）"
-- **数据**: 区分实测/估算/目标，标注来源
-- ❌ "效率大幅提升"
-- ✅ "待验证（预期: 单次会话节省数分钟，回归 bug 减少）"
+- **Information**: ROI quantification
+- **Format**: "{what is saved} {value}", multiple dimensions comma-separated
+- **Forbidden**: Numberless descriptions such as "much improvement" or "significant improvement"
+- **Omit**: When no early data, fill "pending validation (expected: {estimate})"
+- **Data**: Distinguish measured / estimated / target and annotate the source
+- ❌ "Efficiency greatly improved"
+- ✅ "Pending validation (expected: saves several minutes per session, regression bugs reduced)"
 
-### §1.5 竞品对比
+### §1.5 Competitive Comparison
 
-#### 方案
+#### Solution
 
-- **信息**: 具体产品或替代方案名称
-- **格式**: 正式产品名。本产品行加粗
-- **禁止**: "其他工具""竞品"等泛称
-- **省略**: 不可
-- **数据**: —
-- ❌ "其他 AI 编程工具"
+- **Information**: A specific product or alternative name
+- **Format**: Official product name. The row for this product is bolded
+- **Forbidden**: Generic terms such as "other tools" or "competitors"
+- **Omit**: No
+- **Data**: —
+- ❌ "Other AI coding tools"
 - ✅ "Cursor Rules"
 
-#### 定位
+#### Positioning
 
-- **信息**: 该方案是什么
-- **格式**: 1 句话产品定义，与本产品定位格式一致
-- **禁止**: 多句描述
-- **省略**: 不可
-- **数据**: —
+- **Information**: What this solution is
+- **Format**: 1-sentence product definition, in the same format as this product's positioning
+- **Forbidden**: Multi-sentence descriptions
+- **Omit**: No
+- **Data**: —
 
-#### 目标用户
+#### Target Users
 
-- **信息**: 该方案面向谁
-- **格式**: 简短角色描述
-- **禁止**: 过长描述
-- **省略**: 不可
-- **数据**: —
+- **Information**: Who this solution targets
+- **Format**: A short role description
+- **Forbidden**: Overly long descriptions
+- **Omit**: No
+- **Data**: —
 
-#### 核心功能
+#### Core Features
 
-- **信息**: 该方案做什么
-- **格式**: 3-5 个功能点，逗号分隔，用户视角能力
-- **禁止**: 技术实现描述
-- **省略**: 不可
-- **数据**: —
+- **Information**: What this solution does
+- **Format**: 3-5 feature points, comma-separated, capabilities from the user's perspective
+- **Forbidden**: Implementation descriptions
+- **Omit**: No
+- **Data**: —
 
-#### 优势
+#### Strengths
 
-- **信息**: 该方案最突出的优势
-- **格式**: 1-2 个，客观描述
-- **禁止**: 贬义主观评价（对竞品）；自吹（对本产品）
-- **省略**: 不可
-- **数据**: —
-- ❌ "比其他方案好很多"
-- ✅ "零依赖，开箱即用，完全可控"
+- **Information**: The most prominent strengths of this solution
+- **Format**: 1-2 items, objectively described
+- **Forbidden**: Pejorative subjective evaluations (toward competitors); self-aggrandizement (toward this product)
+- **Omit**: No
+- **Data**: —
+- ❌ "Much better than the others"
+- ✅ "Zero dependencies, ready to use, fully controllable"
 
-#### 局限
+#### Limitations
 
-- **信息**: 该方案最明显的局限
-- **格式**: 1-2 个，客观描述
-- **禁止**: 贬义主观评价
-- **省略**: 不可
-- **数据**: —
+- **Information**: The most obvious limitations of this solution
+- **Format**: 1-2 items, objectively described
+- **Forbidden**: Pejorative subjective evaluations
+- **Omit**: No
+- **Data**: —
 
-### §2.1 版本汇总
+### §2.1 Version Summary
 
-#### 版本
+#### Version
 
-- **信息**: 版本号 + 可选代号
-- **格式**: "v{n}" 或 "v{n} — {代号}"
-- **禁止**: 非连续版本号
-- **省略**: 不可
-- **数据**: —
+- **Information**: Version number + optional codename
+- **Format**: "v{n}" or "v{n} — {codename}"
+- **Forbidden**: Non-consecutive version numbers
+- **Omit**: No
+- **Data**: —
 
-#### 核心方向
+#### Core Direction
 
-- **信息**: 该版本的战略聚焦点
-- **格式**: 动宾短语
-- **禁止**: "功能完善""体验优化"等空话
-- **省略**: 不可
-- **数据**: —
-- ❌ "功能完善"
-- ✅ "验证端到端闭环可行性"
+- **Information**: The strategic focus of this version
+- **Format**: A verb-object phrase
+- **Forbidden**: Empty phrases such as "feature improvements" or "experience optimization"
+- **Omit**: No
+- **Data**: —
+- ❌ "Feature improvements"
+- ✅ "Validate the feasibility of the end-to-end closed loop"
 
-#### 核心指标变化
+#### Core-metric Delta
 
-- **信息**: 该版本上升和下降最显著的指标
-- **格式**: "↑ {指标} {旧}→{新}；↓ {指标} {旧}→{新}"
-- **禁止**: 无数据编造精确数字
-- **省略**: 规划中填"待定"
-- **数据**: 必须来自真实数据。无数据标注"待测量"
-- ❌ "↑ 命中率 47%→55%"（编造数据）
-- ✅ "↑ 测试覆盖 0→6 命令；↓ 路径解析 bug 已消除"
+- **Information**: The most significant rises and falls of metrics in this version
+- **Format**: "↑ {metric} {old}→{new}; ↓ {metric} {old}→{new}"
+- **Forbidden**: Fabricating precise numbers when there is no data
+- **Omit**: When in planning, fill "TBD"
+- **Data**: Must come from real data. When no data, annotate "to be measured"
+- ❌ "↑ hit rate 47%→55%" (fabricated data)
+- ✅ "↑ test coverage 0→6 commands; ↓ path-resolution bugs eliminated"
 
-#### 状态
+#### Status
 
-- **信息**: 版本生命周期阶段
-- **格式**: 枚举: 规划中 | 开发中 | 内测中 | 已发布 | 已归档
-- **禁止**: 枚举外的值
-- **省略**: 不可
-- **数据**: —
+- **Information**: Lifecycle stage of the version
+- **Format**: Enum: planning | in development | internal testing | released | archived
+- **Forbidden**: Values outside the enum
+- **Omit**: No
+- **Data**: —
 
-#### 周期
+#### Cycle
 
-- **信息**: 起止时间
-- **格式**: YYYY.MM.DD - YYYY.MM.DD
-- **禁止**: 模糊时间（"上个月""最近"）
-- **省略**: 未开始填"待定"
-- **数据**: —
+- **Information**: Start and end times
+- **Format**: YYYY.MM.DD - YYYY.MM.DD
+- **Forbidden**: Vague times ("last month", "recently")
+- **Omit**: When not started, fill "TBD"
+- **Data**: —
 
-#### 里程碑
+#### Milestones
 
-- **信息**: 包含的里程碑编号范围
-- **格式**: M{a}-M{b}
-- **禁止**: 不连续编号
-- **省略**: 不可
-- **数据**: —
+- **Information**: The range of milestone numbers included
+- **Format**: M{a}-M{b}
+- **Forbidden**: Non-consecutive numbers
+- **Omit**: No
+- **Data**: —
 
-### §2.2 版本详情
+### §2.2 Version Details
 
-#### 战略意图
+#### Strategic Intent
 
-- **信息**: 为什么做这个版本
-- **格式**: 1-2 句。必须关联产品愿景或上一版本的结论
-- **禁止**: "完善功能""优化体验"等空话
-- **省略**: 不可
-- **数据**: —
-- ❌ "完善核心功能"
-- ✅ "验证核心假设——AI agent 能否通过持久化知识减少跨会话犯错"
+- **Information**: Why this version is being built
+- **Format**: 1-2 sentences. Must tie to the product vision or to the conclusions of the previous version
+- **Forbidden**: Empty phrases such as "improve features" or "optimize experience"
+- **Omit**: No
+- **Data**: —
+- ❌ "Improve core features"
+- ✅ "Validate the core hypothesis — whether AI agents can reduce cross-session mistakes via persistent knowledge"
 
-#### 投入产出
+#### Input/Output
 
-- **信息**: 投入多少、换回什么
-- **格式**: "投入 {量} → 预期 {量}"，两端量化
-- **禁止**: 只说投入不说产出，或反之
-- **省略**: 不可
-- **数据**: 投入用实际值；产出标注"预期"或"实测"
-- ❌ "投入不大，收益很大"
-- ✅ "投入 4 天全职开发 → 预期建立端到端知识存取能力（收益待后续版本量化验证）"
+- **Information**: How much is invested and what is gained back
+- **Format**: "Invest {amount} → expect {amount}", quantified on both sides
+- **Forbidden**: Stating only the input or only the output
+- **Omit**: No
+- **Data**: Use the actual value for input; annotate the output as "expected" or "measured"
+- ❌ "Small input, large gain"
+- ✅ "Invest 4 days of full-time development → expected to establish end-to-end knowledge access capability (gain to be quantified and validated in subsequent versions)"
 
-#### 优先级依据
+#### Priority Rationale
 
-- **信息**: 为什么现在做
-- **格式**: 包含前置条件状态 + 不做的后果
-- **禁止**: "重要所以先做""优先级高"
-- **省略**: 不可
-- **数据**: —
-- ❌ "这个很重要所以先做"
-- ✅ "核心闭环未验证前后续版本无意义，无外部依赖，可立即启动"
+- **Information**: Why now
+- **Format**: Includes the state of prerequisites + the consequence of not doing it
+- **Forbidden**: "Important so we do it first", "high priority"
+- **Omit**: No
+- **Data**: —
+- ❌ "It is important so we do it first"
+- ✅ "Without validating the core closed loop, subsequent versions are pointless; no external dependencies, can start immediately"
 
-#### 风险与依赖
+#### Risks and Dependencies
 
-- **信息**: 什么可能卡住
-- **格式**: "依赖: {项}；风险: {项}"，每项具体可追踪
-- **禁止**: "风险不大""基本没有依赖"
-- **省略**: 无风险无依赖填"无已识别风险和外部依赖"
-- **数据**: —
-- ❌ "风险不大"
-- ✅ "依赖 Claude Code plugin 机制稳定性；风险：JSONL 在大量条目时性能未验证"
+- **Information**: What might block progress
+- **Format**: "Dependencies: {items}; risks: {items}", each item specific and trackable
+- **Forbidden**: "Risks are minor", "basically no dependencies"
+- **Omit**: When no risks and no dependencies, fill "no identified risks or external dependencies"
+- **Data**: —
+- ❌ "Risks are minor"
+- ✅ "Depends on the stability of the Claude Code plugin mechanism; risk: JSONL performance not validated under large entry volumes"
 
-#### 成功指标
+#### Success Metric
 
-- **信息**: 做完怎么算成功
-- **格式**: 量化条件列表，逗号分隔，每条可独立验证
-- **禁止**: "用户满意""质量达标"等不可验证描述。事后编造
-- **省略**: 不可
-- **数据**: 事前定义，不可事后修改
-- ❌ "用户满意，质量达标"
-- ✅ "learn 管线端到端跑通，至少 1 次真实 [纠正] claim 沉淀到 CLAUDE.md，连续使用 ≥1 周无阻塞"
+- **Information**: What counts as success
+- **Format**: A list of quantified conditions, comma-separated; each condition independently verifiable
+- **Forbidden**: Unverifiable descriptions such as "users are satisfied" or "quality is up to standard". Post-hoc fabrication
+- **Omit**: No
+- **Data**: Defined upfront, must not be modified after the fact
+- ❌ "Users are satisfied; quality is up to standard"
+- ✅ "The learn pipeline runs end-to-end; at least 1 real [correction] claim is captured into CLAUDE.md; no blockers across ≥1 week of continuous use"
 
-#### 核心价值
+#### Core Value
 
-- **信息**: 该版本交付的用户价值
-- **格式**: 编号列表。每条: "首次可以{动作}" 或 "{能力}可{效果}"
-- **禁止**: "体验更好""功能更强"等无内容描述
-- **省略**: 不可
-- **数据**: —
+- **Information**: The user value delivered by this version
+- **Format**: Numbered list. Each item: "first time you can {action}" or "{capability} can {effect}"
+- **Forbidden**: Content-free descriptions such as "better experience" or "stronger features"
+- **Omit**: No
+- **Data**: —
 
-#### 用户覆盖
+#### User Coverage
 
-- **信息**: 给谁用、怎么触达
-- **格式**: 内测期 "作者 dogfood"；公开后具体渠道
-- **禁止**: "有用户在用"等模糊描述
-- **省略**: 不可
-- **数据**: —
+- **Information**: Who uses it and how to reach them
+- **Format**: For internal-testing: "author dogfood"; after public release: specific channels
+- **Forbidden**: Vague descriptions such as "some users are using it"
+- **Omit**: No
+- **Data**: —
 
-#### 核心指标表
+#### Core Metric Table
 
-- **信息**: 该版本所有关键指标较上版本的完整变化
-- **格式**: 表格: 指标 | 上版本值 | 本版本值 | 变化 | 来源。≥3 行
-- **禁止**: 无来源的精确数字；编造数据
-- **省略**: 规划中只填目标值列，其余填"—"
-- **数据**: 每个数值必须标注来源（实测/估算/目标/无数据）
-- ❌ `| learn gate 拒绝率 | 47% | 55% | ↑ 8pp |`（编造）
-- ✅ `| learn gate 拒绝率 | 无数据（v1 无指标） | 18%（实测 9/50） | 新增基线 | tests/unit/test-learn-stages.sh |`
+- **Information**: The full delta of this version's key metrics relative to the previous version
+- **Format**: Table: Metric | Previous-version Value | This-version Value | Delta | Source. ≥3 rows
+- **Forbidden**: Precise numbers without a source; fabricated data
+- **Omit**: When in planning, fill only the target-value column; fill the rest with "—"
+- **Data**: Every numeric value must annotate its source (measured / estimated / target / no data)
+- ❌ `| learn-gate rejection rate | 47% | 55% | ↑ 8pp |` (fabricated)
+- ✅ `| learn-gate rejection rate | no data (no metric in v1) | 18% (measured 9/50) | new baseline | tests/unit/test-learn-stages.sh |`
 
-### §3 里程碑汇总
+### §3 Milestones Summary
 
 #### #
 
-- **信息**: 里程碑编号 + 详情链接
-- **格式**: "[M{n}](milestones/m{n}.md)"，全局递增不重置
-- **禁止**: 重复编号；不连续编号
-- **省略**: 不可
-- **数据**: —
+- **Information**: Milestone number + detail link
+- **Format**: "[M{n}](milestones/m{n}.md)", globally incrementing without reset
+- **Forbidden**: Duplicate numbers; non-consecutive numbers
+- **Omit**: No
+- **Data**: —
 
-#### 核心方向
+#### Core Direction
 
-- **信息**: 该里程碑的战略意图
-- **格式**: 动宾短语
-- **禁止**: "基础搭建""功能开发"等空话
-- **省略**: 不可
-- **数据**: —
-- ❌ "基础搭建"
-- ✅ "验证 learn 管线端到端可行性"
+- **Information**: The strategic intent of this milestone
+- **Format**: A verb-object phrase
+- **Forbidden**: Empty phrases such as "lay the foundation" or "feature development"
+- **Omit**: No
+- **Data**: —
+- ❌ "Lay the foundation"
+- ✅ "Validate the end-to-end feasibility of the learn pipeline"
 
-#### 目标达成情况
+#### Goal Achievement
 
-- **信息**: 做到了什么程度
-- **格式**: 达成写结果数据；未完全达成写结果 + "——" + 原因
-- **禁止**: "部分完成""基本达标"等无数据描述；编造数据
-- **省略**: 未开始填"—"
-- **数据**: 必须基于可验证事实
-- ❌ "部分完成"
-- ✅ "全链路跑通，可从对话提取知识并写入——提取准确率无量化数据"
+- **Information**: To what extent the goal was achieved
+- **Format**: When achieved, write the result data; when not fully achieved, write the result + "——" + the reason
+- **Forbidden**: Data-free descriptions such as "partially complete" or "basically up to standard"; fabricated data
+- **Omit**: When not started, fill "—"
+- **Data**: Must be based on verifiable facts
+- ❌ "Partially complete"
+- ✅ "End-to-end runnable; can extract knowledge from conversations and write it — no quantified extraction-accuracy data"
 
-#### 状态
+#### Status
 
-- **信息**: 进度阶段
-- **格式**: 枚举: 未开始 | 进行中 | 验收中 | 已完成 | 已搁置
-- **禁止**: 枚举外的值
-- **省略**: 不可
-- **数据**: —
+- **Information**: Progress stage
+- **Format**: Enum: not started | in progress | in acceptance | completed | shelved
+- **Forbidden**: Values outside the enum
+- **Omit**: No
+- **Data**: —
 
-#### 完成日期
+#### Completion Date
 
-- **信息**: 何时完成
-- **格式**: YYYY-MM-DD
-- **禁止**: 模糊日期
-- **省略**: 未完成填"—"
-- **数据**: —
+- **Information**: When it was completed
+- **Format**: YYYY-MM-DD
+- **Forbidden**: Vague dates
+- **Omit**: When not finished, fill "—"
+- **Data**: —
 
-## 数据置信规则
+## Data Confidence Rules
 
-所有数值型字段必须遵守：
+All numeric fields must obey:
 
-1. **有实测数据** → 直接引用，标注来源（如 `tests/unit/test-learn-stages.sh`）
-2. **有合理推算** → 写推算值，标注"估算"和推算依据
-3. **有目标但无数据** → 写目标值，标注"目标值，待验证"
-4. **无法估算** → 填"无数据（{无法估算的原因}）"
-5. **禁止** → 编造精确数字假装实测。50% 的真实数据 > 100% 的编造数据
+1. **Has measured data** → quote it directly and annotate the source (e.g. `tests/unit/test-learn-stages.sh`)
+2. **Has reasonable derivation** → write the derived value, annotate "estimated" and the derivation basis
+3. **Has a target but no data** → write the target value, annotate "target value, pending validation"
+4. **Cannot estimate** → fill "no data ({reason it cannot be estimated})"
+5. **Forbidden** → fabricating precise numbers and pretending they are measured. 50% real data > 100% fabricated data

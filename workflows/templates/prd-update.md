@@ -1,177 +1,177 @@
-# PRD 更新规则
+# PRD Update Rules
 
-## 变更类型
+## Change Types
 
-| 类型 | 含义 |
-|------|------|
-| **不可变** | 一旦写入不再修改 |
-| **追加** | 只能新增条目，不能改已有的 |
-| **数据刷新** | 已有值可被更准确的数据替换 |
-| **可更新** | 内容可修改，但有约束 |
+| Type | Meaning |
+|------|---------|
+| **immutable** | Once written, never modified |
+| **append-only** | Only new entries can be added; existing ones cannot be modified |
+| **data refresh** | Existing values may be replaced with more accurate data |
+| **updatable** | Content can be modified, but with constraints |
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 变更类型 |
-|------|------|---------|
-| §1 问题 | 痛点 | 不可变 |
-| | 影响范围 | 数据刷新 |
-| | 为什么现在做 | 不可变 |
-| §2 目标用户 | 角色（行） | 追加 |
-| | 角色/场景（列值） | 不可变 |
-| | Before / After | 数据刷新 |
-| §3 核心假设 | 假设 | 不可变 |
-| | 验证方式 | 不可变 |
-| §4 方案 | Before→After | 追加 |
-| | 任务追踪.整行 | 追加 |
-| | 任务追踪.状态 | 可更新 |
-| | 任务追踪.备注 | 可更新 |
-| §5 验收标准 | 验收条目 | 追加 |
-| §6 排除项 | 排除条目 | 追加 |
+| Location | Field | Change Type |
+|----------|-------|-------------|
+| §1 Problem | Pain Point | immutable |
+| | Impact Scope | data refresh |
+| | Why Now | immutable |
+| §2 Target Users | Role (row) | append-only |
+| | Role / Scenario (column value) | immutable |
+| | Before / After | data refresh |
+| §3 Core Hypothesis | Hypothesis | immutable |
+| | Validation Method | immutable |
+| §4 Plan | Before → After | append-only |
+| | Task Tracking.Whole row | append-only |
+| | Task Tracking.Status | updatable |
+| | Task Tracking.Notes | updatable |
+| §5 Acceptance Criteria | Acceptance entry | append-only |
+| §6 Exclusions | Exclusion entry | append-only |
 
-## 字段变更规则
+## Field Change Rules
 
-### §1 问题
+### §1 Problem
 
-#### 痛点
+#### Pain Point
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 需求确认后修改
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
-- ❌ 发现痛点描述不够好后重写
-- ✅ 保留原始痛点，新发现的痛点通过新建 PRD 记录
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the requirement is confirmed
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
+- ❌ Rewriting because the pain point description feels weak
+- ✅ Keep the original pain point; record newly discovered pain points by creating a new PRD
 
-#### 影响范围
+#### Impact Scope
 
-- **变更类型**: 数据刷新
-- **允许**: 估算→实测；范围描述更精确
-- **禁止**: 实测被估算替换
-- **触发**: 有了真实数据
-- **校验**: 新值标注来源
+- **Change Type**: data refresh
+- **Allowed**: estimated → measured; more precise scope description
+- **Forbidden**: Replacing measured with estimated
+- **Trigger**: Real data is now available
+- **Check**: New values annotate their source
 
-#### 为什么现在做
+#### Why Now
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 事后修改
-- **触发**: —
-- **校验**: —
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the fact
+- **Trigger**: —
+- **Check**: —
 
-### §2 目标用户
+### §2 Target Users
 
-#### 角色（整行）
+#### Role (whole row)
 
-- **变更类型**: 追加
-- **允许**: 新增用户群行
-- **禁止**: 删除已有行；修改已有行的角色/场景
-- **触发**: 覆盖新用户群
-- **校验**: 新行满足 checklist 所有列约束
+- **Change Type**: append-only
+- **Allowed**: Adding new user-group rows
+- **Forbidden**: Deleting existing rows; modifying the role / scenario of an existing row
+- **Trigger**: Covering a new user group
+- **Check**: New rows satisfy all column constraints in the checklist
 
 #### Before / After
 
-- **变更类型**: 数据刷新
-- **允许**: 估算→实测
-- **禁止**: 实测被估算替换
-- **触发**: 需求上线后有真实反馈
-- **校验**: 标注来源
+- **Change Type**: data refresh
+- **Allowed**: estimated → measured
+- **Forbidden**: Replacing measured with estimated
+- **Trigger**: Real feedback after the requirement ships
+- **Check**: Annotate the source
 
-### §3 核心假设
+### §3 Core Hypothesis
 
-#### 假设 / 验证方式
+#### Hypothesis / Validation Method
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 需求确认后修改（不可因验证失败而改假设）
-- **触发**: —
-- **校验**: —
-- ❌ 验证失败后把假设改成已验证的版本
-- ✅ 保留原假设，在 milestone §4 结论中写"不成立"
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the requirement is confirmed (do not amend the hypothesis because validation failed)
+- **Trigger**: —
+- **Check**: —
+- ❌ Rewriting the hypothesis to a validated version after validation fails
+- ✅ Keep the original hypothesis and write "did not hold" in the milestone §4 conclusion
 
-### §4 方案
+### §4 Plan
 
-#### Before→After
+#### Before → After
 
-- **变更类型**: 追加
-- **允许**: 新增变化点
-- **禁止**: 删除或修改已有变化点
-- **触发**: 需求范围扩展（需用户确认）
-- **校验**: 新增项满足格式约束
+- **Change Type**: append-only
+- **Allowed**: Adding new change points
+- **Forbidden**: Deleting or modifying existing change points
+- **Trigger**: Requirement scope expansion (user confirmation required)
+- **Check**: New entries satisfy the format constraints
 
-#### 任务追踪.整行
+#### Task Tracking.Whole row
 
-- **变更类型**: 追加
-- **允许**: 新增任务行
-- **禁止**: 删除已有行
-- **触发**: 需求拆分出新的 tech 任务
-- **校验**: 新行满足格式约束
+- **Change Type**: append-only
+- **Allowed**: Adding new task rows
+- **Forbidden**: Deleting existing rows
+- **Trigger**: The requirement is broken down into a new tech task
+- **Check**: New rows satisfy the format constraints
 
-#### 任务追踪.状态
+#### Task Tracking.Status
 
-- **变更类型**: 可更新
-- **允许**: 正向流转：未开始→进行中→已完成；或任意→已搁置
-- **禁止**: 回退（已完成→进行中）
-- **触发**: 任务进度变化
-- **校验**: 不可回退
-- ❌ 已完成→进行中
-- ✅ 进行中→已完成
+- **Change Type**: updatable
+- **Allowed**: Forward-only transition: not started → in progress → done; or any → shelved
+- **Forbidden**: Reverting (done → in progress)
+- **Trigger**: Task progress changes
+- **Check**: No reverting
+- ❌ done → in progress
+- ✅ in progress → done
 
-#### 任务追踪.备注
+#### Task Tracking.Notes
 
-- **变更类型**: 可更新
-- **允许**: 更新为"完成"或"有遗留项：{内容}"
-- **禁止**: 删除已有遗留项描述
-- **触发**: 任务完成或发现遗留
-- **校验**: —
+- **Change Type**: updatable
+- **Allowed**: Updating to "done" or "leftover items: {content}"
+- **Forbidden**: Deleting existing leftover-item descriptions
+- **Trigger**: Task completion or leftovers found
+- **Check**: —
 
-### §5 验收标准
+### §5 Acceptance Criteria
 
-#### 验收条目
+#### Acceptance entry
 
-- **变更类型**: 追加
-- **允许**: 新增验收条目
-- **禁止**: 删除或修改已有条目（不可因未达标而降低标准）
-- **触发**: 发现新的验收场景
-- **校验**: 新条目满足格式约束
-- ❌ 发现验收不过后删除该条目
-- ✅ 保留原条目，在 milestone 达标评估中如实评分
+- **Change Type**: append-only
+- **Allowed**: Adding new acceptance entries
+- **Forbidden**: Deleting or modifying existing entries (do not lower the bar because it was not met)
+- **Trigger**: A new acceptance scenario is identified
+- **Check**: New entries satisfy the format constraints
+- ❌ Deleting an entry after acceptance fails
+- ✅ Keep the original entry and score it honestly in the milestone Go/No-Go Assessment
 
-### §6 排除项
+### §6 Exclusions
 
-#### 排除条目
+#### Exclusion entry
 
-- **变更类型**: 追加
-- **允许**: 新增排除项
-- **禁止**: 删除已有排除项
-- **触发**: 明确新的边界
-- **校验**: 新条目含原因
+- **Change Type**: append-only
+- **Allowed**: Adding new exclusions
+- **Forbidden**: Deleting existing exclusions
+- **Trigger**: A new boundary is clarified
+- **Check**: New entries include a reason
 
-## 操作流程
+## Operating Procedure
 
-### 创建 PRD
+### Create a PRD
 
-1. 填写 §1-§6 所有字段
-2. §4 任务追踪至少 1 行（状态: 未开始）
-3. §5 验收标准至少 3 条
-4. §6 排除项至少 2 条
-5. 同步更新 roadmap 里程碑汇总表（如有关联）
+1. Fill in all fields of §1–§6
+2. §4 Task Tracking at least 1 row (status: not started)
+3. §5 Acceptance Criteria at least 3 entries
+4. §6 Exclusions at least 2 entries
+5. Sync the roadmap milestone summary table (if linked)
 
-### 任务进度更新
+### Task Progress Update
 
-1. §4 任务追踪表状态正向流转
-2. §4 备注更新完成情况
+1. §4 Task tracking status moves forward
+2. §4 Notes update completion info
 
-### 需求范围扩展
+### Requirement Scope Expansion
 
-1. §4 Before→After 追加新变化点
-2. §4 任务追踪追加新行
-3. §5 验收标准追加新条目（如需要）
-4. 用户确认后执行
+1. §4 Append new change points to Before → After
+2. §4 Append a new row to Task Tracking
+3. §5 Append a new entry to Acceptance Criteria (if needed)
+4. Execute after user confirmation
 
-## 校验规则
+## Validation Rules
 
-1. **不可变字段未被修改** — diff 中不应出现 §1 痛点/为什么现在做、§3 假设/验证方式的变化
-2. **状态只正向流转** — 任务追踪状态不可回退
-3. **追加字段只增不减** — 验收标准/排除项/Before→After 行数只增不减
-4. **数据刷新标注来源** — 影响范围/Before/After 更新时标注来源
-5. **验收标准不可降低** — 不可删除或放宽已有条目
+1. **Immutable fields unchanged** — The diff must not contain changes to §1 Pain Point / Why Now or §3 Hypothesis / Validation Method
+2. **Status moves forward only** — Task tracking status cannot revert
+3. **Append-only fields only grow** — Acceptance Criteria / Exclusions / Before → After row counts only grow
+4. **Data refresh annotates source** — When updating Impact Scope / Before / After, annotate the source
+5. **Acceptance criteria cannot be lowered** — Existing entries cannot be deleted or loosened

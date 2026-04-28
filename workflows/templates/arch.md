@@ -1,139 +1,139 @@
-# {模块名} 架构设计
+# {module name} Architecture Design
 
-<!-- 核心问题: 这个模块怎么拆、内部怎么协作、为什么这样设计？
-     定位: 单模块的架构描述（每模块独立文件）
-     不属于本文档: 模块内部实现（→ tech）、接口签名（→ schema）、产品需求（→ prd）
-     字段规格: 见 templates/arch-checklist.md
-     变更规则: 见 templates/arch-update.md
-     数据置信: 有实测标来源；有推算标"估算"+依据；有目标标"目标值，待验证"；无法估算标"无数据（原因）"。禁止编造。
-     结构锁定: 不得增删 section。只填值。 -->
+<!-- Core question: How is this module decomposed, how do its parts collaborate, and why is it designed this way?
+     Positioning: architecture description for a single module (one file per module)
+     Out of scope: module-internal implementation (→ tech), interface signatures (→ schema), product requirements (→ prd)
+     Field spec: see templates/arch-checklist.md
+     Change rules: see templates/arch-update.md
+     Data confidence: measured values annotate source; derived values annotate "estimated" + basis; targets annotate "target value, pending validation"; values that cannot be estimated annotate "no data ({reason})". No fabrication.
+     Structure locked: do not add or remove sections. Only fill in values. -->
 
-## 1. 定位与边界
+## 1. Positioning and Boundaries
 
-<!-- 这个模块是什么、不是什么。回答"边界在哪"。 -->
+<!-- What this module is and is not. Answers "where is the boundary". -->
 
-### 职责
+### Responsibility
 
-<!-- 模块的核心职责。
-  - 格式: 1-2 句。"负责{做什么}，为{谁}提供{什么能力}"
-  - 禁止: 功能列表；实现细节
-  - ❌ "负责 detect、gate、refine、locate、write、validate、prepend、normalize 等步骤"
-  - ✅ "负责把对话信号转化为合规的 ## know YAML block，为 learn 管线提供从原始 claim 到落盘条目的转换能力" -->
+<!-- The module's core responsibility.
+  - Format: 1-2 sentences. "Responsible for {what}, providing {capability} to {whom}"
+  - Forbidden: feature lists; implementation details
+  - ❌ "Responsible for detect, gate, refine, locate, write, validate, prepend, normalize, etc."
+  - ✅ "Responsible for transforming conversation signals into compliant ## know YAML blocks, providing the learn pipeline with the conversion capability from raw claim to persisted entry" -->
 
-{模块职责}
+{module responsibility}
 
-### 不负责
+### Out of Scope
 
-<!-- 明确排除的职责，防止边界膨胀。
-  - 格式: 列表，≥2 项。每项 "{不做什么}（→ {谁负责}）"
-  - 禁止: 无指向的排除
-  - ❌ "不负责前端"
-  - ✅ "不负责知识提取逻辑（→ learn.md workflow）" -->
+<!-- Explicitly excluded responsibilities, to prevent boundary creep.
+  - Format: list, ≥2 items. Each item "{what is not done} (→ {who is responsible})"
+  - Forbidden: exclusions without a pointer
+  - ❌ "Not responsible for the frontend"
+  - ✅ "Not responsible for knowledge extraction logic (→ learn.md workflow)" -->
 
-- {不做什么}（→ {谁负责}）
+- {what is not done} (→ {who is responsible})
 
-## 2. 结构与交互
+## 2. Structure and Interaction
 
-<!-- 内部怎么拆、怎么协作。回答"长什么样、怎么运转"。 -->
+<!-- How the module is decomposed internally and how its parts collaborate. Answers "what it looks like and how it runs". -->
 
-### 组件图
+### Component Diagram
 
-<!-- 模块内部组件关系的可视化。
-  - 格式: ASCII 图，用方框+箭头。每个组件标注 1 句话职责
-  - 禁止: 纯文字替代图；Mermaid/PlantUML；省略组件职责标注
-  - ❌ "组件 A 调用组件 B"
+<!-- A visualization of the relationships among internal components.
+  - Format: ASCII diagram, using boxes and arrows. Annotate each component with a one-sentence responsibility.
+  - Forbidden: pure-text replacement of the diagram; Mermaid/PlantUML; omitting per-component responsibility annotations
+  - ❌ "Component A calls component B"
   - ✅
     ```
-    [CLI 入口] --> [命令路由] --> [子命令 handler]
-         解析参数      分发命令       执行操作
+    [CLI entry point] --> [command router] --> [subcommand handler]
+         parse args         dispatch              execute operation
     ``` -->
 
 ```
-{ASCII 组件图}
+{ASCII component diagram}
 ```
 
-### 组件表
+### Component Table
 
-<!-- 每个组件的职责和边界规则。
+<!-- The responsibility and boundary rule for each component.
   - ROWS: ≥2
-  - 组件: 与组件图中名称一致
-  - 职责: ≤1 句。主语是组件
-  - 边界规则: "禁止X"或"必须Y"格式。多条分号分隔
-  - 禁止: 职责多句话；函数级描述；"尽量""建议"
-  - ❌ 职责: "负责很多事情" / 边界: "注意安全"
-  - ✅ 职责: "解析用户输入并路由到对应 handler" / 边界: "禁止直接访问存储层；必须通过 index 查询" -->
+  - Component: name matches the component diagram
+  - Responsibility: ≤1 sentence. Subject is the component.
+  - Boundary rule: "forbidden X" or "must Y" format. Multiple rules separated by semicolons.
+  - Forbidden: multi-sentence responsibility; function-level descriptions; "try to" / "suggested"
+  - ❌ Responsibility: "responsible for many things" / Boundary: "watch out for security"
+  - ✅ Responsibility: "parses user input and routes to the corresponding handler" / Boundary: "forbidden to access the storage layer directly; must query through the index" -->
 
-| 组件 | 职责 | 边界规则 |
-|------|------|---------|
-| {组件名} | {≤1句职责} | {禁止X；必须Y} |
+| Component | Responsibility | Boundary Rule |
+|-----------|----------------|---------------|
+| {component name} | {≤1-sentence responsibility} | {forbidden X; must Y} |
 
-### 数据流
+### Data Flow
 
-<!-- 组件间的数据传递关系。
-  - 格式: ASCII 数据流图 + 数据流表
-  - 流图: 标注数据格式和方向
+<!-- The data-passing relationships among components.
+  - Format: ASCII data-flow diagram + data-flow table
+  - Diagram: annotate data format and direction
   - ROWS: ≥1
-  - 类型: 枚举 强（缺失不可用）/ 弱（缺失可降级）
-  - 禁止: 无标注的裸箭头；省略数据格式
+  - Type: enum strong (degrades gracefully when missing) / weak (degrades gracefully when missing)
+  - Forbidden: bare arrows without annotation; omitting data format
   - ❌ "A --> B"
-  - ✅ "learn workflow --YAML block--> 项目 CLAUDE.md --嵌套加载--> Claude Code 上下文" -->
+  - ✅ "learn workflow --YAML block--> project CLAUDE.md --nested loading--> Claude Code context" -->
 
 ```
-{ASCII 数据流图}
+{ASCII data-flow diagram}
 ```
 
-| 来源 | 目标 | 数据格式 | 类型 | 说明 |
-|------|------|---------|------|------|
-| {来源组件} | {目标组件} | {格式} | {强/弱} | {1句说明} |
+| Source | Target | Data Format | Type | Description |
+|--------|--------|-------------|------|-------------|
+| {source component} | {target component} | {format} | {strong/weak} | {1-sentence description} |
 
-## 3. 设计决策
+## 3. Design Decisions
 
-<!-- 为什么这样设计。回答"为什么这样拆、为什么选这个方案"。 -->
+<!-- Why it is designed this way. Answers "why this decomposition, why this choice". -->
 
-### 驱动因素
+### Driving Factors
 
-<!-- 驱动架构设计的核心因素。
-  - 格式: 表格，≥2 行。因素 + 对架构的影响
-  - 因素类型: 业务需求 / 技术约束 / 质量要求
-  - 禁止: "很重要""需要考虑"
-  - ❌ 因素: "性能很重要" / 影响: "需要考虑性能"
-  - ✅ 因素: "Claude Code plugin 不支持持久进程" / 影响: "所有状态必须持久化到文件" -->
+<!-- The core factors driving the architecture design.
+  - Format: table, ≥2 rows. Factor + impact on the architecture.
+  - Factor types: business requirement / technical constraint / quality requirement
+  - Forbidden: "very important" / "needs to be considered"
+  - ❌ Factor: "performance is important" / Impact: "performance must be considered"
+  - ✅ Factor: "Claude Code plugin does not support persistent processes" / Impact: "all state must be persisted to files" -->
 
-| 因素 | 类型 | 对架构的影响 |
-|------|------|------------|
-| {具体因素} | {业务需求/技术约束/质量要求} | {架构层面的约束或决策} |
+| Factor | Type | Impact on Architecture |
+|--------|------|------------------------|
+| {specific factor} | {business requirement/technical constraint/quality requirement} | {architectural-level constraint or decision} |
 
-### 关键选择
+### Key Choices
 
-<!-- 架构层面的选型和取舍。
-  - 格式: 表格，≥1 行。每行含被拒方案和拒绝原因
-  - 禁止: 只说选了什么不说为什么；代码级选型（→ tech）
-  - ❌ 为什么: "比较好"
-  - ✅ 为什么: "SQLite 需要编译依赖，JSONL 纯文本可直接 grep，部署零依赖" -->
+<!-- Architecture-level selections and trade-offs.
+  - Format: table, ≥1 row. Each row contains the rejected alternative and the reason for rejection.
+  - Forbidden: stating only what was chosen without why; code-level selections (→ tech)
+  - ❌ Why: "it is better"
+  - ✅ Why: "SQLite needs compiled dependencies; JSONL is plain text and can be grepped directly, with zero deployment dependencies" -->
 
-| 决策 | 选择 | 被拒方案 | 为什么 |
-|------|------|---------|--------|
-| {架构决策点} | {最终选择} | {被拒方案} | {选择理由 + 拒绝原因} |
+| Decision | Choice | Rejected Alternative | Why |
+|----------|--------|----------------------|-----|
+| {architecture decision point} | {final choice} | {rejected alternative} | {reason for choice + reason for rejection} |
 
-### 约束
+### Constraints
 
-<!-- 必须遵守的硬性限制。
-  - 格式: 列表，≥2 项。"禁止X（{原因}）"或"必须Y（{原因}）"
-  - 禁止: 无原因的裸约束；编码规范；设计偏好
-  - ❌ "不能用数据库"
-  - ✅ "禁止引入外部数据库依赖（部署环境为纯文件系统，无数据库服务）" -->
+<!-- Hard constraints that must be obeyed.
+  - Format: list, ≥2 items. "forbidden X ({reason})" or "must Y ({reason})"
+  - Forbidden: bare constraints without reason; coding conventions; design preferences
+  - ❌ "Cannot use a database"
+  - ✅ "Forbidden to introduce an external database dependency (deployment environment is a pure filesystem with no database service)" -->
 
-- {禁止/必须}（{原因}）
+- {forbidden/must} ({reason})
 
-## 4. 质量要求
+## 4. Quality Requirements
 
-<!-- 要达到什么标准。回答"怎么衡量架构是否合格"。
-  - 格式: 表格，≥2 行。指标必须可量化
-  - 禁止: "性能好""延迟低"；无数字的目标
-  - 数据: 有实测标来源；无实测标"目标值，待验证"
-  - ❌ 目标: "尽量快"
-  - ✅ 目标: "<200ms（p95）" -->
+<!-- What standards must be met. Answers "how to measure whether the architecture is acceptable".
+  - Format: table, ≥2 rows. Metrics must be quantifiable.
+  - Forbidden: "good performance" / "low latency"; targets without numbers
+  - Data: measured values annotate source; without measured data annotate "target value, pending validation"
+  - ❌ Target: "as fast as possible"
+  - ✅ Target: "<200ms (p95)" -->
 
-| 属性 | 指标 | 目标 |
-|------|------|------|
-| {质量属性} | {可度量指标} | {带数字的目标值} |
+| Attribute | Metric | Target |
+|-----------|--------|--------|
+| {quality attribute} | {measurable metric} | {target value with numbers} |

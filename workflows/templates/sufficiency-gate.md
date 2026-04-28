@@ -1,139 +1,139 @@
-# 文档充分性门槛
+# Document Sufficiency Gate
 
-<!-- write pipeline Step 1 推断文档类型后加载此文件，逐问题检查。
-     项目单文件（roadmap/capabilities/ops/marketing）和里程碑不适用本门槛。 -->
+<!-- The write pipeline Step 1 loads this file after inferring the document type, and walks through the questions.
+     Project single-file types (roadmap/capabilities/ops/marketing) and milestone do not apply this gate. -->
 
-## 判定规则
+## Decision Rules
 
-1. 推断文档类型后，找到对应问题组
-2. 逐问题基于对话内容回答 yes/no
-3. 全部 yes → 充足，正常创建
-4. 任一 no → 提示降级选项
-5. 全部 no → 拒绝创建
+1. After inferring the document type, find the corresponding question group
+2. Answer each question yes/no based on the conversation content
+3. All yes → sufficient, create normally
+4. Any no → prompt downgrade options
+5. All no → reject creation
 
 ```
-[write] 充分性检查: {type}
-- ✅ {满足的问题}
-- ❌ {不满足的问题} → 建议: {降级方式}
-A) 补充信息后重新创建  B) 降级为 {降级目标}
+[write] sufficiency check: {type}
+- ✅ {question that is satisfied}
+- ❌ {question that is not satisfied} → suggested: {downgrade approach}
+A) supplement information and recreate  B) downgrade to {downgrade target}
 ```
 
-## 适用范围
+## Applicability
 
-| 风险等级 | 文档类型 | 是否检查 |
-|---------|---------|---------|
-| 最高 | prd, tech | 必须检查 |
-| 高 | arch, schema, decision, ui | 必须检查 |
-| 低 | roadmap, capabilities, ops, marketing, milestone | 不检查 |
+| Risk Level | Document Type | Check Required |
+|------------|---------------|----------------|
+| Highest | prd, tech | must check |
+| High | arch, schema, decision, ui | must check |
+| Low | roadmap, capabilities, ops, marketing, milestone | not checked |
 
-## 问题组
+## Question Groups
 
 ### prd
 
-#### Q1: 这个需求能独立于其他需求描述清楚吗？
+#### Q1: Can this requirement be described clearly independent of other requirements?
 
-- **判定**: 需求有自己独立的痛点和价值，不是某个已有需求的子功能
-- **no →**: 合并到已有 prd 的新增 section
-- ❌ "给 learn 管线加一个参数" — 这是 learn prd 的子功能
-- ✅ "建立知识条目的自动化衰减机制" — 独立的问题域
+- **Decision**: the requirement has its own pain point and value, and is not a sub-feature of an existing requirement
+- **no →**: merge into a new section of the existing prd
+- ❌ "add a parameter to the learn pipeline" — this is a sub-feature of the learn prd
+- ✅ "establish an automatic decay mechanism for knowledge entries" — an independent problem domain
 
-#### Q2: 用户的 Before→After 有实质行为变化吗？
+#### Q2: Does the user's Before→After have a substantive behavior change?
 
-- **判定**: 用户的操作方式/结果有可感知的变化，不是内部重构
-- **no →**: 降级到 roadmap 里程碑备注
-- ❌ "把 JSONL 换成 SQLite" — 用户行为不变，是内部重构
-- ✅ "改动后一条命令验证全部功能" — Before 手动逐个测，After 一键验证
+- **Decision**: the user's operation or outcome has a perceivable change; not an internal refactor
+- **no →**: downgrade to a milestone note in roadmap
+- ❌ "swap JSONL for SQLite" — user behavior is unchanged; it is an internal refactor
+- ✅ "after the change, one command verifies all features" — Before: manually test each one; After: verify in one click
 
-#### Q3: 能列出 ≥3 条可独立验证的验收标准吗？
+#### Q3: Can ≥3 independently verifiable acceptance criteria be listed?
 
-- **判定**: 从对话中能提炼出 ≥3 条"用户做 X → 应看到 Y"的验收条件
-- **no →**: 降级到 roadmap 里程碑备注
-- ❌ 只能列出"功能正常工作" — 太泛，不可独立验证
-- ✅ "用户提交正确密码 → 应跳转到主页""提交错误密码连续 5 次 → 账号应被锁定 15 分钟""锁定期间提交正确密码 → 应仍被拒绝"
+- **Decision**: from the conversation, ≥3 acceptance conditions in the form "user does X → should see Y" can be extracted
+- **no →**: downgrade to a milestone note in roadmap
+- ❌ only able to list "feature works correctly" — too vague, not independently verifiable
+- ✅ "user submits the correct password → should redirect to home"; "submits the wrong password 5 times in a row → account should be locked for 15 minutes"; "submits the correct password during the lock window → should still be rejected"
 
 ### tech
 
-#### Q1: 实现方式是否非显而易见？
+#### Q1: Is the implementation approach non-obvious?
 
-- **判定**: 换个不熟悉项目的人，是否会考虑不同的实现方案
-- **no →**: 降级到 prd 任务追踪备注列
-- ❌ "给现有命令加个 --verbose 参数" — 实现方式唯一且显而易见
-- ✅ "设计知识冲突检测机制" — 有多种可选方案（纯关键词/LLM 语义/混合）
+- **Decision**: would someone unfamiliar with the project consider different implementation alternatives
+- **no →**: downgrade to a notes-column entry in the prd task tracking
+- ❌ "add a --verbose flag to an existing command" — implementation is unique and obvious
+- ✅ "design a knowledge-conflict detection mechanism" — has multiple alternatives (pure keyword / LLM semantic / hybrid)
 
-#### Q2: 有没有做过至少一个有取舍的技术决策？
+#### Q2: Has at least one technical decision with trade-offs been made?
 
-- **判定**: 是否在 ≥2 个方案间做了选择，且能说出为什么不选另一个
-- **no →**: 降级到 prd 任务追踪备注列
-- ❌ "用 bash 写脚本" — 没有备选方案对比
-- ✅ "选 JSONL 不选 SQLite，因为纯文本可 git 追踪且零依赖"
+- **Decision**: a choice was made among ≥2 alternatives, with a stated reason for not picking the other
+- **no →**: downgrade to a notes-column entry in the prd task tracking
+- ❌ "wrote the script in bash" — no alternative comparison
+- ✅ "chose JSONL over SQLite, because plain text can be tracked in git and has zero dependencies"
 
-#### Q3: 核心流程是否跨 ≥2 个文件/模块协作？
+#### Q3: Does the core flow span collaboration across ≥2 files/modules?
 
-- **判定**: 实现是否涉及多个文件/模块的协作，而非单文件内修改
-- **no →**: 降级到 prd 任务追踪备注列
-- ❌ "在 learn workflow 里加一个 stage" — 单文件修改
-- ✅ "learn 管线涉及 SKILL.md 路由 + workflows/learn.md 流程 + 项目 CLAUDE.md 写入 + tests/unit 单测"
+- **Decision**: implementation involves collaboration across multiple files/modules, not modification within a single file
+- **no →**: downgrade to a notes-column entry in the prd task tracking
+- ❌ "add a stage in learn workflow" — single-file modification
+- ✅ "the learn pipeline involves SKILL.md routing + workflows/learn.md flow + project CLAUDE.md write + tests/unit unit tests"
 
 ### arch
 
-#### Q1: 这个模块内部是否有 ≥3 个需要区分职责的组件？
+#### Q1: Does the module internally have ≥3 components with distinct responsibilities?
 
-- **判定**: 模块是否复杂到需要拆分为多个有独立职责的子组件
-- **no →**: 降级到 tech §2 方案
-- ❌ "一个工具函数集合" — 没有需要区分的组件
-- ✅ "know 由路由层、管线层、CLI 层、存储层组成"
+- **Decision**: is the module complex enough to be split into multiple sub-components with independent responsibilities
+- **no →**: downgrade to tech §2 solution
+- ❌ "a collection of utility functions" — no components needing distinction
+- ✅ "know consists of routing layer, pipeline layer, CLI layer, and storage layer"
 
-#### Q2: 组件间是否有需要显式管理的数据流或依赖？
+#### Q2: Is there a non-trivial data flow or dependency between components that needs to be explicitly managed?
 
-- **判定**: 组件间是否有非平凡的数据传递/调用关系
-- **no →**: 降级到 tech §2 方案
-- ❌ "几个独立的工具函数" — 无组件间交互
-- ✅ "SKILL.md 路由到 workflow → workflow 顺序串接 stage → 末尾 stage 写入 CLAUDE.md ## know block"
+- **Decision**: do components have non-trivial data-passing or call relationships between them
+- **no →**: downgrade to tech §2 solution
+- ❌ "several independent utility functions" — no inter-component interaction
+- ✅ "SKILL.md routes to workflow → workflow chains stages in order → the final stage writes to CLAUDE.md ## know block"
 
 ### schema
 
-#### Q1: 是否有 ≥1 个需要独立定义参数/返回/错误码的接口？
+#### Q1: Is there ≥1 interface that requires independently defined parameters/responses/error codes?
 
-- **判定**: 是否有结构化的输入输出需要文档化
-- **no →**: 降级到 tech §2 数据结构
-- ❌ "一个只接受字符串参数的函数" — 不需要独立接口定义
-- ✅ "支付回调 webhook 接受完整 JSON，有 8 个字段，2 种错误码"
+- **Decision**: are there structured inputs and outputs that need documentation
+- **no →**: downgrade to tech §2 data model
+- ❌ "a function that only accepts a string parameter" — no need for an independent interface definition
+- ✅ "the payment-callback webhook accepts a complete JSON with 8 fields and 2 error codes"
 
-#### Q2: 数据结构是否有 ≥3 个字段需要说明类型和约束？
+#### Q2: Does the data model have ≥3 fields that require type and constraint documentation?
 
-- **判定**: 数据模型是否复杂到需要独立文档
-- **no →**: 降级到 tech §2 数据结构
-- ❌ "一个只有 id 和 name 的简单对象" — 2 个字段不值得
-- ✅ "支付回调请求体有 8 个字段，含枚举约束和签名校验规则"
+- **Decision**: is the data model complex enough to warrant an independent doc
+- **no →**: downgrade to tech §2 data model
+- ❌ "a simple object with only id and name" — 2 fields not worth it
+- ✅ "the payment-callback request body has 8 fields with enum constraints and signature-validation rules"
 
 ### decision
 
-#### Q1: 是否有 ≥2 个值得对比的备选方案？
+#### Q1: Are there ≥2 alternatives worth comparing?
 
-- **判定**: 是否有真正的备选方案，且各方案有实质差异
-- **no →**: 降级到 tech §3 关键决策表一行
-- ❌ "用 JSON 还是 YAML" — 简单偏好，不值得独立文档
-- ✅ "JSONL vs SQLite vs Redis — 各有不同的持久化/查询/部署 tradeoff"
+- **Decision**: are there real alternatives, with substantive differences between them
+- **no →**: downgrade to a row in the tech §3 key-decisions table
+- ❌ "JSON or YAML" — a simple preference, not worth an independent doc
+- ✅ "JSONL vs SQLite vs Redis — each has different persistence/query/deployment trade-offs"
 
-#### Q2: 这个决策的影响是否跨模块/跨版本？
+#### Q2: Does this decision impact span across modules/versions?
 
-- **判定**: 决策影响是否超出单个模块或单次迭代
-- **no →**: 降级到 tech §3 关键决策表一行
-- ❌ "选哪个日期格式" — 影响范围小
-- ✅ "存储格式选型" — 影响所有管线和未来扩展
+- **Decision**: does the impact of the decision exceed a single module or a single iteration
+- **no →**: downgrade to a row in the tech §3 key-decisions table
+- ❌ "which date format to choose" — narrow impact
+- ✅ "storage-format selection" — affects all pipelines and future extensions
 
 ### ui
 
-#### Q1: 是否有需要画出来才说得清的布局？
+#### Q1: Is there a layout that can only be made clear by drawing it?
 
-- **判定**: 布局是否用文字无法准确描述，必须可视化
-- **no →**: 降级到 prd §4 Before→After
-- ❌ "就一个输入框和一个按钮" — 文字足够
-- ✅ "左侧导航 + 右侧内容区 + 顶部搜索栏 + 底部状态栏的四区布局"
+- **Decision**: is the layout impossible to describe accurately in words and must be visualized
+- **no →**: downgrade to prd §4 Before→After
+- ❌ "just one input box and one button" — words are sufficient
+- ✅ "left-side navigation + right-side content + top search bar + bottom status bar, a four-region layout"
 
-#### Q2: 用户操作是否有分支路径？
+#### Q2: Does the user operation have branch paths?
 
-- **判定**: 操作流程是否有条件分支，而非线性单路径
-- **no →**: 降级到 prd §4 Before→After
-- ❌ "点击按钮 → 显示结果" — 线性无分支
-- ✅ "搜索 → 有结果: 展示列表 / 无结果: 显示空态 + 推荐"
+- **Decision**: does the operation flow have conditional branches, rather than a linear single path
+- **no →**: downgrade to prd §4 Before→After
+- ❌ "click the button → show the result" — linear, no branches
+- ✅ "search → with results: show the list / no results: show empty state + recommendations"

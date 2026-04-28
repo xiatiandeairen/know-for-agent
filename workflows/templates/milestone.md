@@ -1,197 +1,197 @@
-# M{n} — {核心方向}
+# M{n} — {core direction}
 
-<!-- 里程碑详情文件。规划与结果分离，规划不可变，结果用真实数据回填。
-     路径: docs/milestones/m{n}.md
-     字段规格: 见 templates/milestone-checklist.md
-     变更规则: 见 templates/milestone-update.md
-     数据置信: 有实测标来源；有推算标"估算"+依据；有目标标"目标值，待验证"；无法估算标"无数据（原因）"。禁止编造。
-     结构锁定: 不得增删 section、不得增删表格维度行。只填值。 -->
+<!-- Milestone detail file. Plan and outcome are separated; the plan is immutable, the outcome is back-filled with real data.
+     Path: docs/milestones/m{n}.md
+     Field spec: see templates/milestone-checklist.md
+     Change rules: see templates/milestone-update.md
+     Data confidence: measured values annotate source; derived values annotate "estimated" + basis; targets annotate "target value, pending validation"; values that cannot be estimated annotate "no data ({reason})". No fabrication.
+     Structure locked: do not add or remove sections, do not add or remove table rows. Only fill in values. -->
 
-## 1. 目标
+## 1. Goal
 
-<!-- 规划时填写。一旦里程碑启动，本节不可变。 -->
+<!-- Filled at planning time. Once the milestone has started, this section is immutable. -->
 
-### 完成定义
+### Definition of Done
 
-<!-- 该里程碑"完成"意味着什么，必须是可交付状态。
-  - 格式: 1-2 句。描述终态，不描述过程
-  - 禁止: 百分比进度；过程描述（"先开发X再测试Y"）；"基本完成""大部分完成"
-  - ❌ "体验优化完成"
-  - ✅ "learn 管线从对话信号检测→确认→写入全链路可运行，无需手动干预" -->
+<!-- What it means for this milestone to be "done"; must be a deliverable state.
+  - Format: 1-2 sentences. Describe the terminal state, not the process.
+  - Forbidden: percentage progress; process descriptions ("first develop X then test Y"); "basically done" / "mostly done"
+  - ❌ "experience optimization done"
+  - ✅ "the learn pipeline is end-to-end runnable from conversation-signal detection → confirmation → write, with no manual intervention required" -->
 
-{终态描述}
+{terminal-state description}
 
-### 价值目标
+### Value Target
 
-<!-- 达成后用户获得什么。与 roadmap §3 汇总表的"价值目标"对齐。
-  - 格式: 1 句。主语是用户，不是产品/系统
-  - 禁止: "系统支持...""产品提供..."等以产品为主语的描述
-  - ❌ "系统支持指标查看功能"
-  - ✅ "用户可通过 /know learn 与 /know write 在对话中沉淀和复用项目知识" -->
+<!-- What the user gains once it is achieved. Aligned with the "value target" in roadmap §3 summary table.
+  - Format: 1 sentence. The subject is the user, not the product/system.
+  - Forbidden: "the system supports..." / "the product provides..." style descriptions where the product is the subject
+  - ❌ "the system supports a metric viewing feature"
+  - ✅ "users can capture and reuse project knowledge in conversation via /know learn and /know write" -->
 
-{用户视角的价值}
+{user-perspective value}
 
-### 关键假设
+### Key Hypothesis
 
-<!-- 本里程碑要消灭的核心不确定性。
-  - 假设: 1 句因果/条件句。类型: 技术可行性 | 用户接受度 | 商业价值
-  - 验证方式: 具体可执行的验证动作 + 判定条件
-  - 无核心假设的工程交付里程碑填"本里程碑为工程交付，无核心假设需验证"
-  - 禁止: "验证技术方案"等抽象描述；"测试一下看看"等无判定条件描述
-  - ❌ 假设: "验证技术方案是否可行" / 验证方式: "测试一下"
-  - ✅ 假设: "AI 可以从对话中准确识别值得沉淀的隐性知识信号" / 验证方式: "在 know 项目开发对话中运行 learn 管线，检查 10 次提取的准确率" -->
+<!-- The core uncertainty this milestone is meant to eliminate.
+  - Hypothesis: 1 cause/condition sentence. Type: technical feasibility | user acceptance | business value
+  - Validation method: a concrete, executable validation action + decision criterion
+  - For an engineering-delivery milestone with no core hypothesis, fill in "this is an engineering-delivery milestone; no core hypothesis to validate"
+  - Forbidden: abstract descriptions like "validate the technical solution"; descriptions without a decision criterion such as "give it a test"
+  - ❌ Hypothesis: "validate whether the technical solution is feasible" / Validation method: "run a test"
+  - ✅ Hypothesis: "AI can accurately recognize implicit-knowledge signals worth capturing from conversation" / Validation method: "run the learn pipeline during know project development conversations and check the accuracy across 10 extractions" -->
 
-- **假设**: {核心不确定性，1 句因果/条件句}
-- **类型**: {技术可行性 | 用户接受度 | 商业价值}
-- **验证方式**: {具体验证动作 + 判定条件}
+- **Hypothesis**: {core uncertainty, 1 cause/condition sentence}
+- **Type**: {technical feasibility | user acceptance | business value}
+- **Validation method**: {concrete validation action + decision criterion}
 
-## 2. 计划
+## 2. Plan
 
-<!-- 规划时填写。一旦里程碑启动，本节不可变（风险可追加标注）。 -->
+<!-- Filled at planning time. Once the milestone has started, this section is immutable (risks may be appended). -->
 
-### 预期交付物
+### Planned Deliverables
 
-<!-- 计划产出什么。必须是看得见、能测试的产物。
-  - 格式: 列表，每项 "{类型}: {具体产物}"。类型: 代码 | 文档 | 数据 | 工具。≥1 项
-  - 禁止: 抽象描述（"优化了流程""完善了体验"）
-  - ❌ "优化了知识提取流程"
-  - ✅ "代码: learn workflow 5 stage（detect/gate/refine/locate/write）" -->
+<!-- What is planned to be produced. Must be visible, testable artifacts.
+  - Format: list, each item "{type}: {concrete artifact}". Type: code | doc | data | tool. ≥1 item.
+  - Forbidden: abstract descriptions ("optimized the flow" / "improved the experience")
+  - ❌ "optimized the knowledge extraction flow"
+  - ✅ "code: learn workflow 5 stages (detect/gate/refine/locate/write)" -->
 
-- {类型}: {具体产物，可验证}
+- {type}: {concrete artifact, verifiable}
 
-### 达标标准
+### Go/No-Go Criteria
 
-<!-- Go / No-Go 判定条件。5 个固定维度，不得增删。规划时只填标准列。
-  - 格式: 每维度 1 个可量化通过条件
-  - 维度不适用时填"本里程碑不涉及"
-  - 禁止: "质量好""性能高"等不可量化描述
-  - 数据: 条件中的数值标依据（行业标准/团队约定/经验值）
-  - ❌ "质量达标"
-  - ✅ "提取准确率 >80%（10 次 learn 中 ≥8 次准确）" -->
+<!-- Go / No-Go decision conditions. 5 fixed dimensions, neither addable nor removable. At planning time, fill only the criterion column.
+  - Format: one quantifiable pass condition per dimension
+  - When a dimension does not apply, fill in "not applicable to this milestone"
+  - Forbidden: non-quantifiable descriptions like "good quality" / "high performance"
+  - Data: numbers in conditions annotate basis (industry standard / team agreement / experience)
+  - ❌ "quality acceptable"
+  - ✅ "extraction accuracy >80% (≥8 out of 10 learn runs accurate)" -->
 
-| 维度 | 标准 |
-|------|------|
-| 功能完整性 | {可量化通过条件} |
-| 质量 | {可量化通过条件} |
-| 性能与稳定性 | {可量化通过条件} |
-| 安全 | {可量化通过条件} |
-| 可维护性 | {可量化通过条件} |
+| Dimension | Criterion |
+|-----------|-----------|
+| Functional completeness | {quantifiable pass condition} |
+| Quality | {quantifiable pass condition} |
+| Performance and stability | {quantifiable pass condition} |
+| Security | {quantifiable pass condition} |
+| Maintainability | {quantifiable pass condition} |
 
-### 预估投入
+### Estimated Effort
 
-<!-- 预计花多少资源。
-  - 格式: "{时间} {人力}"
-  - 禁止: "不多""很快""投入不大"
-  - ❌ "投入不大"
-  - ✅ "1 天全职开发" -->
+<!-- Estimated resource cost.
+  - Format: "{time} {headcount}"
+  - Forbidden: "not much" / "very fast" / "modest effort"
+  - ❌ "modest effort"
+  - ✅ "1 day full-time development" -->
 
-{预估时间和人力}
+{estimated time and headcount}
 
-### 决策路径
+### Decision Path
 
-<!-- 里程碑本质是决策节点。规划时定义通过/未通过的行动。
-  - 通过: 具体行动 + 资源流向
-  - 未通过: 具体应对策略
-  - 禁止: "继续开发""再试试""进入下一步"
-  - ❌ 通过: "继续下一步" / 未通过: "继续优化"
-  - ✅ 通过: "进入 M2 write 管线开发，learn 产出的知识库为 write 提供数据基础" / 未通过: "排查 learn 管线阻塞点，暂不启动 write" -->
+<!-- The milestone is essentially a decision node. At planning time, define the actions for pass/fail.
+  - Pass: concrete action + resource flow
+  - Fail: concrete response strategy
+  - Forbidden: "continue development" / "try again" / "move to next step"
+  - ❌ Pass: "go to next step" / Fail: "keep optimizing"
+  - ✅ Pass: "enter M2 write-pipeline development; the knowledge base produced by learn provides the data foundation for write" / Fail: "investigate the blocking points in the learn pipeline; do not start write yet" -->
 
-- **通过**: {达标后的行动和资源分配}
-- **未通过**: {未达标的应对策略}
+- **Pass**: {action and resource allocation upon meeting criteria}
+- **Fail**: {response strategy when criteria are not met}
 
-### 风险
+### Risks
 
-<!-- 可能阻塞的因素。开发过程中可追加新风险/标注已消除，但不可删除已识别项。
-  - 格式: "依赖: {项}；风险: {项}"
-  - 无风险填"无已识别风险"
-  - 禁止: "风险不大""基本没有依赖"
-  - ❌ "风险不大"
-  - ✅ "依赖 Claude Code plugin 机制稳定性；风险：AI 信号检测准确率未知" -->
+<!-- Factors that could block. New risks may be appended during development; risks may be marked as eliminated, but identified items must not be deleted.
+  - Format: "Dependencies: {item}; Risks: {item}"
+  - When there are no risks, fill in "no identified risks"
+  - Forbidden: "risk is small" / "essentially no dependencies"
+  - ❌ "risk is small"
+  - ✅ "Dependencies: stability of the Claude Code plugin mechanism; Risks: AI signal-detection accuracy is unknown" -->
 
-{风险与依赖}
+{risks and dependencies}
 
-## 3. 任务追踪
+## 3. Task Tracking
 
-<!-- 以 PRD 为单位追踪任务。一个 PRD 可能对应多个 tech，链接 PRD 即可。
-  - 任务: 任务名称
-  - PRD: 链接到 PRD 文档 "[{需求名}]({路径})"，无 PRD 填 —
-  - 状态: 未开始 | 进行中 | 已完成 | 已搁置
-  - 备注: "完成"或"有遗留项：{具体内容}"。进行中写当前阻塞点或下一步
+<!-- Track tasks at PRD granularity. One PRD may correspond to multiple tech docs; linking the PRD is sufficient.
+  - Task: task name
+  - PRD: link to PRD doc "[{requirement name}]({path})", "—" if no PRD
+  - Status: not started | in progress | done | shelved
+  - Notes: "done" or "has leftover items: {specifics}". For in-progress tasks write the current blocker or next step.
   - ROWS: ≥1
-  - 禁止: 删除已有行；回退状态
-  - ❌ 备注: "进行中"（与状态重复无信息）
-  - ✅ 备注: "有遗留项：tag 分类准确率无量化数据" -->
+  - Forbidden: deleting existing rows; reverting status
+  - ❌ Notes: "in progress" (duplicates the status, no information)
+  - ✅ Notes: "has leftover items: tag classification accuracy lacks quantitative data" -->
 
-| 任务 | PRD | 状态 | 备注 |
-|------|-----|------|------|
-| {任务名} | [{需求名}]({prd路径}) | {枚举状态} | {完成/有遗留项：具体内容} |
+| Task | PRD | Status | Notes |
+|------|-----|--------|-------|
+| {task name} | [{requirement name}]({prd path}) | {enum status} | {done/has leftover items: specifics} |
 
-## 4. 结果
+## 4. Outcome
 
-<!-- 里程碑完成/搁置后填写。未完成的里程碑本节留空。
-     所有数值必须标注来源。禁止编造。 -->
+<!-- Filled in after the milestone is completed/shelved. Leave this section empty for an unfinished milestone.
+     All values must annotate source. No fabrication. -->
 
-### 实际交付物
+### Actual Deliverables
 
-<!-- 实际产出了什么。与 §2 预期交付物对照。
-  - 格式: 同预期交付物
-  - 预期中有但未交付的标注"未交付（原因）"
-  - 预期外新增的标注"计划外新增"
-  - 禁止: 与预期交付物无法对照的抽象描述（"完成了主要功能"）
-  - ❌ "完成了主要功能"
-  - ✅ "代码: learn 5 stage 全部实现 ✓ / 文档: workflows/learn.md ✓ / 数据: 项目 CLAUDE.md ## know block 已沉淀 12 条 ✓" -->
+<!-- What was actually produced. Compare against §2 planned deliverables.
+  - Format: same as planned deliverables
+  - Items planned but not delivered: annotate "not delivered ({reason})"
+  - Items added beyond plan: annotate "added beyond plan"
+  - Forbidden: abstract descriptions that cannot be compared against planned deliverables ("completed the main features")
+  - ❌ "completed the main features"
+  - ✅ "code: all 5 stages of learn implemented ✓ / doc: workflows/learn.md ✓ / data: 12 entries captured in the project CLAUDE.md ## know block ✓" -->
 
-- {类型}: {具体产物}
+- {type}: {concrete artifact}
 
-### 假设验证结论
+### Hypothesis-Validation Conclusion
 
-<!-- §1 关键假设的验证结果。
-  - 结论: 成立 | 不成立 | 部分成立
-  - 数据: 必须附数据 + 来源。无数据标"无数据（原因）"
-  - §1 无假设时填"不适用"
-  - 禁止: 无数据的裸结论（"验证通过"）；编造数据
-  - ❌ 结论: "成立" / 数据: "准确率 80%"（无来源）
-  - ✅ 结论: "成立" / 数据: "10 次 learn 中 8 次准确提取（know 项目实测），2 次 tag 偏差但内容正确" -->
+<!-- Validation result of §1 key hypothesis.
+  - Conclusion: holds | does not hold | partially holds
+  - Data: must include data + source. If no data, annotate "no data ({reason})".
+  - When §1 has no hypothesis, fill in "not applicable".
+  - Forbidden: bare conclusions without data ("validated"); fabricated data
+  - ❌ Conclusion: "holds" / Data: "accuracy 80%" (no source)
+  - ✅ Conclusion: "holds" / Data: "8 out of 10 learn runs extracted accurately (know project measured), 2 had tag deviations but correct content" -->
 
-- **结论**: {成立/不成立/部分成立}
-- **数据**: {支撑数据 + 来源，或"无数据（原因）"}
+- **Conclusion**: {holds/does not hold/partially holds}
+- **Data**: {supporting data + source, or "no data ({reason})"}
 
-### 达标评估
+### Go/No-Go Assessment
 
-<!-- 对照 §2 达标标准逐维度评分。标准列从 §2 原样复制，不可修改。
-  - 评分: 5=完全达标 | 4=基本达标 | 3=部分达标 | 2=明显不足 | 1=未开始 | N/A=不适用
-  - 说明: 客观达成描述，必须含数据或可验证事实。禁止"还行""基本可以"
-  - 遗留: 未完成的具体事项 + 去向（哪个版本/里程碑解决）。无则 —
-  - ❌ 说明: "还行，基本满足需求"
-  - ✅ 说明: "实测 5-15s 完成，未出现超时（know 项目 10 次 learn 操作计时）"
-  - ❌ 遗留: "tag 准确率待优化"
-  - ✅ 遗留: "locate 三级判定准确率待优化 → v3 引入跨项目证据自检时一并处理" -->
+<!-- Score against §2 Go/No-Go criteria, dimension by dimension. Copy the criterion column from §2 verbatim; do not modify.
+  - Score: 5 = fully meets | 4 = mostly meets | 3 = partially meets | 2 = clearly insufficient | 1 = not started | N/A = not applicable
+  - Description: objective achievement description, must include data or verifiable facts. Forbidden: "okay" / "essentially fine".
+  - Leftover: concrete unfinished items + destination (which version/milestone resolves them). "—" if none.
+  - ❌ Description: "okay, basically meets the requirement"
+  - ✅ Description: "measured 5-15s end-to-end, no timeouts (10 learn-operation timings in the know project)"
+  - ❌ Leftover: "tag accuracy needs improvement"
+  - ✅ Leftover: "locate three-level decision accuracy needs improvement → handled together when v3 introduces cross-project evidence self-check" -->
 
-| 维度 | 标准（从§2复制） | 评分 | 说明 | 遗留 |
-|------|----------------|------|------|------|
-| 功能完整性 | {§2标准} | {1-5/N/A} | {客观描述 + 数据} | {遗留项 + 去向，或 —} |
-| 质量 | {§2标准} | {1-5/N/A} | {客观描述 + 数据} | {遗留项 + 去向，或 —} |
-| 性能与稳定性 | {§2标准} | {1-5/N/A} | {客观描述 + 数据} | {遗留项 + 去向，或 —} |
-| 安全 | {§2标准} | {1-5/N/A} | {客观描述 + 数据} | {遗留项 + 去向，或 —} |
-| 可维护性 | {§2标准} | {1-5/N/A} | {客观描述 + 数据} | {遗留项 + 去向，或 —} |
+| Dimension | Criterion (copied from §2) | Score | Description | Leftover |
+|-----------|----------------------------|-------|-------------|----------|
+| Functional completeness | {§2 criterion} | {1-5/N/A} | {objective description + data} | {leftover item + destination, or —} |
+| Quality | {§2 criterion} | {1-5/N/A} | {objective description + data} | {leftover item + destination, or —} |
+| Performance and stability | {§2 criterion} | {1-5/N/A} | {objective description + data} | {leftover item + destination, or —} |
+| Security | {§2 criterion} | {1-5/N/A} | {objective description + data} | {leftover item + destination, or —} |
+| Maintainability | {§2 criterion} | {1-5/N/A} | {objective description + data} | {leftover item + destination, or —} |
 
-### 实际投入
+### Actual Effort
 
-<!-- 实际花了多少资源。与 §2 预估投入对照。偏差大时说明原因。
-  - 格式: "{实际值}（预估: {§2值}）"
-  - 禁止: "和预期差不多"
-  - ❌ "和预期差不多"
-  - ✅ "实际 2 天（预估 1 天），路径解析 bug 调试多花 1 天" -->
+<!-- How much resource was actually spent. Compare against §2 estimated effort. Explain large deviations.
+  - Format: "{actual value} (estimated: {§2 value})"
+  - Forbidden: "roughly as expected"
+  - ❌ "roughly as expected"
+  - ✅ "actual 2 days (estimated 1 day); debugging the path-resolution bug took 1 extra day" -->
 
-{实际时间和人力}（预估: {§2预估值}）
+{actual time and headcount} (estimated: {§2 estimated value})
 
-### 决策结论
+### Decision Outcome
 
-<!-- 最终做了什么决策。与 §2 决策路径对照。
-  - 格式: "{通过/未通过/部分通过} → {实际行动}"
-  - 禁止: "继续开发了"
-  - ❌ "继续开发了"
-  - ✅ "通过 → 进入 M2 write 管线开发，learn 产出的知识库为 write 提供数据基础" -->
+<!-- The final decision that was made. Compare against §2 decision path.
+  - Format: "{pass/fail/partial pass} → {actual action}"
+  - Forbidden: "kept developing"
+  - ❌ "kept developing"
+  - ✅ "pass → enter M2 write-pipeline development; the knowledge base produced by learn provides the data foundation for write" -->
 
-{决策结论}
+{decision outcome}
 

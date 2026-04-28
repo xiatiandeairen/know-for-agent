@@ -2,109 +2,97 @@
 
 ## name: know
 
-description: AI 辅助的高熵知识单元 authoring 工具——把对话中的隐性知识结构化沉淀为 markdown，把会话决策编译为结构化文档。
+description: AI-assisted high-entropy knowledge unit authoring tool — capture implicit knowledge from conversations into structured markdown, and compile session decisions into structured docs.
 
 # Know
 
 ## 1. Overview
 
-让 AI agent 累积并复用项目知识，不必每次会话重新 brief 约束 / 决策 / 历史。两类入口能力：
+Let the AI agent accumulate and reuse project knowledge, so each session need not re-brief constraints / decisions / history. Two entry capabilities:
 
-- **沉淀**（`learn`）— 把对话中的隐性知识结构化沉淀为 `## know` 段下的 YAML entry（4 字段：when / must|should|avoid|prefer / how / until）
-- **编译**（`write`）— 按模板由对话和已有知识生成或更新结构化文档
+- **capture** (`learn`) — capture implicit knowledge from conversation into a YAML entry under the `## know` section (4 fields: when / must|should|avoid|prefer / how / until)
+- **compile** (`write`) — generate or update structured docs from templates based on the conversation and existing knowledge
 
 ---
 
 ## 2. Core Principles
 
-1. **高风险保守**：不可逆或高影响的动作必须有证据并经用户确认。
-2. **低风险灵活**：低影响的推断与候选使用完整模型能力，不过度保守。
-3. **AI 建议，用户决定**：AI 输出作为候选，最终决策归用户。
-4. **小单位沉淀，大单位组装**：知识以原子单元存储，文档由结构化组装产生。
-5. **写入纪律高于数量**：低熵 / 缺上下文的条目宁可拒绝。
-6. **输出对齐用户，不喧宾夺主**：匹配用户语言与节奏；工具自身不抢焦点。
+1. **High-risk conservative**: irreversible or high-impact actions must have evidence and user confirmation.
+2. **Low-risk flexible**: low-impact inferences and candidates use the full model capability — do not over-conserve.
+3. **AI suggests, user decides**: AI output is a candidate; the final decision belongs to the user.
+4. **Capture in small units, assemble in large units**: knowledge is stored as atomic units; docs are produced by structured assembly.
+5. **Write discipline over quantity**: low-entropy / context-poor entries should be rejected.
+6. **Output aligns with the user, does not upstage**: match the user's language and pace; the tool itself does not steal focus.
 
 ---
 
 ## 3. Definitions
 
-- **知识** — 项目可复用认知；最小形态是 markdown bullet + HTML 注释嵌入的 5 字段元数据，组装形态是 `docs/` 下的结构化文档。
-- **learn** — 把对话或显式 claim 沉淀为知识单元（5 模式：N 新增 / U 修改 / D 删除 / E 行为复盘 / F 流程内嵌）。
-- **write** — 按模板生成或更新结构化文档。
+- **knowledge** — reusable project cognition; the minimal form is a markdown bullet plus 5-field metadata embedded in HTML comments; the assembled form is a structured document under `docs/`.
+- **learn** — capture conversation or explicit claims into knowledge units (5 modes: N new / U update / D delete / E behavioral retrospective / F flow-embedded).
+- **write** — generate or update structured docs from templates.
 
 ---
 
-## 4. 会话提示
+## 4. Session Prompts
 
-### 4.1 Session 启动时输出入口指引
+### 4.1 Emit entry-point guidance at session start
 
-新会话进入项目时，提示项目进度
+When entering a project in a new session, prompt the project progress.
 
-输出模版：
-
-```
-[know] 项目入口：CLAUDE.md（状态）/ $DOCS/roadmap.md（路线）
-```
-
-### 4.2 使用既有 docs / 知识时输出hit提示
-
-读取既有 docs 或知识条目辅助决策时，提示用户hit知识或者文档
-
-输出模版：
+Output template:
 
 ```
-[know:hit] {相对路径或 ~ 路径}:{section / 条目 id}
+[know] project entry: CLAUDE.md (status) / $DOCS/roadmap.md (roadmap)
 ```
 
-### 4.3 沉淀 / 文档化建议提示
+### 4.2 Emit a hit prompt when using existing docs / knowledge
 
-满足触发条件时，AI 在响应末尾追加一行建议；用户决定是否进入 `/know learn` / `/know write`。
+When reading existing docs or knowledge entries to support a decision, prompt the user that knowledge or a doc was hit.
 
-输出模版：
+Output template:
 
 ```
-[know:suggest] {≤12 字触发原因} → /know {learn|write [type]}？
+[know:hit] {relative path or ~ path}:{section / entry id}
 ```
 
-**触发场景（learn）**
+### 4.3 Capture / documentation suggestion prompt
 
-- 用户纠正 AI 的判断或输出（含具体修正）
-- 用户和 AI 讨论后做出有理由的技术 / 流程 / 风格决策
-- 用户解释反直觉的业务规则或前提
-- 用户表达稳定的风格 / 流程偏好（"以后都..." / "不要..."）
+Before each turn's response, the AI asks itself 3 questions to decide whether to prompt; any `no` means do not prompt.
 
-**触发场景（write）**
+Decision questions (in order)
 
-- ≥3 轮设计讨论收敛到具体方案
-- 一个完整需求（v1 范围 / 用户场景 / 验收）已讨论清楚
-- 一组（≥3）技术决策成形，可直接落 tech / decision / arch
+1. **New artifact** — did this turn produce a new rule / plan / decision?
+2. **Reusable** — will this artifact be used again in different future sessions or tasks?
+3. **Form** — single rule (<1 paragraph) → `/know learn`; full plan (≥1 section) → `/know write`
 
-**反例（不触发）**
+Output template:
 
-- 单纯回答事实问题或完成具体编码任务
-- 用户咨询但未做决定
-- 内容属于通用编程 / 写作常识（参考 § know 段排除规则）
-- 当前已在 learn / write pipeline 内部
+```
+[know:suggest] {≤12-char trigger reason} → /know {learn|write [type]}?
+```
+
+Exception: when already inside the `learn` / `write` pipeline → do not prompt.
 
 ---
 
 ## 5. Route
 
-**流程**
+**Flow**
 
-1. 首词匹配（忽略大小写）`learn|write` → 直接分派 `[route] → {pipeline}`
-2. 否则按下列问题对 text + 会话上下文逐条判断，yes 即对应 pipeline 候选：
-  - 用户想把经验/决策/教训沉淀下来？→ `learn`
-  - 用户想产出一份结构化文档（prd/tech/arch/...）？→ `write`
-   恰好一个 yes → 直接分派；两个都 yes → 呈现候选请用户选；全 no → Step 3
-3. 全 no 直接问用户意图
+1. First-word match (case-insensitive) on `learn|write` → dispatch directly `[route] → {pipeline}`
+2. Otherwise judge the text + session context against each question below; any `yes` makes that pipeline a candidate:
+  - Does the user want to capture an experience / decision / lesson? → `learn`
+  - Does the user want to produce a structured doc (prd/tech/arch/...)? → `write`
+   Exactly one yes → dispatch directly; both yes → present candidates and let the user choose; all no → Step 3
+3. All no → ask the user about intent directly
 
-**示例**
+**Examples**
 
 ```
-/know write arch             → [route] → write        # 首词命中
-/know 沉淀下这个经验           → [route] → learn        # 单一 yes 锁定
-/know 那个东西搞一下           → [route] 没看懂你要做什么，能说具体点吗？
+/know write arch             → [route] → write        # first-word hit
+/know capture this lesson    → [route] → learn        # single yes locks in
+/know do that thing          → [route] I don't get what you want — could you be more specific?
 ```
 
-按需加载：`workflows/learn.md`、`workflows/write.md`。
+Load on demand: `workflows/learn.md`, `workflows/write.md`.

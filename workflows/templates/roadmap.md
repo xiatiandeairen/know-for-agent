@@ -1,149 +1,149 @@
-# {项目名} 产品路线图
+# {project name} Product Roadmap
 
-<!-- 核心问题: 产品到哪了、下一步往哪走？
-     定位: 产品级战略文档 + 进度跟踪
-     不属于本文档: 单个需求的细节（→ PRD）、技术方案（→ tech）、系统架构（→ arch）
-     结构锁定: 不得增删列、不得改列名、不得改格式。只填值。
-     字段规格: 见 templates/roadmap-checklist.md（每个字段的信息目的、语言约束、呈现方式、可省略条件、数据要求）
-     数据置信: 有实测用实测标来源；有推算标"估算"+依据；有目标标"目标值，待验证"；无法估算标"无数据（原因）"。禁止编造精确数字。 -->
+<!-- Core question: where does the product stand and where is it heading next?
+     Positioning: product-level strategy doc + progress tracking
+     Out of scope: details of a single requirement (→ PRD), technical solution (→ tech), system architecture (→ arch)
+     Structure locked: do not add or remove columns, do not change column names, do not change formatting. Only fill in values.
+     Field spec: see templates/roadmap-checklist.md (each field's information purpose, language constraint, presentation, omission conditions, data requirements)
+     Data confidence: when measured, use measured values and annotate source; derived values annotate "estimated" + basis; targets annotate "target value, pending validation"; values that cannot be estimated annotate "no data ({reason})". No fabrication of precise numbers. -->
 
-## 1. 产品愿景
+## 1. Product Vision
 
-### 产品核心
+### Product Essence
 
-<!-- 3 个固定字段，列表呈现。每项 1-2 句。
-  - 定位: 产品是什么，一句话定义（❌ "一个知识管理工具" ✅ "面向 AI 编程助手的项目知识编译器"）
-  - 动机: 为什么做这个产品，触发动因（❌ "市场需要" ✅ "AI agent 跨会话丢失隐性知识导致重复犯错，现有方案无法分层管理"）
-  - 长远愿景: 产品成熟后的终态（❌ "成为最好的工具" ✅ "AI agent 在项目中像有经验的成员一样工作：了解历史、尊重约束、不重蹈覆辙"）
-  - EXCLUDE: 功能列表、技术实现、版本计划 -->
+<!-- 3 fixed fields, presented as a list. 1-2 sentences each.
+  - Positioning: what the product is, defined in one sentence (❌ "a knowledge management tool" ✅ "a project-knowledge compiler for AI coding assistants")
+  - Motivation: why this product exists, the triggering driver (❌ "the market needs it" ✅ "AI agents lose implicit knowledge across sessions, leading to repeated mistakes; existing solutions cannot manage knowledge in layers")
+  - Long-term vision: the terminal state once the product matures (❌ "to become the best tool" ✅ "AI agents work in a project like an experienced team member: aware of history, respectful of constraints, and not repeating the same mistakes")
+  - EXCLUDE: feature lists, technical implementation, version plan -->
 
-- **定位**: {产品是什么，一句话定义}
-- **动机**: {为什么做这个产品，核心触发动因}
-- **长远愿景**: {产品成熟后的终态描述}
+- **Positioning**: {what the product is, defined in one sentence}
+- **Motivation**: {why this product exists, core triggering driver}
+- **Long-term vision**: {description of the terminal state once the product matures}
 
-### 价值体系
+### Value System
 
-<!-- 3 个固定层级，不得增删。从即时到长期递进。
-  - 即时价值: 每次使用直接获得的好处（❌ "提高效率" ✅ "agent 修改代码前自动获取相关知识，避免已知错误"）
-  - 累积价值: 持续使用后的复合收益（❌ "越来越好" ✅ "项目知识持续沉淀，命中率随条目增长提升，新成员上手成本递减"）
-  - 战略价值: 改变工作方式的长期影响（❌ "很有价值" ✅ "从'每次重来'到'经验传承'，AI 协作从无状态对话升级为有记忆的持续协作"）
-  - 衡量指标: 具体可量化的指标 + 目标值（❌ "效果好" ✅ "会话上下文重建时间（目标: 15min → <1min）、回归 bug 率（目标: 降低 >50%）"）
-  - EXCLUDE: 技术实现细节 -->
+<!-- 3 fixed tiers, neither addable nor removable. Progresses from immediate to long-term.
+  - Immediate value: the direct benefit gained from each use (❌ "improves efficiency" ✅ "the agent automatically retrieves relevant knowledge before modifying code, avoiding known mistakes")
+  - Cumulative value: the compounded gain from continued use (❌ "gets better over time" ✅ "project knowledge keeps accumulating; hit rate rises as entries grow; onboarding cost for new members keeps decreasing")
+  - Strategic value: the long-term impact on how work is done (❌ "very valuable" ✅ "from 'starting over every time' to 'experience handed down'; AI collaboration is upgraded from stateless conversation to memory-bearing continuous collaboration")
+  - Metric: a concrete quantifiable metric + target value (❌ "good results" ✅ "context-rebuild time (target: 15min → <1min), regression bug rate (target: reduced by >50%)")
+  - EXCLUDE: technical implementation details -->
 
-| 层级 | 价值 | 衡量指标 |
-|------|------|---------|
-| **即时价值** | {每次使用直接获得的好处} | {具体指标 + 目标值，多个用逗号分隔} |
-| **累积价值** | {持续使用后的复合收益} | {具体趋势指标 + 目标值} |
-| **战略价值** | {改变工作方式的长期影响} | {具体长期指标 + 目标值} |
+| Tier | Value | Metric |
+|------|-------|--------|
+| **Immediate value** | {direct benefit gained per use} | {concrete metric + target value, multiple separated by commas} |
+| **Cumulative value** | {compounded gain from continued use} | {concrete trend metric + target value} |
+| **Strategic value** | {long-term impact on how work is done} | {concrete long-term metric + target value} |
 
-### 核心问题
+### Core Problem
 
-<!-- ROWS: ≥2。产品要解决的根本问题。
-  - 问题: 用户视角的痛点（❌ "缺乏知识管理" ✅ "AI 在新会话中重复犯已知错误"）
-  - 发生频率: 量化频次（❌ "经常" ✅ "每次新会话，日均 5-20 次"）
-  - 单次成本: 每次发生的代价（❌ "浪费时间" ✅ "10-30 分钟重新探索 + 引入回归风险"）
-  - 影响面: 受影响的用户规模或场景广度（❌ "很多人" ✅ "所有使用 AI 助手维护中大型项目的开发者"）
-  - 现有应对: 用户目前怎么解决（❌ "没有好方案" ✅ "手动维护 CLAUDE.md，条目膨胀后 token 成本不可控"）
-  - EXCLUDE: 产品功能描述、技术限制 -->
+<!-- ROWS: ≥2. The fundamental problems the product solves.
+  - Problem: user-perspective pain point (❌ "lack of knowledge management" ✅ "AI repeats known mistakes in new sessions")
+  - Occurrence frequency: quantified frequency (❌ "often" ✅ "every new session, daily 5-20 times")
+  - Per-occurrence cost: the cost each time it happens (❌ "wastes time" ✅ "10-30 minutes re-exploring + introduced regression risk")
+  - Reach: the affected user scale or scenario breadth (❌ "many people" ✅ "all developers using AI assistants to maintain medium-to-large projects")
+  - Existing workaround: how users currently address it (❌ "no good solution" ✅ "manually maintain CLAUDE.md; once entries inflate, token cost becomes uncontrollable")
+  - EXCLUDE: product feature descriptions, technical limitations -->
 
-| 问题 | 发生频率 | 单次成本 | 影响面 | 现有应对 |
-|------|---------|---------|--------|---------|
-| {用户视角痛点} | {量化频次} | {量化代价} | {受影响规模} | {当前方式及不足} |
+| Problem | Occurrence Frequency | Per-Occurrence Cost | Reach | Existing Workaround |
+|---------|----------------------|---------------------|-------|---------------------|
+| {user-perspective pain point} | {quantified frequency} | {quantified cost} | {affected scale} | {current approach and its shortfall} |
 
-### 目标用户
+### Target Users
 
-<!-- ROWS: ≥1。不同用户群各一行。核心是体现 before→after 的价值差。
-  - 角色: 具体角色（❌ "开发者" ✅ "使用 Claude Code 的独立开发者"）
-  - 典型场景: 什么时候用（❌ "日常开发" ✅ "跨会话维护中大型项目，需 AI 记住项目约束"）
-  - Before: 使用前的状态，量化痛感（❌ "效率低" ✅ "每次新会话花 15 分钟重建上下文，关键约束仍会遗漏"）
-  - After: 使用后的状态，量化收益（❌ "效率高" ✅ "agent 自动获取相关知识，上下文重建时间趋近 0"）
-  - 预估提效: ROI 量化（❌ "大幅提升" ✅ "单次会话节省 10-15 分钟，回归 bug 减少 >50%"）
-  - EXCLUDE: 内部用户、系统组件 -->
+<!-- ROWS: ≥1. One row per user group. The core is to express the before→after value gap.
+  - Role: concrete role (❌ "developer" ✅ "independent developer using Claude Code")
+  - Typical scenario: when they use it (❌ "daily development" ✅ "maintaining a medium-to-large project across sessions, needing the AI to remember project constraints")
+  - Before: state before use, quantified pain (❌ "low efficiency" ✅ "spends 15 minutes per new session rebuilding context; key constraints are still missed")
+  - After: state after use, quantified gain (❌ "high efficiency" ✅ "the agent automatically retrieves relevant knowledge; context-rebuild time approaches 0")
+  - Estimated efficiency gain: quantified ROI (❌ "significant improvement" ✅ "saves 10-15 minutes per session; regression bugs reduced by >50%")
+  - EXCLUDE: internal users, system components -->
 
-| 角色 | 典型场景 | Before | After | 预估提效 |
-|------|---------|--------|-------|---------|
-| {具体角色} | {使用场景} | {使用前的痛感，量化} | {使用后的状态，量化} | {ROI 量化} |
+| Role | Typical Scenario | Before | After | Estimated Efficiency Gain |
+|------|------------------|--------|-------|--------------------------|
+| {concrete role} | {usage scenario} | {pre-use pain, quantified} | {post-use state, quantified} | {quantified ROI} |
 
-### 竞品对比
+### Competitive Comparison
 
-<!-- ROWS: ≥3（含本产品 + ≥2 竞品/替代方案）。对比产品级定位，不对比技术细节。
-  - 方案: 具体产品名（❌ "其他工具" ✅ "Cursor Rules"）
-  - 定位: 产品定义（1 句话）
-  - 目标用户: 面向谁
-  - 核心功能: 用户视角的关键能力（3-5 个，逗号分隔）
-  - 优势: 最突出的 1-2 个优势
-  - 局限: 最明显的 1-2 个局限
-  - EXCLUDE: 技术实现细节（存储方式、协议、架构） -->
+<!-- ROWS: ≥3 (this product + ≥2 competitors/alternatives). Compare product-level positioning, not technical detail.
+  - Solution: concrete product name (❌ "other tools" ✅ "Cursor Rules")
+  - Positioning: product definition (one sentence)
+  - Target users: who it is for
+  - Core features: user-perspective key capabilities (3-5 items, comma-separated)
+  - Strengths: the most prominent 1-2 strengths
+  - Limitations: the most evident 1-2 limitations
+  - EXCLUDE: technical implementation details (storage, protocol, architecture) -->
 
-| 方案 | 定位 | 目标用户 | 核心功能 | 优势 | 局限 |
-|------|------|---------|---------|------|------|
-| **{本产品}** | {定位} | {用户} | {功能列表} | {优势} | {局限} |
-| {竞品} | {定位} | {用户} | {功能列表} | {优势} | {局限} |
+| Solution | Positioning | Target Users | Core Features | Strengths | Limitations |
+|----------|-------------|--------------|---------------|-----------|-------------|
+| **{this product}** | {positioning} | {users} | {feature list} | {strengths} | {limitations} |
+| {competitor} | {positioning} | {users} | {feature list} | {strengths} | {limitations} |
 
-## 2. 版本规划
+## 2. Version Plan
 
-### 汇总
+### Version Summary Table
 
-<!-- 所有版本的全局视图。快速扫描产品演进脉络。
-  - 版本: v{n}，有代号则附加（如 "v1 — 闭环验证"），无代号则仅版本号
-  - 核心方向: 该版本的战略聚焦点（❌ "功能完善" ✅ "验证端到端闭环可行性"）
-  - 核心指标变化: 该版本上升和下降最显著的指标（❌ "指标改善" ✅ "↑ 知识条目 0→15，learn gate 拒绝率 0→18%；↓ 上下文重建时间 15min→<5min"）
-  - 状态: 规划中 | 开发中 | 内测中 | 已发布 | 已归档
-  - 周期: 起止时间（YYYY.MM.DD - YYYY.MM.DD 或 待定）
-  - 里程碑: 包含的里程碑编号范围（M{a}-M{b}）
-  - EXCLUDE: 版本细节（→ 各版本详情卡） -->
+<!-- A global view of all versions. Quickly scan the product evolution.
+  - Version: v{n}, append code name if any (e.g. "v1 — closed-loop validation"), version number only if no code name
+  - Core direction: the strategic focus of this version (❌ "feature polish" ✅ "validate end-to-end closed-loop feasibility")
+  - Core-metric delta: the most significantly rising and falling metrics in this version (❌ "metrics improved" ✅ "↑ knowledge entries 0→15, learn gate rejection rate 0→18%; ↓ context-rebuild time 15min→<5min")
+  - Status: planned | in development | in beta | released | archived
+  - Period: start and end dates (YYYY.MM.DD - YYYY.MM.DD or TBD)
+  - Milestones: the milestone-number range included (M{a}-M{b})
+  - EXCLUDE: per-version details (→ each version-detail card) -->
 
-| 版本 | 核心方向 | 核心指标变化 | 状态 | 周期 | 里程碑 |
-|------|---------|------------|------|------|--------|
-| v{n} | {战略聚焦} | ↑ {上升最大指标}；↓ {下降最大指标} | {枚举状态} | {起止时间} | M{a}-M{b} |
+| Version | Core Direction | Core-Metric Delta | Status | Period | Milestones |
+|---------|----------------|-------------------|--------|--------|------------|
+| v{n} | {strategic focus} | ↑ {metric with largest rise}; ↓ {metric with largest fall} | {enum status} | {start-end dates} | M{a}-M{b} |
 
-### 版本详情
+### Version Details
 
-<!-- 每个版本一个子节，回答 5 个决策问题 + 核心指标。8 个固定字段，不得增删。
-  - 战略意图: 为什么做这个版本，与产品愿景的关系（❌ "完善功能" ✅ "验证核心假设：AI agent 能否通过持久化知识减少跨会话犯错"）
-  - 投入产出: 预估投入（人力/时间）vs 预期收益（❌ "投入不大" ✅ "投入 4 天开发 → 预期每次会话节省 10-15 分钟上下文重建"）
-  - 优先级依据: 为什么是现在做、前置条件（❌ "重要所以先做" ✅ "核心闭环未验证，后续版本无意义；无前置依赖"）
-  - 风险与依赖: 可能阻塞的因素（❌ "风险不大" ✅ "依赖 Claude Code plugin 机制稳定性；风险：JSONL 在大量条目时性能未验证"）
-  - 成功指标: 可量化的成功判定（❌ "用户满意" ✅ "知识条目 ≥10 条，[纠正] claim 沉淀 ≥3 次，连续使用 ≥1 周无阻塞"）
-  - 核心价值: 该版本交付的用户价值，可多条（❌ "体验更好" ✅ "1. 首次可以自动存取知识\n2. 首次可以从对话生成文档"）
-  - 用户覆盖: 目标用户范围和触达方式（❌ "有用户" ✅ "作者 dogfood"）
-  - 核心指标: 完整指标表，列出该版本所有关键指标较上一版本的变化
-    - 列: 指标 | 上版本值 | 本版本值 | 变化
-    - ROWS: ≥3，覆盖该版本新增和继承的关键指标
-    - 变化列: ↑/↓ + 具体数值或百分比（❌ "有所提升" ✅ "↑ 23pp"）
-    - 首个版本的"上版本值"填基线或 N/A -->
+<!-- One subsection per version, answering 5 decision questions + core metrics. 8 fixed fields, neither addable nor removable.
+  - Strategic intent: why this version exists, its relation to the product vision (❌ "polish features" ✅ "validate the core hypothesis: can AI agents reduce cross-session mistakes via persistent knowledge")
+  - Input/output: estimated input (headcount/time) vs. expected return (❌ "modest input" ✅ "input 4 days of dev → expected to save 10-15 minutes of context rebuild per session")
+  - Priority rationale: why now, prerequisites (❌ "important so do it first" ✅ "core closed loop is unvalidated; later versions are meaningless without it; no prerequisites")
+  - Risks and dependencies: factors that could block (❌ "small risk" ✅ "depends on the stability of the Claude Code plugin mechanism; risk: JSONL performance with many entries is unvalidated")
+  - Success metric: quantifiable success criteria (❌ "users are satisfied" ✅ "knowledge entries ≥10, [correction] claims captured ≥3 times, ≥1 week of continuous use without blockers")
+  - Core value: the user value delivered by this version, may be multiple (❌ "better experience" ✅ "1. first time knowledge can be auto-captured/retrieved\n2. first time docs can be generated from conversation")
+  - User coverage: the target user range and how they are reached (❌ "has users" ✅ "author dogfood")
+  - Core metric: full metric table, listing all key metrics' delta vs. the previous version
+    - Columns: metric | previous-version value | this-version value | delta
+    - ROWS: ≥3, covering newly added and inherited key metrics for this version
+    - Delta column: ↑/↓ + concrete number or percentage (❌ "some improvement" ✅ "↑ 23pp")
+    - For the first version, fill the "previous-version value" with baseline or N/A -->
 
-#### v{n} — {代号}
+#### v{n} — {code name}
 
-- **战略意图**: {为什么做这个版本，与产品愿景的关系}
-- **投入产出**: {预估投入 vs 预期收益}
-- **优先级依据**: {为什么现在做，前置条件是否满足}
-- **风险与依赖**: {阻塞因素、依赖项、已识别风险}
-- **成功指标**: {可量化的成功判定条件}
-- **核心价值**: {该版本交付的用户价值，可多条}
-- **用户覆盖**: {目标用户范围}
-- **核心指标**（{上版本} → v{n}）:
+- **Strategic intent**: {why this version exists, its relation to the product vision}
+- **Input/output**: {estimated input vs. expected return}
+- **Priority rationale**: {why now, whether prerequisites are met}
+- **Risks and dependencies**: {blocking factors, dependencies, identified risks}
+- **Success metric**: {quantifiable success criteria}
+- **Core value**: {user value delivered by this version, may be multiple}
+- **User coverage**: {target user range}
+- **Core metric** ({previous version} → v{n}):
 
-| 指标 | {上版本} | v{n} | 变化 |
-|------|---------|------|------|
-| {指标名} | {上版本值} | {本版本值} | {↑/↓ 数值} |
+| Metric | {previous version} | v{n} | Delta |
+|--------|--------------------|------|-------|
+| {metric name} | {previous-version value} | {this-version value} | {↑/↓ value} |
 
-## 3. 里程碑
+## 3. Milestones
 
-<!-- 全部里程碑的累积记录。编号跨版本连续递增。
-     汇总表在此，详情拆分到独立文件: docs/milestones/m{n}.md
-     结构锁定: 汇总表列固定。详情文件结构见 templates/milestone.md -->
+<!-- A cumulative record of all milestones. Numbering is continuous and cross-version.
+     The summary table is here; details are split out into independent files: docs/milestones/m{n}.md
+     Structure locked: summary-table columns are fixed. The detail-file structure is in templates/milestone.md -->
 
 <!-- ROWS: ≥2
-  - #: M{n}，全局递增，链接到详情文件
-  - 核心方向: 该里程碑的战略意图（❌ "基础搭建" ✅ "验证 learn 管线端到端可行性"）
-  - 目标达成情况: 客观结果描述。达成则写结果数据，未完全达成则写结果+原因
-    （❌ "功能可用" ✅ "全链路跑通，提取准确率 80%"）
-    （❌ "部分完成" ✅ "10 种文档类型全部支持，但内容质量参差不齐——模版缺乏填充约束"）
-  - 状态: 未开始 | 进行中 | 验收中 | 已完成 | 已搁置
-  - 完成日期: YYYY-MM-DD 或 —
-  - EXCLUDE: 工程任务拆分、代码级 TODO、需求链接（在详情文件中） -->
+  - #: M{n}, globally incrementing, linked to the detail file
+  - Core direction: the strategic intent of this milestone (❌ "foundational setup" ✅ "validate end-to-end feasibility of the learn pipeline")
+  - Goal achievement: objective outcome description. If achieved, write the result data; if not fully achieved, write result + reason.
+    (❌ "feature usable" ✅ "end-to-end working, extraction accuracy 80%")
+    (❌ "partially completed" ✅ "all 10 document types supported, but content quality is uneven — templates lack content-filling constraints")
+  - Status: not started | in progress | in acceptance | done | shelved
+  - Completion date: YYYY-MM-DD or —
+  - EXCLUDE: engineering task breakdown, code-level TODOs, requirement links (in the detail file) -->
 
-| # | 核心方向 | 目标达成情况 | 状态 | 完成日期 |
-|---|---------|------------|------|---------|
-| [M{n}](milestones/m{n}.md) | {战略意图} | {客观结果，未达成附原因} | {枚举状态} | {日期} |
+| # | Core Direction | Goal Achievement | Status | Completion Date |
+|---|----------------|------------------|--------|-----------------|
+| [M{n}](milestones/m{n}.md) | {strategic intent} | {objective outcome, append reason if not met} | {enum status} | {date} |

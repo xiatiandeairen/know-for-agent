@@ -1,139 +1,139 @@
-# 架构文档更新规则
+# Architecture Document Update Rules
 
-## 变更类型
+## Change Types
 
-| 类型 | 含义 |
-|------|------|
-| **不可变** | 一旦写入不再修改 |
-| **追加** | 只能新增条目，不能改已有的 |
-| **数据刷新** | 已有值可被更准确的数据替换 |
-| **可更新** | 内容可修改，但有约束 |
+| Type | Meaning |
+|------|---------|
+| **immutable** | Once written, never modified |
+| **append-only** | Only new entries can be added; existing ones cannot be modified |
+| **data refresh** | Existing values may be replaced with more accurate data |
+| **updatable** | Content can be modified, but with constraints |
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 变更类型 |
-|------|------|---------|
-| §1 定位与边界 | 职责 | 不可变 |
-| | 不负责 | 追加 |
-| §2 结构与交互 | 组件图 | 可更新 |
-| | 组件表 | 追加 + 可更新 |
-| | 数据流图 | 可更新 |
-| | 数据流表 | 追加 + 可更新 |
-| §3 设计决策 | 驱动因素 | 不可变 |
-| | 关键选择 | 追加 |
-| | 约束 | 追加 |
-| §4 质量要求 | 质量表 | 数据刷新 + 追加 |
+| Location | Field | Change Type |
+|----------|-------|-------------|
+| §1 Positioning and Boundaries | Responsibility | immutable |
+| | Out of Scope | append-only |
+| §2 Structure and Interaction | Component Diagram | updatable |
+| | Component Table | append-only + updatable |
+| | Data Flow Diagram | updatable |
+| | Data Flow Table | append-only + updatable |
+| §3 Design Decisions | Driving Factors | immutable |
+| | Key Choices | append-only |
+| | Constraints | append-only |
+| §4 Quality Requirements | Quality Table | data refresh + append-only |
 
-## 字段变更规则
+## Field Change Rules
 
-### §1 定位与边界
+### §1 Positioning and Boundaries
 
-#### 职责
+#### Responsibility
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 模块职责确认后修改（职责变化 = 新模块，新建 arch 文档）
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the module's responsibility is confirmed (a change of responsibility = a new module; create a new arch document)
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
 
-#### 不负责
+#### Out of Scope
 
-- **变更类型**: 追加
-- **允许**: 新增排除项
-- **禁止**: 删除已有项
-- **触发**: 发现新的边界模糊点
-- **校验**: 新项含"→ 谁负责"指向
+- **Change Type**: append-only
+- **Allowed**: Adding new exclusions
+- **Forbidden**: Deleting existing items
+- **Trigger**: A new boundary ambiguity is identified
+- **Check**: New items include a "→ owned by whom" pointer
 
-### §2 结构与交互
+### §2 Structure and Interaction
 
-#### 组件图
+#### Component Diagram
 
-- **变更类型**: 可更新
-- **允许**: 新增组件；调整组件间关系；更新职责标注
-- **禁止**: 删除已有组件（废弃组件标注"已废弃"保留在图中）
-- **触发**: 模块重构/新增子组件
-- **校验**: 图与组件表保持一致
+- **Change Type**: updatable
+- **Allowed**: Adding new components; adjusting inter-component relationships; updating responsibility annotations
+- **Forbidden**: Deleting existing components (deprecated components stay in the diagram with a "deprecated" annotation)
+- **Trigger**: Module refactor / new sub-component
+- **Check**: The diagram stays consistent with the component table
 
-#### 组件表
+#### Component Table
 
-- **变更类型**: 追加 + 可更新
-- **允许**: 新增行；已有行的职责/边界规则可细化
-- **禁止**: 删除已有行（废弃组件标注"已废弃"）；放宽边界规则
-- **触发**: 新增组件/职责细化
-- **校验**: 与组件图一致
-- ❌ 删除一行组件
-- ✅ 组件行追加"已废弃"标注 + 新增替代组件行
+- **Change Type**: append-only + updatable
+- **Allowed**: Adding new rows; refining the responsibility / boundary rule of existing rows
+- **Forbidden**: Deleting existing rows (deprecated components are annotated "deprecated"); loosening boundary rules
+- **Trigger**: New component / responsibility refinement
+- **Check**: Consistent with the component diagram
+- ❌ Deleting a component row
+- ✅ Annotating the component row as "deprecated" + adding a replacement component row
 
-#### 数据流图 / 数据流表
+#### Data Flow Diagram / Data Flow Table
 
-- **变更类型**: 追加 + 可更新
-- **允许**: 新增流向；已有流向的格式/说明可更新
-- **禁止**: 删除已有流向（废弃标注"已废弃"）
-- **触发**: 新增数据交互
-- **校验**: 图与表一致
+- **Change Type**: append-only + updatable
+- **Allowed**: Adding new flows; updating the format / description of existing flows
+- **Forbidden**: Deleting existing flows (deprecated flows are annotated "deprecated")
+- **Trigger**: New data interaction
+- **Check**: Diagram and table stay consistent
 
-### §3 设计决策
+### §3 Design Decisions
 
-#### 驱动因素
+#### Driving Factors
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改已有因素（新驱动因素 = 架构演进，追加到关键选择表）
-- **触发**: —
-- **校验**: diff 中不应出现已有行变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying existing factors (a new driving factor = architectural evolution; append it to the key-choices table)
+- **Trigger**: —
+- **Check**: The diff must not contain changes to existing rows
 
-#### 关键选择
+#### Key Choices
 
-- **变更类型**: 追加
-- **允许**: 新增选择行
-- **禁止**: 修改已有行；删除历史决策
-- **触发**: 架构演进产生新选型
-- **校验**: 新行含被拒方案
+- **Change Type**: append-only
+- **Allowed**: Adding new choice rows
+- **Forbidden**: Modifying existing rows; deleting historical decisions
+- **Trigger**: A new selection produced by architectural evolution
+- **Check**: New rows include the rejected alternative
 
-#### 约束
+#### Constraints
 
-- **变更类型**: 追加
-- **允许**: 新增约束；已有约束追加"→已解除（原因）"标注
-- **禁止**: 删除已有约束
-- **触发**: 发现新的硬性限制
-- **校验**: 新约束含原因
+- **Change Type**: append-only
+- **Allowed**: Adding new constraints; appending a "→ lifted (reason)" annotation to an existing constraint
+- **Forbidden**: Deleting existing constraints
+- **Trigger**: A new hard constraint is identified
+- **Check**: New constraints include a reason
 
-### §4 质量要求
+### §4 Quality Requirements
 
-#### 质量表
+#### Quality Table
 
-- **变更类型**: 数据刷新 + 追加
-- **允许**: 目标值从"目标值，待验证"→实测值；新增指标行
-- **禁止**: 删除已有行；降低已有目标
-- **触发**: 有了实测数据 / 新增质量要求
-- **校验**: 实测值标来源
+- **Change Type**: data refresh + append-only
+- **Allowed**: Target values move from "target value, pending validation" → measured values; new metric rows
+- **Forbidden**: Deleting existing rows; lowering existing targets
+- **Trigger**: Measured data is now available / a new quality requirement is introduced
+- **Check**: Measured values annotate their source
 
-## 操作流程
+## Operating Procedure
 
-### 创建架构文档
+### Create an Architecture Document
 
-1. 填写 §1 定位与边界（职责 + 不负责）
-2. 填写 §2 结构与交互（组件图 + 组件表 + 数据流）
-3. 填写 §3 设计决策（驱动因素 + 关键选择 + 约束）
-4. 填写 §4 质量要求
+1. Fill in §1 Positioning and Boundaries (Responsibility + Out of Scope)
+2. Fill in §2 Structure and Interaction (Component Diagram + Component Table + Data Flow)
+3. Fill in §3 Design Decisions (Driving Factors + Key Choices + Constraints)
+4. Fill in §4 Quality Requirements
 
-### 架构演进
+### Architectural Evolution
 
-1. §2 组件图/表更新（新增组件或标注废弃）
-2. §2 数据流更新（新增流向）
-3. §3 关键选择追加新行（记录演进决策）
-4. §4 质量表刷新目标值（如有实测）
+1. Update §2 Component Diagram / Table (add new components or annotate as deprecated)
+2. Update §2 Data Flow (add new flows)
+3. Append a new row to §3 Key Choices (record the evolution decision)
+4. Refresh target values in the §4 Quality Table (if measured data exists)
 
-### 组件废弃
+### Component Deprecation
 
-1. §2 组件图中标注"已废弃"（不删除）
-2. §2 组件表中该行追加"已废弃"标注
-3. §3 关键选择追加废弃决策行
+1. Annotate the component as "deprecated" in the §2 Component Diagram (do not delete it)
+2. Append "deprecated" to the corresponding row of the §2 Component Table
+3. Append a deprecation decision row to §3 Key Choices
 
-## 校验规则
+## Validation Rules
 
-1. **§1 职责未被修改** — diff 中不应出现职责变化
-2. **§3 驱动因素未被修改** — diff 中不应出现已有行变化
-3. **图表一致** — 组件图/数据流图与对应表格内容一致
-4. **追加字段只增不减** — 组件/数据流/选择/约束行数只增不减
-5. **废弃标注而非删除** — 不直接删除组件/流向，标注"已废弃"
+1. **§1 Responsibility unchanged** — The diff must not contain changes to Responsibility
+2. **§3 Driving Factors unchanged** — The diff must not contain changes to existing rows
+3. **Diagram/table consistency** — The Component Diagram / Data Flow Diagram match their corresponding tables
+4. **Append-only fields only grow** — Component / data-flow / choice / constraint row counts only grow
+5. **Annotate as deprecated, do not delete** — Do not delete components / flows directly; annotate them as "deprecated"

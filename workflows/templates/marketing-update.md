@@ -1,154 +1,154 @@
-# Marketing 更新规则
+# Marketing Update Rules
 
-## 变更类型
+## Change Types
 
-| 类型 | 含义 |
-|------|------|
-| **不可变** | 一旦写入不再修改 |
-| **追加** | 只能新增条目，不能改已有的 |
-| **数据刷新** | 已有值可被更准确的数据替换 |
-| **可更新** | 内容可修改，但有约束 |
+| Type | Meaning |
+|------|---------|
+| **immutable** | Once written, never modified |
+| **append-only** | Only new entries can be added; existing ones cannot be modified |
+| **data refresh** | Existing values may be replaced with more accurate data |
+| **updatable** | Content can be modified, but with constraints |
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 变更类型 |
-|------|------|---------|
-| §1 目标受众 | 用户画像 | 不可变 |
-| | 活跃平台 | 不可变 |
-| | 决策因素 | 不可变 |
-| §2 核心信息 | 一句话卖点 | 不可变 |
-| | 差异化 | 不可变 |
-| §3 推广渠道 | 渠道行（已有） | 可更新 |
-| | 渠道行（新增） | 追加 |
-| §4 传播节奏 | 节奏条目 | 追加 |
-| §5 效果衡量 | 指标.目标 | 数据刷新 |
-| | 指标.复盘节点 | 数据刷新 |
-| | 指标行（新增） | 追加 |
+| Location | Field | Change Type |
+|----------|-------|-------------|
+| §1 Target Audience | User Persona | immutable |
+| | Active Platforms | immutable |
+| | Decision Factors | immutable |
+| §2 Core Message | One-line Pitch | immutable |
+| | Differentiation | immutable |
+| §3 Promotion Channels | Channel row (existing) | updatable |
+| | Channel row (new) | append-only |
+| §4 Communication Cadence | Cadence entry | append-only |
+| §5 Impact Measurement | Metric.Target | data refresh |
+| | Metric.Review Checkpoint | data refresh |
+| | Metric row (new) | append-only |
 
-## 字段变更规则
+## Field Change Rules
 
-### §1 目标受众
+### §1 Target Audience
 
-#### 用户画像
+#### User Persona
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 定位确认后修改（定位变更需新建文档）
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the positioning is confirmed (a positioning change requires a new document)
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
 
-#### 活跃平台
+#### Active Platforms
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改已确认的平台列表
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying the confirmed list of platforms
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
 
-#### 决策因素
+#### Decision Factors
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改已确认的决策因素
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying the confirmed decision factors
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
 
-### §2 核心信息
+### §2 Core Message
 
-#### 一句话卖点
+#### One-line Pitch
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 定位确认后修改卖点措辞
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
-- ❌ 觉得措辞不够好后重写卖点
-- ✅ 保留原卖点，定位大变时新建营销方案
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Rewording after the positioning is confirmed
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
+- ❌ Rewriting the pitch because the wording feels weak
+- ✅ Keep the original pitch; create a new marketing plan when the positioning shifts substantially
 
-#### 差异化
+#### Differentiation
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改已确认的差异化描述
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying the confirmed differentiation description
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
 
-### §3 推广渠道
+### §3 Promotion Channels
 
-#### 渠道行（已有）
+#### Channel row (existing)
 
-- **变更类型**: 可更新
-- **允许**: 更新策略描述、调整优先级
-- **禁止**: 删除已有渠道行
-- **触发**: 策略优化、优先级调整
-- **校验**: 行数只增不减；优先级仍为 P0/P1/P2 枚举
-- ❌ 删除效果不好的渠道行
-- ✅ 将效果不好的渠道优先级从 P0 降为 P2
+- **Change Type**: updatable
+- **Allowed**: Updating strategy descriptions; adjusting priority
+- **Forbidden**: Deleting existing channel rows
+- **Trigger**: Strategy refinement; priority adjustment
+- **Check**: Row count only grows; priority remains within the P0/P1/P2 enum
+- ❌ Deleting an underperforming channel row
+- ✅ Lowering the priority of an underperforming channel from P0 to P2
 
-#### 渠道行（新增）
+#### Channel row (new)
 
-- **变更类型**: 追加
-- **允许**: 新增渠道行
-- **禁止**: —
-- **触发**: 发现新渠道机会
-- **校验**: 新行满足格式约束
+- **Change Type**: append-only
+- **Allowed**: Adding new channel rows
+- **Forbidden**: —
+- **Trigger**: A new channel opportunity is found
+- **Check**: New rows satisfy the format constraints
 
-### §4 传播节奏
+### §4 Communication Cadence
 
-#### 节奏条目
+#### Cadence entry
 
-- **变更类型**: 追加
-- **允许**: 新增传播动作
-- **禁止**: 删除或修改已有条目
-- **触发**: 新增传播计划
-- **校验**: 新条目满足 "{YYYY.MM.DD} — {动作}" 格式
-- ❌ 删除未执行的传播动作
-- ✅ 新增后续传播动作
+- **Change Type**: append-only
+- **Allowed**: Adding new communication actions
+- **Forbidden**: Deleting or modifying existing entries
+- **Trigger**: New communication plans
+- **Check**: New entries match the "{YYYY.MM.DD} — {action}" format
+- ❌ Deleting an unexecuted communication action
+- ✅ Appending a follow-up communication action
 
-### §5 效果衡量
+### §5 Impact Measurement
 
-#### 指标.目标 / 指标.复盘节点
+#### Metric.Target / Metric.Review Checkpoint
 
-- **变更类型**: 数据刷新
-- **允许**: 估算→实测；复盘后更新目标值
-- **禁止**: 实测被估算替换；降低已确认的目标
-- **触发**: 有了真实数据或完成复盘
-- **校验**: 新值标注来源
+- **Change Type**: data refresh
+- **Allowed**: estimated → measured; updating target values after a retrospective
+- **Forbidden**: Replacing measured with estimated; lowering a confirmed target
+- **Trigger**: Real data is now available, or a retrospective has completed
+- **Check**: New values annotate their source
 
-#### 指标行（新增）
+#### Metric row (new)
 
-- **变更类型**: 追加
-- **允许**: 新增指标行
-- **禁止**: 删除已有指标行
-- **触发**: 发现新的衡量维度
-- **校验**: 新行满足格式约束
+- **Change Type**: append-only
+- **Allowed**: Adding new metric rows
+- **Forbidden**: Deleting existing metric rows
+- **Trigger**: A new measurement dimension is identified
+- **Check**: New rows satisfy the format constraints
 
-## 操作流程
+## Operating Procedure
 
-### 创建营销方案
+### Create a Marketing Plan
 
-1. 填写 §1-§5 所有字段
-2. §1 活跃平台 ≥2 条，决策因素 ≥2 条
-3. §2 差异化 ≥2 条
-4. §3 推广渠道 ≥2 行
-5. §4 传播节奏 ≥3 条
-6. §5 效果衡量 ≥2 行
+1. Fill in all fields of §1–§5
+2. §1 Active Platforms ≥2 items, Decision Factors ≥2 items
+3. §2 Differentiation ≥2 items
+4. §3 Promotion Channels ≥2 rows
+5. §4 Communication Cadence ≥3 items
+6. §5 Impact Measurement ≥2 rows
 
-### 策略调整
+### Strategy Adjustment
 
-1. §3 渠道行可更新策略和优先级
-2. §4 追加新传播动作
-3. §5 数据刷新指标目标值
+1. §3 Channel rows can update strategy and priority
+2. §4 Append new communication actions
+3. §5 Refresh metric target values
 
-### 复盘更新
+### Retrospective Update
 
-1. §5 数据刷新实际效果数据
-2. §4 追加后续传播计划
+1. §5 Refresh actual-impact data
+2. §4 Append follow-up communication plans
 
-## 校验规则
+## Validation Rules
 
-1. **§1-§2 不可变** — diff 中不应出现 §1 目标受众、§2 核心信息的变化
-2. **§3 只增不删** — 渠道行数只增不减
-3. **§4 只增不删** — 传播节奏条目只增不减
-4. **§5 数据刷新标注来源** — 目标/复盘节点更新时标注来源
-5. **优先级枚举** — §3 优先级只能是 P0/P1/P2
+1. **§1–§2 immutable** — The diff must not contain changes to §1 Target Audience or §2 Core Message
+2. **§3 only grows** — Channel row count only grows
+3. **§4 only grows** — Communication cadence entries only grow
+4. **§5 data refresh annotates source** — When updating target / review checkpoint, annotate the source
+5. **Priority enum** — §3 priority can only be P0/P1/P2

@@ -1,165 +1,165 @@
-# PRD 检查清单
+# PRD Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1 问题 | 痛点 | 不可 |
-| | 影响范围 | 不可 |
-| | 为什么现在做 | 不可 |
-| §2 目标用户 | 角色 | 不可 |
-| | 场景 | 不可 |
-| | Before | 不可 |
-| | After | 不可 |
-| §3 核心假设 | 假设 | 不可 |
-| | 验证方式 | 不可 |
-| §4 方案 | Before→After | 不可（≥1 条） |
-| | 任务追踪表 | 不可（≥1 行） |
-| §5 验收标准 | 验收条目 | 不可（≥3 条） |
-| §6 排除项 | 排除条目 | 不可（≥2 条） |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1 Problem | Pain Point | No |
+| | Impact Scope | No |
+| | Why Now | No |
+| §2 Target Users | Role | No |
+| | Scenario | No |
+| | Before | No |
+| | After | No |
+| §3 Core Hypothesis | Hypothesis | No |
+| | Validation Method | No |
+| §4 Plan | Before→After | No (≥1 item) |
+| | Task Tracking Table | No (≥1 row) |
+| §5 Acceptance Criteria | Acceptance Item | No (≥3 items) |
+| §6 Exclusions | Exclusion Item | No (≥2 items) |
 
-## 字段定义
+## Field Definitions
 
-### §1 问题
+### §1 Problem
 
-#### 痛点
+#### Pain Point
 
-- **信息**: 用户遇到的具体困难
-- **格式**: 1-3 句。主语是用户/agent，描述现象不描述缺失
-- **禁止**: "缺乏X""没有Y"；技术实现原因；内部架构限制
-- **省略**: 不可
-- **数据**: —
-- ❌ "系统缺乏自测能力"
-- ✅ "支付 webhook 验签逻辑改动后无法验证是否引入回归，错误放行的请求上线后才发现"
+- **Information**: The concrete difficulty users encounter
+- **Format**: 1-3 sentences. The subject is the user/agent; describe phenomena, not what is missing
+- **Forbidden**: "Lack of X", "no Y"; technical-implementation reasons; internal-architecture limitations
+- **Omit**: No
+- **Data**: —
+- ❌ "The system lacks self-test capability"
+- ✅ "After modifying payment-webhook signature-verification logic, there is no way to verify whether a regression has been introduced; mistakenly allowed requests are only discovered after release"
 
-#### 影响范围
+#### Impact Scope
 
-- **信息**: 多少人/场景受影响，多频繁
-- **格式**: 量化描述。含受影响群体 + 频次
-- **禁止**: "很多用户""影响较大"等无量化描述
-- **省略**: 不可
-- **数据**: 有实测用实测标来源；无实测标"估算"+推算依据
-- ❌ "影响较大"
-- ✅ "每次修改 webhook 验签逻辑（估算: 周均 2-3 次）都面临回归风险，影响所有支付回调链路"
+- **Information**: How many people / scenarios are affected and how often
+- **Format**: Quantified description. Include the affected group + frequency
+- **Forbidden**: Non-quantified descriptions such as "many users" or "significant impact"
+- **Omit**: No
+- **Data**: When measured, use measured and annotate the source; when not measured, mark "estimated" + derivation basis
+- ❌ "Significant impact"
+- ✅ "Every modification of webhook signature-verification logic (estimated: 2-3 times per week) faces regression risk and affects all payment callback chains"
 
-#### 为什么现在做
+#### Why Now
 
-- **信息**: 触发事件 + 不做的后果
-- **格式**: 1-2 句。含具体触发事件
-- **禁止**: "重要所以先做""优先级高"
-- **省略**: 不可
-- **数据**: —
-- ❌ "这个需求很重要"
-- ✅ "本次会话中 PROJECT_DIR 路径解析错误导致数据写错目录，直到手动测试才发现"
+- **Information**: Triggering event + consequence of not doing it
+- **Format**: 1-2 sentences. Includes a specific triggering event
+- **Forbidden**: "Important so we do it first", "high priority"
+- **Omit**: No
+- **Data**: —
+- ❌ "This requirement is very important"
+- ✅ "In this session, a PROJECT_DIR path-resolution error wrote data into the wrong directory and was only discovered through manual testing"
 
-### §2 目标用户
+### §2 Target Users
 
-#### 角色
+#### Role
 
-- **信息**: 谁会用
-- **格式**: "{限定条件}的{角色名}"
-- **禁止**: 无限定的泛称（"开发者""用户"）
-- **省略**: 不可
-- **数据**: —
-- ❌ "开发者"
-- ✅ "使用 know skill 的 Claude Code 用户"
+- **Information**: Who will use it
+- **Format**: "{qualifier}'s {role name}"
+- **Forbidden**: Unqualified generic names ("developer", "user")
+- **Omit**: No
+- **Data**: —
+- ❌ "Developer"
+- ✅ "Claude Code users using the know skill"
 
-#### 场景
+#### Scenario
 
-- **信息**: 什么时候触发使用
-- **格式**: 具体触发场景
-- **禁止**: "日常使用""开发时"
-- **省略**: 不可
-- **数据**: —
-- ❌ "日常开发中"
-- ✅ "修改 webhook 验签逻辑后需要验证核心 case 无回归"
+- **Information**: When use is triggered
+- **Format**: A specific trigger scenario
+- **Forbidden**: "Daily use", "during development"
+- **Omit**: No
+- **Data**: —
+- ❌ "During daily development"
+- ✅ "After modifying webhook signature-verification logic, the user needs to verify that core cases have no regression"
 
 #### Before
 
-- **信息**: 使用前的痛感
-- **格式**: 具体行为 + 结果，量化
-- **禁止**: "效率低""体验差"
-- **省略**: 不可
-- **数据**: 有实测用实测；无实测标"估算"
-- ❌ "效率很低"
-- ✅ "手动逐命令检查，耗时长且容易遗漏边界 case"
+- **Information**: The pain before use
+- **Format**: Specific behavior + outcome, quantified
+- **Forbidden**: "Low efficiency", "poor experience"
+- **Omit**: No
+- **Data**: When measured, use measured; when not measured, mark "estimated"
+- ❌ "Very low efficiency"
+- ✅ "Manually checks command by command; takes a long time and is prone to missing edge cases"
 
 #### After
 
-- **信息**: 使用后的状态
-- **格式**: 与 Before 对称呼应，量化改善
-- **禁止**: 与 Before 无对应关系
-- **省略**: 不可
-- **数据**: 同 Before
-- ❌ "效率大幅提升"
-- ✅ "一条命令验证全部核心功能，8-12s 完成"
+- **Information**: The state after use
+- **Format**: Symmetric with Before, quantified improvement
+- **Forbidden**: No corresponding relationship with Before
+- **Omit**: No
+- **Data**: Same as Before
+- ❌ "Efficiency greatly improved"
+- ✅ "A single command verifies all core functionality, completing in 8-12s"
 
-### §3 核心假设
+### §3 Core Hypothesis
 
-#### 假设
+#### Hypothesis
 
-- **信息**: 做了之后会怎样
-- **格式**: 1 句因果句"做了 X → 用户会 Y"
-- **禁止**: 多个假设混在一起；技术方案描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "优化后体验更好"
-- ✅ "提供 contract test 套件 → 开发者改动验签逻辑后可一键验证无回归"
+- **Information**: What will happen after doing it
+- **Format**: 1 causal sentence "do X → users will Y"
+- **Forbidden**: Multiple hypotheses mixed together; technical-solution descriptions
+- **Omit**: No
+- **Data**: —
+- ❌ "Experience will be better after optimization"
+- ✅ "Provide a contract test suite → developers can verify there is no regression with a single command after modifying signature-verification logic"
 
-#### 验证方式
+#### Validation Method
 
-- **信息**: 怎么知道假设成立
-- **格式**: 可执行检查 + 判定条件
-- **禁止**: "测试一下看看""看看效果"
-- **省略**: 不可
-- **数据**: —
-- ❌ "看看效果"
-- ✅ "故意引入签名计算 bug，contract test 应在签名校验阶段捕获异常"
+- **Information**: How to know the hypothesis holds
+- **Format**: An executable check + decision condition
+- **Forbidden**: "Test it and see", "see how it goes"
+- **Omit**: No
+- **Data**: —
+- ❌ "See how it goes"
+- ✅ "Intentionally introduce a bug into the signature computation; the contract test should catch the exception in the signature-verification stage"
 
-### §4 方案
+### §4 Plan
 
 #### Before→After
 
-- **信息**: 用户体验怎么变
-- **格式**: 每条 "Before: {现在} → After: {之后}"，用户视角行为变化。≥1 条
-- **禁止**: 技术实现描述；内部数据结构；文件路径
-- **省略**: 不可
-- **数据**: —
-- ❌ "新增 contract test 套件，覆盖签名/重放/超时等场景"
-- ✅ "Before: 改动后手动逐命令检查 → After: 运行一条命令自动验证全部核心功能"
+- **Information**: How the user experience changes
+- **Format**: Each item "Before: {now} → After: {then}", behavior change from the user's perspective. ≥1 item
+- **Forbidden**: Implementation descriptions; internal data structures; file paths
+- **Omit**: No
+- **Data**: —
+- ❌ "Add a contract test suite covering signature, replay, timeout, and other scenarios"
+- ✅ "Before: manually check command by command after a change → After: run a single command to automatically verify all core functionality"
 
-#### 任务追踪表
+#### Task Tracking Table
 
-- **信息**: tech 维度的任务进度
-- **格式**: 表格，每行 任务 | Tech | 状态 | 备注。≥1 行
-- **禁止**: 删除已有行；回退状态
-- **省略**: 不可
-- **数据**: —
+- **Information**: Task progress at the tech dimension
+- **Format**: Table, each row Task | Tech | Status | Notes. ≥1 row
+- **Forbidden**: Deleting existing rows; regressing the status
+- **Omit**: No
+- **Data**: —
 
-### §5 验收标准
+### §5 Acceptance Criteria
 
-#### 验收条目
+#### Acceptance Item
 
-- **信息**: 怎么算做完了
-- **格式**: 每条 "用户做 X → 应看到 Y"。≥3 条。覆盖核心场景 + 关键边界。每条可独立验证
-- **禁止**: 单元测试用例；代码覆盖率；内部接口断言
-- **省略**: 不可
-- **数据**: —
-- ❌ "contract test 正常工作"
-- ✅ "开发者运行 `npm run test:contract` → 应看到 6 个核心 case 全部 PASS，耗时 <30s"
+- **Information**: How to know it is done
+- **Format**: Each item "user does X → should see Y". ≥3 items. Cover core scenarios + key edge cases. Each item independently verifiable
+- **Forbidden**: Unit-test cases; code-coverage numbers; internal-interface assertions
+- **Omit**: No
+- **Data**: —
+- ❌ "Contract test works correctly"
+- ✅ "Developer runs `npm run test:contract` → should see all 6 core cases PASS, taking <30s"
 
-### §6 排除项
+### §6 Exclusions
 
-#### 排除条目
+#### Exclusion Item
 
-- **信息**: 不做什么，边界在哪
-- **格式**: "不支持 X（{原因}）" 或 "X 推迟到 v{N}（{原因}）"。≥2 条。只列容易被误认为在 scope 内的项
-- **禁止**: 无原因的裸排除项；技术债、重构计划
-- **省略**: 不可
-- **数据**: —
-- ❌ "暂不支持"
-- ✅ "不支持跨项目一致性检查（当前只需单项目使用）"
+- **Information**: What is not done and where the boundary is
+- **Format**: "Not supported: X ({reason})" or "X deferred to v{N} ({reason})". ≥2 items. Only list things easily mistaken as in scope
+- **Forbidden**: Bare exclusions without reasons; tech debt or refactoring plans
+- **Omit**: No
+- **Data**: —
+- ❌ "Not supported for now"
+- ✅ "Cross-project consistency checks not supported (currently only single-project use is required)"
 
-## 数据置信规则
+## Data Confidence Rules
 
-同 roadmap-checklist.md：实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。
+Same as roadmap-checklist.md: measured > annotate source; estimated > annotate basis; target > "pending validation"; no data > annotate reason. No fabrication.

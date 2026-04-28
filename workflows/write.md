@@ -1,82 +1,82 @@
-# write — 文档撰写
+# write — document authoring
 
-基于对话内容生成结构化 markdown 文档。10 种 type，分三种布局（单文件、目录、需求）。
+Generate structured markdown docs based on conversation content. 10 types in three layouts (single-file, directory, requirement).
 
-5 stage 串行：infer → gate → confirm → draft → write。
+5 stages run serially: infer → gate → confirm → draft → write.
 
-每个 stage 入口先输出两行：
+At each stage entry, first emit two lines:
 
 ```
 [write] stage X/5 — {name}
-目的：{purpose}
+Purpose: {purpose}
 ```
 
-Stage 概览：
+Stage overview:
 
-- Stage 1 infer — 从 hint + 对话推断 type / name / mode / parent（Step 1）
-- Stage 2 gate — 充分性检查，内容不足则降级或补充（Step 2）
-- Stage 3 confirm — 展示推断结果，用户确认或修改字段（Step 3）
-- Stage 4 draft — 加载模板，填充内容（Step 4-5）
-- Stage 5 write — 预览、写入、校验、回写父文档、索引注入（Step 6-9）
+- Stage 1 infer — infer type / name / mode / parent from hint + conversation (Step 1)
+- Stage 2 gate — sufficiency check; if content is insufficient, downgrade or supplement (Step 2)
+- Stage 3 confirm — present the inferred result, user confirms or modifies fields (Step 3)
+- Stage 4 draft — load template, fill in content (Step 4-5)
+- Stage 5 write — preview, write, validate, write back to parent doc, inject index (Step 6-9)
 
 ## Stage 1: infer
 
 ```
 [write] stage 1/5 — infer
-目的：从 hint 和对话上下文推断 type / name / mode / parent 四个参数。
+Purpose: infer the four parameters type / name / mode / parent from the hint and conversation context.
 ```
 
-### Step 1 — 推断四个参数
+### Step 1 — infer the four parameters
 
-统一逻辑：hint → 自动推断 → 一次澄清 → 完整列表回退 → 终止。
+Unified logic: hint → automatic inference → one clarification → fall back to full list → terminate.
 
 **type**
 
-10 种：roadmap / prd / tech / arch / decision / schema / ui / capabilities / ops / marketing
+10 types: roadmap / prd / tech / arch / decision / schema / ui / capabilities / ops / marketing
 
-推断顺序：
+Inference order:
 
-1. hint 是有效 type → 直接采用；hint 存在但不在 10 种内 → 视为 null，走推断
-2. 对话匹配 exemplar：唯一命中 → 采用；命中同一分组 → 细分问题；跨分组或零命中 → 大类问题再细分
-3. 无效回复 → 列出全部 10 种 → 再无效 → 终止
+1. hint is a valid type → use directly; hint exists but not in the 10 types → treat as null, run inference
+2. Conversation matches an exemplar: single hit → use; hits within the same group → ask a fine-grained question; cross-group or no hit → ask the broad-group question, then refine
+3. Invalid reply → list all 10 types → still invalid → terminate
 
-大类问题：你想产出的属于哪一组？
+Broad-group question: which group does what you want to produce belong to?
 
-- 路线 / 需求类：roadmap / prd
-- 技术 / 架构类：tech / arch / decision / schema
-- 能力 / 表达类：capabilities / ui / ops / marketing
+- roadmap / requirement: roadmap / prd
+- tech / architecture: tech / arch / decision / schema
+- capability / expression: capabilities / ui / ops / marketing
 
-Exemplars（判断对话命中 type 的锚点句）：
+Exemplars (anchor sentences that signal a type hit in the conversation):
 
-- roadmap："v1 交付 A/B/C；v2 扩展 D；Q2 发布"
-- prd："用户可上传 pdf；上传成功率目标 95%"
-- tech："采用 SQLite 存储；启用 WAL 模式；按 project_id 分表"
-- arch："支付模块由验签、处理、上报三段构成"
-- decision："选用 JSONL 而非 SQLite，因其 diff 友好"
-- schema："POST /api/v2/users 请求体含 name、email"
-- capabilities："系统支持文件上传、OCR、全文检索"
-- ui："点击按钮触发弹窗；表单分三段"
-- ops："发布后收集反馈；两周一次迭代"
-- marketing："通过博客、Twitter、官网 landing 多渠道推广"
+- roadmap: "v1 delivers A/B/C; v2 extends D; release in Q2"
+- prd: "users can upload pdf; target upload success rate 95%"
+- tech: "use SQLite for storage; enable WAL mode; shard by project_id"
+- arch: "the payment module has three stages: signature verification, processing, reporting"
+- decision: "chose JSONL over SQLite because it is diff-friendly"
+- schema: "POST /api/v2/users request body contains name, email"
+- capabilities: "the system supports file upload, OCR, full-text search"
+- ui: "clicking the button triggers a modal; the form has three sections"
+- ops: "collect feedback after release; iterate every two weeks"
+- marketing: "promote across multiple channels — blog, Twitter, landing page"
 
 **name**
 
-roadmap / capabilities / ops / marketing 不需要 name → null。
+roadmap / capabilities / ops / marketing do not need a name → null.
 
-否则：
+Otherwise:
 
-1. hint 或对话中含明确名词短语 → 归一化（小写，空格/点/斜杠转 `-`，去非 `[a-z0-9-]` 字符，trim）
-2. 以上均无 → 问用户 → 无效 → 重试 1 次 → 终止
+1. hint or conversation contains an explicit noun phrase → normalize (lowercase; spaces / dots / slashes to `-`; strip non-`[a-z0-9-]` chars; trim)
+2. None of the above → ask user → invalid → retry once → terminate
 
 **mode**
 
-1. 目标文件不存在 → create
-2. type = roadmap → update（永远单文件）
-3. 目标文件存在 → 问用户：A) Update / B) 换名字（回 name 推断）/ C) 取消，等待回复
+1. Target file does not exist → create
+2. type = roadmap → update (always single-file)
+3. Target file exists → ask user: A) Update / B) rename (return to name inference) / C) cancel; wait for reply
 
 **parent**
 
-文档路径表（相对 git root）：
+Document path table (relative to git root):
 
 | type | path |
 |------|------|
@@ -91,19 +91,19 @@ roadmap / capabilities / ops / marketing 不需要 name → null。
 | schema | `docs/schema/{name}.md` |
 | ui | `docs/ui/{name}.md` |
 
-层级：roadmap → prd → tech，其余独立。roadmap 永远单文件，新版本属 update。
+Hierarchy: roadmap → prd → tech; the rest are independent. roadmap is always single-file; new versions are updates.
 
-parent 映射：
+parent mapping:
 
 - prd → `docs/roadmap.md`
-- tech → `docs/requirements/{name}/prd.md`（同 name）
-- 其他 → null
+- tech → `docs/requirements/{name}/prd.md` (same name)
+- others → null
 
-parent 缺失处理：
+Missing-parent handling:
 
-- prd 且 roadmap 不存在 → 继续，标注缺失
-- tech 且 prd 不存在 → 问用户：A) 直接继续 / B) 先创建 PRD，等待回复
-- prd 里程碑归属不明 → 询问里程碑编号
+- prd and roadmap does not exist → continue, mark as missing
+- tech and prd does not exist → ask user: A) continue directly / B) create the PRD first; wait for reply
+- prd milestone attribution unclear → ask for the milestone number
 
 ---
 
@@ -111,19 +111,19 @@ parent 缺失处理：
 
 ```
 [write] stage 2/5 — gate
-目的：对高风险 type 检查对话内容是否足以支撑文档；不足则降级或补充后重跑。
+Purpose: for high-risk types, check whether the conversation content is sufficient to support the doc; if not, downgrade or supplement and rerun.
 ```
 
-### Step 2 — 充分性检查
+### Step 2 — sufficiency check
 
-仅对高风险 type（prd / tech / arch / schema / decision / ui）运行；其余 type 直接进 Stage 3。
+Run only for high-risk types (prd / tech / arch / schema / decision / ui); other types go to Stage 3 directly.
 
-模板基目录：`workflows/templates/`（相对 plugin root）。
+Template base directory: `workflows/templates/` (relative to plugin root).
 
-1. 加载 `workflows/templates/sufficiency-gate.md` 的问题组
-2. 每题以对话原文引用或明确 "not present" 作答
-3. 全 yes → pass，进 Stage 3
-4. 混合或全 no → 问用户：A) 补充对话重跑 / B) 降级为建议 type（回 Stage 1）/ C) 取消，等待回复
+1. Load the question groups from `workflows/templates/sufficiency-gate.md`
+2. Answer each question with a verbatim quote from the conversation or an explicit "not present"
+3. All yes → pass, enter Stage 3
+4. Mixed or all no → ask user: A) supplement the conversation and rerun / B) downgrade to the suggested type (return to Stage 1) / C) cancel; wait for reply
 
 ---
 
@@ -131,10 +131,10 @@ parent 缺失处理：
 
 ```
 [write] stage 3/5 — confirm
-目的：展示推断结果，等待用户确认或修改字段。
+Purpose: present the inferred result, wait for user confirmation or field modification.
 ```
 
-### Step 3 — 用户确认
+### Step 3 — user confirmation
 
 ```
 [write] Inferred from conversation
@@ -146,7 +146,7 @@ parent 缺失处理：
 Correct? (yes / change {field}={value})
 ```
 
-修改某字段则其下游全部重跑（type → name → mode → parent），重跑后回到 Stage 2 或 Stage 3。
+Modifying any field reruns everything downstream (type → name → mode → parent); after the rerun, return to Stage 2 or Stage 3.
 
 ---
 
@@ -154,46 +154,46 @@ Correct? (yes / change {field}={value})
 
 ```
 [write] stage 4/5 — draft
-目的：加载模板，按 mode 填充内容。
+Purpose: load the template and fill in content per mode.
 ```
 
-### Step 4 — 加载模板
+### Step 4 — load template
 
-读 `workflows/templates/{type}.md`（update 模式额外读 `{type}-update.md`，不存在则跳过）。
+Read `workflows/templates/{type}.md` (in update mode, also read `{type}-update.md`; skip if absent).
 
-template 不存在 → 合成 `# Title / ## Overview / ## Details / ## Open Questions`。
+If the template does not exist → synthesize `# Title / ## Overview / ## Details / ## Open Questions`.
 
-### Step 5 — 填充内容
+### Step 5 — fill in content
 
-**create 模式**：对每个 section 收集对话引文（按 summary 引用，禁止原文粘贴），遵守 `<!-- INCLUDE / EXCLUDE -->` 提示，产出结构化正文。证据不足写 `TBD — {缺失内容}`，数值标注来源（实测 / 估算 / 目标 / 无数据），不明确处以 `Open question:` 开头。交叉引用用项目根相对路径。
+**create mode**: for each section, collect quotations from the conversation (cite by summary; verbatim pasting forbidden), respect `<!-- INCLUDE / EXCLUDE -->` hints, and produce structured body text. When evidence is insufficient, write `TBD — {missing content}`; annotate every numeric value with its source (measured / estimated / target / no data); start unclear points with `Open question:`. Use project-root-relative paths for cross-references.
 
-**update 模式**：
+**update mode**:
 
-1. 完整读取现有文档
-2. 列出对话讨论过的全部 section
-3. 只重写列出的 section；其余 byte-identical
-4. 补齐缺失的 template section（写内容或 TBD）
-5. 只在被改动 section 内修复坏的相对路径
-6. 无 section 被讨论 → 问用户：A) 新增 section / B) 取消，等待回复
+1. Read the existing doc in full
+2. List every section that the conversation discussed
+3. Rewrite only the listed sections; the rest byte-identical
+4. Fill in any missing template sections (with content or TBD)
+5. Fix broken relative paths only inside the modified sections
+6. No section was discussed → ask user: A) add a new section / B) cancel; wait for reply
 
-**progress fields（create）**：
+**progress fields (create)**:
 
-- roadmap 里程碑：进度（完成数/总数，按关联 PRD 统计）、需求列表（链接每个 PRD，空则 —）、编号（每版本从 M1 重置）
-- prd §4 方案任务表：每个 tech 文档一行，progress = 完成数/总数
-- tech §4 迭代记录：今日日期与 sprint 摘要置顶
+- roadmap milestone: progress (completed / total, counted by linked PRDs), requirement list (link each PRD; — when empty), number (reset from M1 each version)
+- prd §4 plan task table: one row per tech doc, progress = completed / total
+- tech §4 iteration log: today's date and the sprint summary placed at the top
 
-**update 特殊规则（tech）**：
+**update special rules (tech)**:
 
-- §2 方案 → 随认知深化覆写
-- §3 关键决策 → 仅追加
-- §4 迭代记录 → 今日置顶，永不覆盖历史
+- §2 plan → overwritten as understanding deepens
+- §3 key decisions → append-only
+- §4 iteration log → today on top, never overwrite history
 
-**H1 标题**：
+**H1 title**:
 
-- 项目单文件 → `{项目名} {文档类型}`
-- 项目目录 → `{主题名} {文档类型}`
-- prd → `{用户入口}`
-- tech → `{需求名} 技术方案`
+- project single-file → `{project name} {document type}`
+- project directory → `{topic name} {document type}`
+- prd → `{user entry point}`
+- tech → `{requirement name} technical solution`
 
 ---
 
@@ -201,80 +201,80 @@ template 不存在 → 合成 `# Title / ## Overview / ## Details / ## Open Ques
 
 ```
 [write] stage 5/5 — write
-目的：预览草稿，写入文件，校验质量，回写父文档 progress 字段，注入项目 CLAUDE.md 文档索引。
+Purpose: preview the draft, write the file, validate quality, write back the parent doc's progress field, inject the doc index into the project CLAUDE.md.
 ```
 
-### Step 6 — 预览与写入
+### Step 6 — preview and write
 
-写前预览：
+Preview before writing:
 
 ```
 [write] Preview: {path}
-{create: 完整内容 · update: 改动 section 的 diff}
+{create: full content · update: diff of changed sections}
 Write? (yes / edit {section} / no)
 ```
 
-TBD 超过 3 个 section 时，前置 `{n} sections marked TBD: {list}. Still write?`，等待二次确认。
+When TBD exceeds 3 sections, prepend `{n} sections marked TBD: {list}. Still write?` and wait for a second confirmation.
 
-等待用户确认后执行：
+After user confirmation, execute:
 
-- 先创建目录：`mkdir -p "$(dirname "{path}")"`
-- create → Write 工具
-- update → 逐 section 用 Edit 工具；tech 的迭代记录条目置顶
+- First create the directory: `mkdir -p "$(dirname "{path}")"`
+- create → Write tool
+- update → Edit tool, section by section; tech iteration-log entries placed at the top
 
 ```
 [written] {path}
 [written] {path} (updated {n} sections)
 ```
 
-Write / Edit 工具失败 → 暴露错误，禁止静默重试。
+Write / Edit tool failure → surface the error; silent retry forbidden.
 
-### Step 7 — 校验
+### Step 7 — validate
 
-`workflows/templates/{type}-checklist.md` 不存在则跳过。
+If `workflows/templates/{type}-checklist.md` does not exist, skip.
 
-检查项：
+Checks:
 
-- 必需 section 和字段齐全
-- 字段满足语言约束
-- 每个数字有来源标注（实测 / 估算+依据 / 目标值待验证 / 无数据+原因）
-- 非可选字段含真实内容而非占位
-- checklist 引用 `diagram-checklist.md` 时连带检查
+- All required sections and fields present
+- Fields satisfy language constraints
+- Every number has a source annotation (measured / estimated + basis / target value, pending validation / no data + reason)
+- Non-optional fields contain real content, not placeholders
+- When the checklist references `diagram-checklist.md`, run that check too
 
-违规 → 修复 → 重新预览，最多 3 轮。第 4 轮强制出文并标注 `[validate] forced through, {n} checks unresolved`。checklist 文件损坏 → 视为缺失，跳过并告警。
+Violation → fix → preview again, up to 3 rounds. The 4th round forces the doc out and annotates `[validate] forced through, {n} checks unresolved`. Corrupted checklist file → treat as missing, skip and warn.
 
-### Step 8 — 回写父文档
+### Step 8 — write back parent doc
 
-parent 不存在或文件缺失 → 静默跳过。
+Parent does not exist or file is missing → silently skip.
 
-否则用 Edit 工具只改 parent 的 progress 字段：
+Otherwise use the Edit tool to change only the parent's progress field:
 
-- tech 写完 → 更新 `docs/requirements/{name}/prd.md` §4 方案任务表 progress 列
-- prd 写完 → 更新 `docs/roadmap.md` 里程碑表 `完成PRD数/总PRD数`
+- tech written → update the progress column of the §4 plan task table in `docs/requirements/{name}/prd.md`
+- prd written → update the milestone table `completed PRDs / total PRDs` in `docs/roadmap.md`
 
 ```
 [progress] {parent_path} updated ({value})
 ```
 
-parent 存在但无法编辑 → 记 `[progress] skip: {reason}` 后继续。
+Parent exists but cannot be edited → log `[progress] skip: {reason}` and continue.
 
-### Step 9 — 索引注入
+### Step 9 — index injection
 
-仅 create 模式执行；update 模式跳过（路径未变）。
+Run only in create mode; skip in update mode (path unchanged).
 
-目标：`{git root}/CLAUDE.md`。索引行格式 `- {type}[/{name}]: {相对项目根路径}`。
+Target: `{git root}/CLAUDE.md`. Index line format: `- {type}[/{name}]: {project-root-relative path}`.
 
-按目标 file 状态执行 Edit：
+Execute the Edit based on the target file's state:
 
-- 无 `## docs` 段 → 文件末尾追加 `## docs` 段 + 该行
-- `## docs` 段存在 + 不含该行 → 段末追加该行
-- `## docs` 段已含该行 → 跳过（幂等）
+- No `## docs` section → append a `## docs` section + this line at the end of the file
+- `## docs` section exists + does not contain this line → append this line to the end of the section
+- `## docs` section already contains this line → skip (idempotent)
 
-输出：
+Output:
 
 ```
 [index] {git root}/CLAUDE.md updated (+ {type}[/{name}])
 [index] skip: already present
 ```
 
-写失败 → 暴露错误，禁止静默重试。
+Write failure → surface the error; silent retry forbidden.

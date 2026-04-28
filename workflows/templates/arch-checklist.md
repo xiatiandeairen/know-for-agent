@@ -1,194 +1,194 @@
-# 架构文档检查清单
+# Architecture Document Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1 定位与边界 | 职责 | 不可 |
-| | 不负责 | 不可（≥2 项） |
-| §2 结构与交互 | 组件图 | 不可 |
-| | 组件表 | 不可（≥2 行） |
-| | 数据流图 | ≥2 组件有数据传递时不可 |
-| | 数据流表 | 随数据流图 |
-| §3 设计决策 | 驱动因素 | 不可（≥2 行） |
-| | 关键选择 | 不可（≥1 行） |
-| | 约束 | 不可（≥2 项） |
-| §4 质量要求 | 质量表 | 不可（≥2 行） |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1 Positioning and Boundaries | Responsibility | No |
+| | Out of Scope | No (≥2 items) |
+| §2 Structure and Interaction | Component Diagram | No |
+| | Component Table | No (≥2 rows) |
+| | Data Flow Diagram | No when ≥2 components exchange data |
+| | Data Flow Table | Follows the data flow diagram |
+| §3 Design Decisions | Driving Factors | No (≥2 rows) |
+| | Key Choices | No (≥1 row) |
+| | Constraints | No (≥2 items) |
+| §4 Quality Requirements | Quality Table | No (≥2 rows) |
 
-## 字段定义
+## Field Definitions
 
-### §1 定位与边界
+### §1 Positioning and Boundaries
 
-#### 职责
+#### Responsibility
 
-- **信息**: 模块的核心职责
-- **格式**: 1-2 句。"负责{做什么}，为{谁}提供{什么能力}"
-- **禁止**: 功能列表；实现细节；命令/函数名枚举
-- **省略**: 不可
-- **数据**: —
-- ❌ "负责 detect、gate、refine、locate、write 等步骤"
-- ✅ "负责把对话信号转化为合规的 ## know YAML block，为 learn 管线提供从原始 claim 到落盘条目的转换能力"
+- **Information**: The module's core responsibility
+- **Format**: 1-2 sentences. "Responsible for {what it does}, providing {what capability} to {whom}"
+- **Forbidden**: Feature lists; implementation details; enumeration of command/function names
+- **Omit**: No
+- **Data**: —
+- ❌ "Responsible for steps such as detect, gate, refine, locate, write"
+- ✅ "Responsible for converting conversation signals into compliant ## know YAML blocks, providing the learn pipeline with the conversion capability from raw claim to persisted entry"
 
-#### 不负责
+#### Out of Scope
 
-- **信息**: 明确排除的职责，防止边界膨胀
-- **格式**: 列表，≥2 项。每项 "{不做什么}（→ {谁负责}）"
-- **禁止**: 无指向的排除（不说谁负责）
-- **省略**: 不可
-- **数据**: —
-- ❌ "不负责前端"
-- ✅ "不负责知识提取逻辑（→ learn.md workflow）"
+- **Information**: Explicitly excluded responsibilities to prevent boundary creep
+- **Format**: List, ≥2 items. Each item "{what is not done} (→ {who is responsible})"
+- **Forbidden**: Exclusions without a pointer (not stating who is responsible)
+- **Omit**: No
+- **Data**: —
+- ❌ "Not responsible for the frontend"
+- ✅ "Not responsible for knowledge extraction logic (→ learn.md workflow)"
 
-### §2 结构与交互
+### §2 Structure and Interaction
 
-#### 组件图
+#### Component Diagram
 
-- **信息**: 模块内部组件关系的可视化
-- **格式**: ASCII 图，方框+箭头，每个组件标注 1 句话职责
-- **禁止**: 纯文字替代图；Mermaid/PlantUML；省略职责标注
-- **省略**: 不可
-- **数据**: —
-- ❌ "组件 A 调用组件 B，组件 B 调用组件 C"
-- ✅ `[CLI 入口] --> [命令路由] --> [子命令 handler]`（附职责标注）
+- **Information**: Visualization of the relationships among the module's internal components
+- **Format**: ASCII diagram, boxes + arrows, with each component annotated by a one-sentence responsibility
+- **Forbidden**: Plain text replacing the diagram; Mermaid/PlantUML; omitting responsibility annotations
+- **Omit**: No
+- **Data**: —
+- ❌ "Component A calls component B, component B calls component C"
+- ✅ `[CLI entry point] --> [command router] --> [subcommand handler]` (with responsibility annotations)
 
-#### 组件表.职责
+#### Component Table.Responsibility
 
-- **信息**: 组件做什么
-- **格式**: ≤1 句，主语是组件
-- **禁止**: 多句话；函数级描述
-- **省略**: 不可（≥2 行）
-- **数据**: —
-- ❌ "负责解析输入、校验参数、路由请求、记录日志等多项工作"
-- ✅ "解析用户输入并路由到对应 handler"
+- **Information**: What the component does
+- **Format**: ≤1 sentence, the subject is the component
+- **Forbidden**: Multiple sentences; function-level descriptions
+- **Omit**: No (≥2 rows)
+- **Data**: —
+- ❌ "Responsible for parsing input, validating arguments, routing requests, logging, and other tasks"
+- ✅ "Parses user input and routes it to the corresponding handler"
 
-#### 组件表.边界规则
+#### Component Table.Boundary Rules
 
-- **信息**: 组件的访问/调用约束
-- **格式**: "禁止X"或"必须Y"，多条分号分隔
-- **禁止**: "尽量""建议"等模糊词
-- **省略**: 不可
-- **数据**: —
-- ❌ "注意安全性"
-- ✅ "禁止直接访问存储层；必须通过 index 查询"
+- **Information**: The component's access/invocation constraints
+- **Format**: "Forbidden X" or "Must Y", multiple items separated by semicolons
+- **Forbidden**: Vague words such as "try to" or "recommended"
+- **Omit**: No
+- **Data**: —
+- ❌ "Pay attention to security"
+- ✅ "Forbidden to access the storage layer directly; must query through the index"
 
-#### 数据流图
+#### Data Flow Diagram
 
-- **信息**: 组件间数据传递关系可视化
-- **格式**: ASCII 图，标注数据格式和方向
-- **禁止**: 无标注的裸箭头
-- **省略**: <2 组件有数据传递时可省
-- **数据**: —
+- **Information**: Visualization of data exchange among components
+- **Format**: ASCII diagram, annotating data format and direction
+- **Forbidden**: Bare arrows without annotations
+- **Omit**: May be omitted when fewer than 2 components exchange data
+- **Data**: —
 - ❌ `A --> B`
-- ✅ `learn workflow --YAML block--> 项目 CLAUDE.md --嵌套加载--> Claude Code 上下文`
+- ✅ `learn workflow --YAML block--> project CLAUDE.md --nested loading--> Claude Code context`
 
-#### 数据流表.类型
+#### Data Flow Table.Type
 
-- **信息**: 依赖强弱
-- **格式**: 枚举：强（缺失不可用）/ 弱（缺失可降级）
-- **禁止**: 枚举外的值
-- **省略**: 不可
-- **数据**: —
+- **Information**: Strength of the dependency
+- **Format**: Enum: strong (unusable when missing) / weak (degrades gracefully when missing)
+- **Forbidden**: Values outside the enum
+- **Omit**: No
+- **Data**: —
 
-#### 数据流表.说明
+#### Data Flow Table.Description
 
-- **信息**: 数据传递的具体内容
-- **格式**: 1 句
-- **禁止**: "有数据传递"；接口签名
-- **省略**: 不可
-- **数据**: —
+- **Information**: The specific content being transferred
+- **Format**: 1 sentence
+- **Forbidden**: "Has data transfer"; interface signatures
+- **Omit**: No
+- **Data**: —
 
-### §3 设计决策
+### §3 Design Decisions
 
-#### 驱动因素.因素
+#### Driving Factors.Factor
 
-- **信息**: 什么驱动了架构设计
-- **格式**: 1 句。具体的业务需求/技术约束/质量要求
-- **禁止**: "很重要""需要考虑"
-- **省略**: 不可（≥2 行）
-- **数据**: 有量化用量化
-- ❌ "性能很重要"
-- ✅ "Claude Code plugin 不支持持久进程"
+- **Information**: What drove the architectural design
+- **Format**: 1 sentence. A specific business requirement / technical constraint / quality requirement
+- **Forbidden**: "Very important", "needs to be considered"
+- **Omit**: No (≥2 rows)
+- **Data**: Use quantification when available
+- ❌ "Performance is very important"
+- ✅ "The Claude Code plugin does not support persistent processes"
 
-#### 驱动因素.类型
+#### Driving Factors.Type
 
-- **信息**: 因素类别
-- **格式**: 枚举：业务需求 / 技术约束 / 质量要求
-- **禁止**: 枚举外的值
-- **省略**: 不可
-- **数据**: —
+- **Information**: Category of the factor
+- **Format**: Enum: business requirement / technical constraint / quality requirement
+- **Forbidden**: Values outside the enum
+- **Omit**: No
+- **Data**: —
 
-#### 驱动因素.影响
+#### Driving Factors.Impact
 
-- **信息**: 对架构的具体影响
-- **格式**: 1 句，架构层面的约束或决策
-- **禁止**: "需要考虑"；代码级描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "架构需要考虑这一点"
-- ✅ "所有状态必须持久化到文件，不能依赖内存"
+- **Information**: The concrete impact on the architecture
+- **Format**: 1 sentence, an architecture-level constraint or decision
+- **Forbidden**: "Needs to be considered"; code-level descriptions
+- **Omit**: No
+- **Data**: —
+- ❌ "The architecture needs to take this into account"
+- ✅ "All state must be persisted to files; cannot rely on memory"
 
-#### 关键选择.决策
+#### Key Choices.Decision
 
-- **信息**: 架构层面的选型点
-- **格式**: 1 句描述决策问题
-- **禁止**: 代码级选型（→ tech）
-- **省略**: 不可（≥1 行）
-- **数据**: —
+- **Information**: An architecture-level selection point
+- **Format**: 1 sentence describing the decision question
+- **Forbidden**: Code-level selection (→ tech)
+- **Omit**: No (≥1 row)
+- **Data**: —
 
-#### 关键选择.被拒方案
+#### Key Choices.Rejected Alternative
 
-- **信息**: 考虑过但没选的方案
-- **格式**: 具体方案名
-- **禁止**: 省略被拒方案
-- **省略**: 不可
-- **数据**: —
+- **Information**: Alternatives considered but not chosen
+- **Format**: Specific alternative name
+- **Forbidden**: Omitting the rejected alternative
+- **Omit**: No
+- **Data**: —
 
-#### 关键选择.为什么
+#### Key Choices.Why
 
-- **信息**: 选择理由 + 拒绝原因
-- **格式**: 含选择理由和被拒原因
-- **禁止**: "比较好""更合适"
-- **省略**: 不可
-- **数据**: —
-- ❌ "比较好"
-- ✅ "SQLite 需要编译依赖，JSONL 纯文本可直接 grep，部署零依赖"
+- **Information**: Reason for the choice + reason for rejection
+- **Format**: Includes both the reason for the choice and the reason for rejection
+- **Forbidden**: "Better", "more suitable"
+- **Omit**: No
+- **Data**: —
+- ❌ "Better"
+- ✅ "SQLite requires compilation dependencies; JSONL is plain text and can be grepped directly, with zero deployment dependencies"
 
-#### 约束
+#### Constraints
 
-- **信息**: 必须遵守的硬性限制
-- **格式**: "禁止X（原因）"或"必须Y（原因）"，≥2 项
-- **禁止**: 无原因裸约束；编码规范；设计偏好
-- **省略**: 不可
-- **数据**: —
-- ❌ "不能用数据库"
-- ✅ "禁止引入外部数据库依赖（部署环境为纯文件系统，无数据库服务）"
+- **Information**: Hard constraints that must be obeyed
+- **Format**: "Forbidden X (reason)" or "Must Y (reason)", ≥2 items
+- **Forbidden**: Bare constraints without reasons; coding conventions; design preferences
+- **Omit**: No
+- **Data**: —
+- ❌ "Cannot use a database"
+- ✅ "Forbidden to introduce external database dependencies (the deployment environment is a pure file system, no database service)"
 
-### §4 质量要求
+### §4 Quality Requirements
 
-#### 属性/指标
+#### Attribute / Metric
 
-- **信息**: 质量维度和可测量指标
-- **格式**: 属性名 + 可度量指标名
-- **禁止**: "性能好""延迟低"
-- **省略**: 不可（≥2 行）
-- **数据**: —
-- ❌ "性能表现"
-- ✅ "单次 learn pipeline 端到端耗时"
+- **Information**: Quality dimensions and measurable metrics
+- **Format**: Attribute name + measurable metric name
+- **Forbidden**: "Good performance", "low latency"
+- **Omit**: No (≥2 rows)
+- **Data**: —
+- ❌ "Performance behavior"
+- ✅ "End-to-end latency of a single learn pipeline run"
 
-#### 目标
+#### Target
 
-- **信息**: 量化目标值
-- **格式**: 必须有数字，如 "<200ms"">=99.5%"
-- **禁止**: "尽量快""越低越好"
-- **省略**: 不可
-- **数据**: 有实测标来源；无实测标"目标值，待验证"
-- ❌ "尽量快"
-- ✅ "<200ms（p95）"
+- **Information**: Quantified target value
+- **Format**: Must include a number, e.g. "<200ms" or ">=99.5%"
+- **Forbidden**: "As fast as possible", "the lower the better"
+- **Omit**: No
+- **Data**: When measured, annotate the source; when not measured, mark "target value, pending validation"
+- ❌ "As fast as possible"
+- ✅ "<200ms (p95)"
 
-## 图表检查
+## Diagram Checks
 
-见 `templates/diagram-checklist.md`，适用 arch 的图表类型：数据流图、依赖图、模块结构图。
+See `templates/diagram-checklist.md`. Diagram types applicable to arch: data flow diagram, dependency diagram, module structure diagram.
 
-## 数据置信规则
+## Data Confidence Rules
 
-同 roadmap-checklist.md：实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。
+Same as roadmap-checklist.md: measured > annotate source; estimated > annotate basis; target > "pending validation"; no data > annotate reason. No fabrication.

@@ -1,168 +1,168 @@
-# Decision 检查清单
+# Decision Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1 背景 | 触发事件 | 不可 |
-| | 约束 | 不可（≥1 条） |
-| | 决策范围 | 不可 |
-| §2 决策 | 结论 | 不可 |
-| | 核心理由 | 不可 |
-| §3 备选方案 | 方案 | 不可（≥2 个） |
-| | 每方案.优点 | 不可（≥2 条） |
-| | 每方案.缺点 | 不可（≥2 条） |
-| §4 影响 | 正面影响 | 不可（≥1 条） |
-| | 负面影响 | 不可（≥1 条） |
-| | 后续行动 | 不可（≥1 条） |
-| §5 状态 | 状态 | 不可 |
-| | 决策日期 | 不可 |
-| | 决策人 | 不可 |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1 Background | Triggering Event | No |
+| | Constraints | No (≥1 item) |
+| | Decision Scope | No |
+| §2 Decision | Outcome | No |
+| | Core Reasoning | No |
+| §3 Alternatives | Alternative | No (≥2 alternatives) |
+| | Each alternative.Pros | No (≥2 items) |
+| | Each alternative.Cons | No (≥2 items) |
+| §4 Impact | Positive Impact | No (≥1 item) |
+| | Negative Impact | No (≥1 item) |
+| | Follow-up Actions | No (≥1 item) |
+| §5 Status | Status | No |
+| | Decision Date | No |
+| | Decision Maker | No |
 
-## 字段定义
+## Field Definitions
 
-### §1 背景
+### §1 Background
 
-#### 触发事件
+#### Triggering Event
 
-- **信息**: 什么事情导致需要做决策
-- **格式**: 1-2 句。含具体事件和时间背景
-- **禁止**: "需要决定""该做决策了"等空话
-- **省略**: 不可
-- **数据**: —
-- ❌ "我们需要决定技术方案"
-- ✅ "v2 开发中发现订单列表在 1000+ 条数据时查询耗时 >3s，阻塞用户翻页体验"
+- **Information**: What event made the decision necessary
+- **Format**: 1-2 sentences. Includes the specific event and time context
+- **Forbidden**: Empty phrases such as "we need to decide" or "it's time for a decision"
+- **Omit**: No
+- **Data**: —
+- ❌ "We need to decide on a technical solution"
+- ✅ "During v2 development, the order list query takes >3s with 1000+ records, blocking the user pagination experience"
 
-#### 约束
+#### Constraints
 
-- **信息**: 决策时必须遵守的限制条件
-- **格式**: 列表，≥1 条。每条 = 约束内容 + 来源
-- **禁止**: 无来源的约束（"必须快"）
-- **省略**: 不可
-- **数据**: —
-- ❌ "性能要好"
-- ✅ "订单列表查询延迟 <1s（来自 PRD 验收标准）"
+- **Information**: Restrictions that must be obeyed when making the decision
+- **Format**: List, ≥1 item. Each item = constraint content + source
+- **Forbidden**: Constraints without a source ("must be fast")
+- **Omit**: No
+- **Data**: —
+- ❌ "Performance must be good"
+- ✅ "Order list query latency <1s (from PRD acceptance criteria)"
 
-#### 决策范围
+#### Decision Scope
 
-- **信息**: 本次决策要解决什么问题，不解决什么
-- **格式**: 1 句。明确边界
-- **禁止**: 范围模糊（"相关问题"）
-- **省略**: 不可
-- **数据**: —
-- ❌ "解决性能相关问题"
-- ✅ "只决定订单查询的索引方案，不涉及订单写入流程的改造"
+- **Information**: What this decision addresses and what it does not
+- **Format**: 1 sentence. Make the boundary explicit
+- **Forbidden**: Vague scope ("related issues")
+- **Omit**: No
+- **Data**: —
+- ❌ "Solve performance-related issues"
+- ✅ "Decides only the indexing approach for order queries; does not cover restructuring of the order write flow"
 
-### §2 决策
+### §2 Decision
 
-#### 结论
+#### Outcome
 
-- **信息**: 最终决定了什么
-- **格式**: "我们决定: {结论}"，1 句
-- **禁止**: 模糊结论（"倾向于""可能"）
-- **省略**: 不可
-- **数据**: —
-- ❌ "我们倾向于方案 A"
-- ✅ "我们决定: 保持 JSONL 存储，新增倒排索引文件加速查询"
+- **Information**: What was finally decided
+- **Format**: "We decided: {outcome}", 1 sentence
+- **Forbidden**: Vague outcomes ("leaning toward", "possibly")
+- **Omit**: No
+- **Data**: —
+- ❌ "We are leaning toward Option A"
+- ✅ "We decided: keep JSONL storage and add an inverted index file to accelerate queries"
 
-#### 核心理由
+#### Core Reasoning
 
-- **信息**: 为什么选这个方案
-- **格式**: 1-2 句。关联约束条件或备选方案的关键差异
-- **禁止**: "综合考虑""权衡之后"等空话
-- **省略**: 不可
-- **数据**: —
-- ❌ "综合考虑后选择方案 A"
-- ✅ "倒排索引满足 <1s 延迟约束，且不需要引入外部依赖，实现成本最低"
+- **Information**: Why this alternative was chosen
+- **Format**: 1-2 sentences. Tied to the constraints or to the key differences from the alternatives
+- **Forbidden**: Empty phrases such as "after weighing the options" or "after consideration"
+- **Omit**: No
+- **Data**: —
+- ❌ "After consideration, we chose Option A"
+- ✅ "The inverted index meets the <1s latency constraint and does not require introducing external dependencies, with the lowest implementation cost"
 
-### §3 备选方案
+### §3 Alternatives
 
-#### 方案
+#### Alternative
 
-- **信息**: 考虑过的所有方案
-- **格式**: ≥2 个方案。每个方案包含优点（≥2）和缺点（≥2）
-- **禁止**: 只列 1 个方案（无对比价值）；优缺点 <2 条（分析不充分）
-- **省略**: 不可
-- **数据**: —
+- **Information**: All alternatives that were considered
+- **Format**: ≥2 alternatives. Each alternative includes pros (≥2) and cons (≥2)
+- **Forbidden**: Listing only 1 alternative (no comparative value); fewer than 2 pros or cons (insufficient analysis)
+- **Omit**: No
+- **Data**: —
 
-#### 每方案.优点
+#### Each alternative.Pros
 
-- **信息**: 该方案的优势
-- **格式**: 列表，≥2 条。每条具体可验证
-- **禁止**: "好""快""简单"等无信息描述
-- **省略**: 不可
-- **数据**: 有量化数据时附上
-- ❌ "性能好"
-- ✅ "查询延迟 <100ms（基于 SQLite benchmark 估算）"
+- **Information**: The advantages of this alternative
+- **Format**: List, ≥2 items. Each item is specific and verifiable
+- **Forbidden**: Information-free descriptions such as "good", "fast", "simple"
+- **Omit**: No
+- **Data**: Attach quantified data when available
+- ❌ "Good performance"
+- ✅ "Query latency <100ms (estimated based on SQLite benchmarks)"
 
-#### 每方案.缺点
+#### Each alternative.Cons
 
-- **信息**: 该方案的劣势
-- **格式**: 列表，≥2 条。每条具体可验证
-- **禁止**: "不太好""有风险"等无信息描述
-- **省略**: 不可
-- **数据**: 有量化数据时附上
-- ❌ "有些复杂"
-- ✅ "引入 SQLite 依赖，增加安装复杂度（需编译 native module）"
+- **Information**: The disadvantages of this alternative
+- **Format**: List, ≥2 items. Each item is specific and verifiable
+- **Forbidden**: Information-free descriptions such as "not great", "risky"
+- **Omit**: No
+- **Data**: Attach quantified data when available
+- ❌ "Somewhat complex"
+- ✅ "Introduces a SQLite dependency, increasing installation complexity (requires compiling a native module)"
 
-### §4 影响
+### §4 Impact
 
-#### 正面影响
+#### Positive Impact
 
-- **信息**: 该决策带来的好处
-- **格式**: 列表，≥1 条。对系统/团队/用户的具体影响
-- **禁止**: "更好""更快"等无信息描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "性能更好"
-- ✅ "订单列表查询延迟从 >3s 降至 <1s，满足交互体验要求"
+- **Information**: The benefits this decision brings
+- **Format**: List, ≥1 item. Concrete impact on the system / team / user
+- **Forbidden**: Information-free descriptions such as "better", "faster"
+- **Omit**: No
+- **Data**: —
+- ❌ "Better performance"
+- ✅ "Order list query latency drops from >3s to <1s, meeting the interaction-experience requirement"
 
-#### 负面影响
+#### Negative Impact
 
-- **信息**: 该决策带来的代价或风险
-- **格式**: 列表，≥1 条。诚实列出
-- **禁止**: "无负面影响"（任何决策都有 trade-off）
-- **省略**: 不可
-- **数据**: —
-- ❌ "基本没有负面影响"
-- ✅ "倒排索引需要与 JSONL 保持同步，增加写入时的维护成本"
+- **Information**: Costs or risks this decision brings
+- **Format**: List, ≥1 item. List honestly
+- **Forbidden**: "No negative impact" (every decision has trade-offs)
+- **Omit**: No
+- **Data**: —
+- ❌ "Basically no negative impact"
+- ✅ "The inverted index must stay in sync with JSONL, increasing maintenance cost on writes"
 
-#### 后续行动
+#### Follow-up Actions
 
-- **信息**: 决策后需要跟进什么
-- **格式**: 列表，≥1 条。每条可分配给具体人
-- **禁止**: 无动作的空话
-- **省略**: 不可
-- **数据**: —
-- ❌ "后续继续跟进"
-- ✅ "在 tech 文档中设计倒排索引的数据结构和同步机制"
+- **Information**: What needs to be tracked after the decision
+- **Format**: List, ≥1 item. Each item assignable to a specific person
+- **Forbidden**: Action-free empty phrases
+- **Omit**: No
+- **Data**: —
+- ❌ "Continue to follow up later"
+- ✅ "Design the data structure and synchronization mechanism of the inverted index in the tech document"
 
-### §5 状态
+### §5 Status
 
-#### 状态
+#### Status
 
-- **信息**: 决策处于什么阶段
-- **格式**: 枚举: proposed | accepted | deprecated | superseded
-- **禁止**: 枚举外的值
-- **省略**: 不可
-- **数据**: —
+- **Information**: The stage of the decision
+- **Format**: Enum: proposed | accepted | deprecated | superseded
+- **Forbidden**: Values outside the enum
+- **Omit**: No
+- **Data**: —
 
-#### 决策日期
+#### Decision Date
 
-- **信息**: 决策做出的日期
-- **格式**: YYYY-MM-DD
-- **禁止**: 模糊日期
-- **省略**: 不可
-- **数据**: —
+- **Information**: The date the decision was made
+- **Format**: YYYY-MM-DD
+- **Forbidden**: Vague dates
+- **Omit**: No
+- **Data**: —
 
-#### 决策人
+#### Decision Maker
 
-- **信息**: 谁做的决策
-- **格式**: 具体人名或角色
-- **禁止**: "团队""大家"
-- **省略**: 不可
-- **数据**: —
+- **Information**: Who made the decision
+- **Format**: A specific person's name or role
+- **Forbidden**: "The team", "everyone"
+- **Omit**: No
+- **Data**: —
 
-## 数据置信规则
+## Data Confidence Rules
 
-同 roadmap-checklist.md：实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。
+Same as roadmap-checklist.md: measured > annotate source; estimated > annotate basis; target > "pending validation"; no data > annotate reason. No fabrication.

@@ -1,114 +1,114 @@
-# 接口规范 检查清单
+# Interface Specification Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1 概述 | 范围 | 不可 |
-| | 调用方 | 不可 |
-| | 协议类型 | 不可 |
-| §2 数据结构 | 字段表 | 不可（≥3 行） |
-| §3 接口定义 | 接口 | 不可（≥1 个） |
-| | 错误码表 | 不可（每接口 ≥2 行） |
-| §4 约束与规则 | 约束条目 | 不可（≥2 条） |
-| §5 示例 | 请求/响应 | 不可（≥1 组） |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1 Overview | Scope | No |
+| | Caller | No |
+| | Protocol Type | No |
+| §2 Data Model | Field Table | No (≥3 rows) |
+| §3 Interface Definitions | Interface | No (≥1 interface) |
+| | Error-code Table | No (≥2 rows per interface) |
+| §4 Constraints and Rules | Constraint Item | No (≥2 items) |
+| §5 Example | Request / Response | No (≥1 group) |
 
-## 字段定义
+## Field Definitions
 
-### §1 概述
+### §1 Overview
 
-#### 范围
+#### Scope
 
-- **信息**: 接口覆盖的业务场景
-- **格式**: 1-2 句话，说明这套接口服务什么业务
-- **禁止**: 技术实现描述；内部架构术语；超过 2 句
-- **省略**: 不可
-- **数据**: —
-- ❌ "基于 event-sourcing 模式提供 CQRS 接口层"
-- ✅ "为项目知识库提供文档的增删查改操作"
+- **Information**: The business scenarios this interface set covers
+- **Format**: 1-2 sentences explaining what business this interface set serves
+- **Forbidden**: Implementation descriptions; internal-architecture terminology; more than 2 sentences
+- **Omit**: No
+- **Data**: —
+- ❌ "Provides a CQRS interface layer based on event-sourcing"
+- ✅ "Provides CRUD operations on documents for the project knowledge base"
 
-#### 调用方
+#### Caller
 
-- **信息**: 谁会调用这套接口
-- **格式**: 列表，每项为具体的调用方角色/系统
-- **禁止**: "所有人""任何系统"等无限定描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "所有服务"
-- ✅ "支付网关（通过 webhook HTTP 回调）"
+- **Information**: Who calls this interface set
+- **Format**: List, each item is a specific caller role / system
+- **Forbidden**: Unqualified descriptions such as "everyone" or "any system"
+- **Omit**: No
+- **Data**: —
+- ❌ "All services"
+- ✅ "Payment gateway (via webhook HTTP callback)"
 
-#### 协议类型
+#### Protocol Type
 
-- **信息**: 接口通信协议
-- **格式**: 枚举值：REST | gRPC | CLI | file
-- **禁止**: 自定义协议名；多个协议混写（拆分为多个 schema 文档）
-- **省略**: 不可
-- **数据**: —
+- **Information**: The interface communication protocol
+- **Format**: Enum: REST | gRPC | CLI | file
+- **Forbidden**: Custom protocol names; mixing multiple protocols (split into multiple schema documents)
+- **Omit**: No
+- **Data**: —
 - ❌ "HTTP + WebSocket"
 - ✅ "CLI"
 
-### §2 数据结构
+### §2 Data Model
 
-#### 字段表
+#### Field Table
 
-- **信息**: 核心数据模型的字段定义
-- **格式**: 表格，每行 字段 | 类型 | 必填 | 说明。≥3 行
-- **禁止**: 类型为 "any"/"object"/"mixed" 等模糊类型；必填列使用非枚举值
-- **省略**: 不可
-- **数据**: —
-- ❌ 类型 "any"，必填 "可选"
-- ✅ 类型 "string"，必填 "否"
+- **Information**: Field definitions of the core data model
+- **Format**: Table, each row Field | Type | Required | Description. ≥3 rows
+- **Forbidden**: Vague types such as "any" / "object" / "mixed"; non-enum values in the Required column
+- **Omit**: No
+- **Data**: —
+- ❌ Type "any", Required "optional"
+- ✅ Type "string", Required "no"
 
-### §3 接口定义
+### §3 Interface Definitions
 
-#### 接口
+#### Interface
 
-- **信息**: 每个接口的完整签名
-- **格式**: 每接口含 方法 + 路径 + 参数表 + 响应结构 + 错误码表。≥1 个接口
-- **禁止**: 只写方法不写参数；只列接口名无定义；错误码表 <2 行
-- **省略**: 不可
-- **数据**: —
-- ❌ "POST /api/docs — 创建文档"（无参数、无响应、无错误码）
-- ✅ 完整的方法 + 路径 + 参数表 + 响应 JSON + 错误码表
+- **Information**: The full signature of each interface
+- **Format**: Each interface includes method + path + parameter table + response structure + error-code table. ≥1 interface
+- **Forbidden**: Stating the method without the parameters; listing only interface names without definitions; error-code table with <2 rows
+- **Omit**: No
+- **Data**: —
+- ❌ "POST /api/docs — create document" (no parameters, no response, no error codes)
+- ✅ Full method + path + parameter table + response JSON + error-code table
 
-#### 错误码表
+#### Error-code Table
 
-- **信息**: 该接口可能返回的错误
-- **格式**: 表格，每行 错误码 | 含义 | 处理建议。每接口 ≥2 行
-- **禁止**: 只写码不写处理建议；通用错误不列
-- **省略**: 不可
-- **数据**: —
-- ❌ "400 — 参数错误"（无处理建议）
-- ✅ "400 | 必填参数缺失 | 检查请求体是否包含 name 字段"
+- **Information**: Errors this interface may return
+- **Format**: Table, each row Error code | Meaning | Handling Suggestion. ≥2 rows per interface
+- **Forbidden**: Listing the code without a handling suggestion; not listing common errors
+- **Omit**: No
+- **Data**: —
+- ❌ "400 — parameter error" (no handling suggestion)
+- ✅ "400 | required parameter missing | check whether the request body contains the name field"
 
-### §4 约束与规则
+### §4 Constraints and Rules
 
-#### 约束条目
+#### Constraint Item
 
-- **信息**: 接口的校验规则、边界值、兼容性要求
-- **格式**: 列表，≥2 条。每条描述一个具体约束
-- **禁止**: 实现层面的性能优化策略；模糊描述（"合理范围内"）
-- **省略**: 不可
-- **数据**: —
-- ❌ "参数需在合理范围内"
-- ✅ "name 字段长度 1-256 字符，仅允许字母、数字、连字符"
+- **Information**: Validation rules, boundary values, and compatibility requirements for the interface
+- **Format**: List, ≥2 items. Each item describes a specific constraint
+- **Forbidden**: Implementation-level performance-optimization strategies; vague descriptions ("within a reasonable range")
+- **Omit**: No
+- **Data**: —
+- ❌ "Parameters must be within a reasonable range"
+- ✅ "name field length 1-256 characters; only letters, digits, and hyphens allowed"
 
-### §5 示例
+### §5 Example
 
-#### 请求/响应
+#### Request / Response
 
-- **信息**: 典型调用的完整示例
-- **格式**: ≥1 组完整的 request + response 代码块
-- **禁止**: 只写请求不写响应；省略号代替实际内容；测试用例代码
-- **省略**: 不可
-- **数据**: —
-- ❌ 只有请求没有响应
-- ✅ 完整的请求代码块 + 对应的响应代码块
+- **Information**: A complete example of a typical call
+- **Format**: ≥1 group of complete request + response code blocks
+- **Forbidden**: Stating the request without the response; using ellipses in place of actual content; test-case code
+- **Omit**: No
+- **Data**: —
+- ❌ Only the request, no response
+- ✅ Complete request code block + corresponding response code block
 
-## 图表检查
+## Diagram Checks
 
-见 `templates/diagram-checklist.md`，适用 schema 的图表类型：时序图、ER/数据模型图。
+See `templates/diagram-checklist.md`. Diagram types applicable to schema: sequence diagram, ER / data model diagram.
 
-## 数据置信规则
+## Data Confidence Rules
 
-实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。
+Measured > annotate source; estimated > annotate basis; target > "pending validation"; no data > annotate reason. No fabrication.

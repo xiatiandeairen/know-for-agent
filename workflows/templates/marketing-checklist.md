@@ -1,111 +1,111 @@
-# Marketing 检查清单
+# Marketing Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1 目标受众 | 用户画像 | 不可 |
-| | 活跃平台 | 不可（≥2 条） |
-| | 决策因素 | 不可（≥2 条） |
-| §2 核心信息 | 一句话卖点 | 不可 |
-| | 差异化 | 不可（≥2 条） |
-| §3 推广渠道 | 渠道行 | 不可（≥2 行） |
-| §4 传播节奏 | 节奏条目 | 不可（≥3 条） |
-| §5 效果衡量 | 指标行 | 不可（≥2 行） |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1 Target Audience | User Persona | No |
+| | Active Platforms | No (≥2 items) |
+| | Decision Factors | No (≥2 items) |
+| §2 Core Message | One-line Pitch | No |
+| | Differentiation | No (≥2 items) |
+| §3 Promotion Channels | Channel Row | No (≥2 rows) |
+| §4 Communication Cadence | Cadence Item | No (≥3 items) |
+| §5 Impact Measurement | Metric Row | No (≥2 rows) |
 
-## 字段定义
+## Field Definitions
 
-### §1 目标受众
+### §1 Target Audience
 
-#### 用户画像
+#### User Persona
 
-- **信息**: 目标用户是谁、有什么痛点
-- **格式**: 1-3 句。含角色特征 + 核心痛点
-- **禁止**: "所有人""广泛用户"等无特征描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "所有开发者"
-- ✅ "独立开发者，维护 1-3 个中型项目，频繁使用 AI 编程助手但苦于跨会话上下文丢失"
+- **Information**: Who the target user is and what their pain points are
+- **Format**: 1-3 sentences. Includes role characteristics + core pain points
+- **Forbidden**: Featureless descriptions such as "everyone" or "broad audience"
+- **Omit**: No
+- **Data**: —
+- ❌ "All developers"
+- ✅ "Independent developers maintaining 1-3 mid-sized projects, who use AI coding assistants frequently but suffer from cross-session context loss"
 
-#### 活跃平台
+#### Active Platforms
 
-- **信息**: 目标用户在哪里获取信息
-- **格式**: 列表，≥2 条。每条 = 平台名 + 简述用户在此平台的行为
-- **禁止**: 无行为描述的裸平台名
-- **省略**: 不可
-- **数据**: —
+- **Information**: Where the target users get their information
+- **Format**: List, ≥2 items. Each item = platform name + a brief note on user behavior on that platform
+- **Forbidden**: Bare platform names without behavior descriptions
+- **Omit**: No
+- **Data**: —
 - ❌ "Twitter"
-- ✅ "Twitter/X — 关注 AI 工具链动态，转发实用 tips"
+- ✅ "Twitter/X — follows AI tooling updates and reposts practical tips"
 
-#### 决策因素
+#### Decision Factors
 
-- **信息**: 用户决定是否采用产品时关心什么
-- **格式**: 列表，≥2 条。每条 = 因素 + 为什么重要
-- **禁止**: 内部技术指标（用户不关心架构）
-- **省略**: 不可
-- **数据**: —
-- ❌ "性能好"
-- ✅ "上手成本低 — 不想为一个辅助工具花超过 10 分钟配置"
+- **Information**: What users care about when deciding whether to adopt the product
+- **Format**: List, ≥2 items. Each item = factor + why it matters
+- **Forbidden**: Internal technical metrics (users do not care about the architecture)
+- **Omit**: No
+- **Data**: —
+- ❌ "Good performance"
+- ✅ "Low onboarding cost — unwilling to spend more than 10 minutes configuring an auxiliary tool"
 
-### §2 核心信息
+### §2 Core Message
 
-#### 一句话卖点
+#### One-line Pitch
 
-- **信息**: 用户语言描述的核心价值
-- **格式**: 1 句。主语是用户获得的好处，不是产品功能
-- **禁止**: 技术术语；以产品功能为主语
-- **省略**: 不可
-- **数据**: —
-- ❌ "基于 JSONL 的知识持久化引擎"
-- ✅ "让你的 AI 助手记住项目里踩过的坑，不再重蹈覆辙"
+- **Information**: The core value, described in the user's language
+- **Format**: 1 sentence. The subject is the benefit the user gets, not a product feature
+- **Forbidden**: Technical jargon; using a product feature as the subject
+- **Omit**: No
+- **Data**: —
+- ❌ "A JSONL-based knowledge-persistence engine"
+- ✅ "Let your AI assistant remember the pitfalls in this project so it doesn't repeat the same mistakes"
 
-#### 差异化
+#### Differentiation
 
-- **信息**: 与竞品的可感知差异
-- **格式**: 列表，≥2 条。每条用用户语言描述
-- **禁止**: 技术实现差异（"我们用了 X 算法"）
-- **省略**: 不可
-- **数据**: —
-- ❌ "采用分层索引架构"
-- ✅ "知识自动沉淀，不需要手动维护文档"
+- **Information**: User-perceivable differences from competitors
+- **Format**: List, ≥2 items. Each item described in the user's language
+- **Forbidden**: Implementation-level differences ("we use the X algorithm")
+- **Omit**: No
+- **Data**: —
+- ❌ "Adopts a layered indexing architecture"
+- ✅ "Knowledge is captured automatically, no manual document maintenance required"
 
-### §3 推广渠道
+### §3 Promotion Channels
 
-#### 渠道行
+#### Channel Row
 
-- **信息**: 通过什么渠道触达用户
-- **格式**: 表格，≥2 行。列: 渠道 | 策略 | 优先级
-- **禁止**: 优先级使用枚举外的值
-- **省略**: 不可
-- **数据**: —
-- **优先级枚举**: P0 | P1 | P2
-- ❌ `| 社交媒体 | 发帖 | 高 |`
-- ✅ `| Twitter/X | 每周 1 条使用场景 thread，含 before/after 对比 | P0 |`
+- **Information**: The channels through which to reach users
+- **Format**: Table, ≥2 rows. Columns: Channel | Strategy | Priority
+- **Forbidden**: Priority values outside the enum
+- **Omit**: No
+- **Data**: —
+- **Priority enum**: P0 | P1 | P2
+- ❌ `| Social media | Posts | High |`
+- ✅ `| Twitter/X | One use-case thread per week with before/after comparisons | P0 |`
 
-### §4 传播节奏
+### §4 Communication Cadence
 
-#### 节奏条目
+#### Cadence Item
 
-- **信息**: 什么时间做什么对外传播动作
-- **格式**: 编号列表，≥3 条。每条 "{YYYY.MM.DD} — {动作}"
-- **禁止**: 模糊时间（"下周""近期"）；内部部署动作
-- **省略**: 不可
-- **数据**: —
-- ❌ "近期 — 发布公告"
-- ✅ "2026.05.01 — Twitter/X 发布产品介绍 thread"
+- **Information**: What outbound communication action to take and when
+- **Format**: Numbered list, ≥3 items. Each item "{YYYY.MM.DD} — {action}"
+- **Forbidden**: Vague timing ("next week", "soon"); internal deployment actions
+- **Omit**: No
+- **Data**: —
+- ❌ "Soon — release announcement"
+- ✅ "2026.05.01 — publish product introduction thread on Twitter/X"
 
-### §5 效果衡量
+### §5 Impact Measurement
 
-#### 指标行
+#### Metric Row
 
-- **信息**: 衡量营销效果的指标
-- **格式**: 表格，≥2 行。列: 指标 | 目标 | 复盘节点
-- **禁止**: 目标列使用模糊描述（"增长""提升"）；复盘节点使用模糊时间
-- **省略**: 不可
-- **数据**: 目标必须是具体数字；复盘节点必须是具体日期（YYYY.MM.DD）
-- ❌ `| 曝光量 | 增长 | 下个月 |`
-- ✅ `| GitHub star 数 | 500 | 2026.06.01 |`
+- **Information**: Metrics that measure marketing effectiveness
+- **Format**: Table, ≥2 rows. Columns: Metric | Target | Review Checkpoint
+- **Forbidden**: Vague descriptions in the Target column ("growth", "improvement"); vague timing in the Review Checkpoint column
+- **Omit**: No
+- **Data**: Target must be a concrete number; the review checkpoint must be a concrete date (YYYY.MM.DD)
+- ❌ `| Impressions | Growth | Next month |`
+- ✅ `| GitHub stars | 500 | 2026.06.01 |`
 
-## 数据置信规则
+## Data Confidence Rules
 
-同 roadmap-checklist.md：实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。
+Same as roadmap-checklist.md: measured > annotate source; estimated > annotate basis; target > "pending validation"; no data > annotate reason. No fabrication.

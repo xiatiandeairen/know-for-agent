@@ -1,132 +1,132 @@
-# Tech 更新规则
+# Tech Update Rules
 
-## 变更类型
+## Change Types
 
-| 类型 | 含义 |
-|------|------|
-| **不可变** | 一旦写入不再修改 |
-| **追加** | 只能新增条目，不能改已有的 |
-| **可更新** | 内容可修改，但有约束 |
+| Type | Meaning |
+|------|---------|
+| **immutable** | Once written, never modified |
+| **append-only** | Only new entries can be added; existing ones cannot be modified |
+| **updatable** | Content can be modified, but with constraints |
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 变更类型 |
-|------|------|---------|
-| §1 背景 | 技术约束 | 不可变 |
-| | 前置依赖 | 不可变 |
-| §2 方案 | 文件/模块结构 | 可更新 |
-| | 核心流程 | 可更新 |
-| | 数据结构 | 可更新 |
-| §3 关键决策 | 决策行 | 追加 |
-| §4 迭代记录 | 迭代条目 | 追加 |
+| Location | Field | Change Type |
+|----------|-------|-------------|
+| §1 Background | Technical Constraints | immutable |
+| | Prerequisites | immutable |
+| §2 Solution | File / Module Structure | updatable |
+| | Core Flow | updatable |
+| | Data Structure | updatable |
+| §3 Key Decisions | Decision row | append-only |
+| §4 Iteration Log | Iteration entry | append-only |
 
-## 字段变更规则
+## Field Change Rules
 
-### §1 背景
+### §1 Background
 
-#### 技术约束
+#### Technical Constraints
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 方案确认后修改（约束变了意味着方案基础变了，应新建 tech 文档）
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
-- ❌ 发现约束描述不够准确后重写
-- ✅ 保留原始约束，新约束通过新建 tech 文档处理
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the solution is confirmed (a constraint change means the solution's basis has changed; create a new tech document)
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
+- ❌ Rewriting because the constraint description feels imprecise
+- ✅ Keep the original constraint; handle new constraints by creating a new tech document
 
-#### 前置依赖
+#### Prerequisites
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 方案确认后修改依赖列表
-- **触发**: —
-- **校验**: diff 中不应出现本字段变化
-- ❌ 依赖完成后删除该行
-- ✅ 保留原始依赖列表（含状态），依赖完成在迭代记录中体现
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying the dependency list after the solution is confirmed
+- **Trigger**: —
+- **Check**: The diff must not contain changes to this field
+- ❌ Deleting a row after the dependency is satisfied
+- ✅ Keep the original dependency list (with status); record dependency completion in the iteration log
 
-### §2 方案
+### §2 Solution
 
-#### 文件/模块结构
+#### File / Module Structure
 
-- **变更类型**: 可更新
-- **允许**: sprint 迭代中新增/调整模块；更新职责描述
-- **禁止**: 无迭代记录的静默修改
-- **触发**: sprint 实现中方案演进
-- **校验**: §4 迭代记录中必须有对应条目说明变更内容
-- ❌ 静默删除一个模块，迭代记录不提
-- ✅ 调整模块划分，同时在 §4 写明 "重构 X 模块（原 A+B 合并为 C）"
+- **Change Type**: updatable
+- **Allowed**: Adding / adjusting modules during sprint iteration; updating responsibility descriptions
+- **Forbidden**: Silent modification without an iteration log entry
+- **Trigger**: Solution evolution during sprint implementation
+- **Check**: §4 Iteration Log must contain a corresponding entry describing the change
+- ❌ Silently deleting a module without mentioning it in the iteration log
+- ✅ Adjusting the module split and writing in §4: "refactored module X (merged original A+B into C)"
 
-#### 核心流程
+#### Core Flow
 
-- **变更类型**: 可更新
-- **允许**: sprint 迭代中调整步骤顺序/内容
-- **禁止**: 无迭代记录的静默修改
-- **触发**: sprint 实现中流程优化
-- **校验**: §4 迭代记录中必须有对应条目说明变更内容
-- ❌ 悄悄改了流程步骤
-- ✅ 优化流程，同时在 §4 写明 "learn 流程从 4 阶段改为 5 阶段（新增 refine 步骤）"
+- **Change Type**: updatable
+- **Allowed**: Adjusting step order / content during sprint iteration
+- **Forbidden**: Silent modification without an iteration log entry
+- **Trigger**: Flow optimization during sprint implementation
+- **Check**: §4 Iteration Log must contain a corresponding entry describing the change
+- ❌ Quietly changing the flow steps
+- ✅ Optimizing the flow and writing in §4: "learn flow changed from 4 stages to 5 stages (added refine step)"
 
-#### 数据结构
+#### Data Structure
 
-- **变更类型**: 可更新
-- **允许**: sprint 迭代中新增/调整字段
-- **禁止**: 无迭代记录的静默修改；删除已上线字段（需走废弃流程）
-- **触发**: sprint 实现中结构演进
-- **校验**: §4 迭代记录中必须有对应条目说明变更内容
+- **Change Type**: updatable
+- **Allowed**: Adding / adjusting fields during sprint iteration
+- **Forbidden**: Silent modification without an iteration log entry; deleting a field that has shipped (must go through deprecation)
+- **Trigger**: Structural evolution during sprint implementation
+- **Check**: §4 Iteration Log must contain a corresponding entry describing the change
 
-### §3 关键决策
+### §3 Key Decisions
 
-#### 决策行
+#### Decision row
 
-- **变更类型**: 追加
-- **允许**: 新增决策行
-- **禁止**: 修改或删除已有行（决策记录是历史，不可篡改）
-- **触发**: sprint 中做出新的技术选型
-- **校验**: 新行满足 checklist 格式约束（为什么列含被拒方案）
-- ❌ 发现之前的决策理由写得不好后修改
-- ✅ 保留原决策行，如有推翻则新增一行记录新决策并说明推翻原因
+- **Change Type**: append-only
+- **Allowed**: Adding new decision rows
+- **Forbidden**: Modifying or deleting existing rows (the decision record is history; it must not be tampered with)
+- **Trigger**: A new technical selection is made during a sprint
+- **Check**: New rows satisfy the checklist format constraints (the "why" column includes the rejected alternative)
+- ❌ Modifying because the previous decision rationale was poorly written
+- ✅ Keep the original decision row; if overturned, append a new row recording the new decision and explaining the reason for the overturn
 
-### §4 迭代记录
+### §4 Iteration Log
 
-#### 迭代条目
+#### Iteration entry
 
-- **变更类型**: 追加
-- **允许**: 新增条目（prepend，新增在前）
-- **禁止**: 修改或删除已有条目
-- **触发**: 每次 sprint 完成
-- **校验**: 新条目有日期 heading + 列表格式
-- ❌ 修改上次迭代的记录内容
-- ✅ 新增一条迭代记录在最前面
+- **Change Type**: append-only
+- **Allowed**: Adding new entries (prepend, new entries on top)
+- **Forbidden**: Modifying or deleting existing entries
+- **Trigger**: Each sprint completion
+- **Check**: New entries have a date heading + list format
+- ❌ Modifying the previous iteration's log content
+- ✅ Adding a new iteration log entry on top
 
-## 操作流程
+## Operating Procedure
 
-### 创建 tech
+### Create tech
 
-1. 填写 §1 背景: 技术约束 ≥1 条，前置依赖列出或写"无"
-2. 填写 §2 方案: 文件/模块结构 + 核心流程（≥3 步）+ 数据结构（如有）
-3. 填写 §3 关键决策: ≥1 行，为什么列含被拒方案
-4. 填写 §4 迭代记录: 第一条，记录初始方案设计
-5. 同步更新关联 PRD 的任务追踪表（如有）
+1. Fill in §1 Background: Technical Constraints ≥1, Prerequisites listed or "none"
+2. Fill in §2 Solution: File / Module Structure + Core Flow (≥3 steps) + Data Structure (if any)
+3. Fill in §3 Key Decisions: ≥1 row, the "why" column includes the rejected alternative
+4. Fill in §4 Iteration Log: first entry, recording the initial solution design
+5. Sync the linked PRD's task-tracking table (if any)
 
-### Sprint 迭代更新
+### Sprint Iteration Update
 
-1. §4 迭代记录 prepend 新条目（日期 + 列表）
-2. §2 方案按需更新（文件结构/流程/数据结构），每处变更在 §4 有对应说明
-3. §3 关键决策追加新行（如有新选型）
-4. §1 背景不动
+1. §4 Iteration Log: prepend a new entry (date + list)
+2. §2 Solution updated as needed (file structure / flow / data structure); each change has a corresponding §4 explanation
+3. §3 Key Decisions: append new rows (if there is a new selection)
+4. §1 Background untouched
 
-### 方案变更
+### Solution Change
 
-1. 判断变更范围:
-   - 约束/依赖变了 → 新建 tech 文档（原文档归档）
-   - 约束不变，方案演进 → 走 sprint 迭代更新流程
-2. §3 关键决策追加新行，说明推翻原因
-3. §2 方案更新，§4 迭代记录写明变更原因和内容
+1. Determine the scope of the change:
+   - Constraints / prerequisites changed → create a new tech document (archive the original)
+   - Constraints unchanged, solution evolved → follow the sprint iteration update procedure
+2. §3 Key Decisions: append a new row explaining the reason for the overturn
+3. §2 Solution updated; §4 Iteration Log records the reason and content of the change
 
-## 校验规则
+## Validation Rules
 
-1. **不可变字段未被修改** — diff 中不应出现 §1 技术约束/前置依赖的变化
-2. **追加字段只增不减** — §3 决策行数只增不减，§4 迭代条目只增不减
-3. **方案变更有迹可循** — §2 的任何修改，§4 迭代记录中必须有对应说明
-4. **决策行格式完整** — 每行为什么列必须包含被拒方案
-5. **迭代记录时序正确** — §4 条目按日期降序排列（新增在前）
+1. **Immutable fields unchanged** — The diff must not contain changes to §1 Technical Constraints / Prerequisites
+2. **Append-only fields only grow** — §3 decision row count only grows; §4 iteration entries only grow
+3. **Solution changes are traceable** — Any modification in §2 must have a corresponding entry in the §4 Iteration Log
+4. **Decision row format complete** — Every row's "why" column must include the rejected alternative
+5. **Iteration log time-ordered** — §4 entries are sorted by date in descending order (newest on top)

@@ -1,207 +1,207 @@
-# Ops 更新规则
+# Ops Update Rules
 
-## 变更类型
+## Change Types
 
-| 类型 | 含义 |
-|------|------|
-| **不可变** | 一旦写入不再修改 |
-| **追加** | 只能新增条目，不能改已有的 |
-| **数据刷新** | 已有值可被更准确的数据替换 |
-| **可更新** | 内容可修改，但有约束 |
+| Type | Meaning |
+|------|---------|
+| **immutable** | Once written, never modified |
+| **append-only** | Only new entries can be added; existing ones cannot be modified |
+| **data refresh** | Existing values may be replaced with more accurate data |
+| **updatable** | Content can be modified, but with constraints |
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 变更类型 |
-|------|------|---------|
-| §1 发布策略 | 发布渠道 | 可更新 |
-| | 发布节奏 | 可更新 |
-| | 版本规则 | 可更新 |
-| §2 反馈闭环 | 整行 | 追加 |
-| | 渠道/分类 | 不可变 |
-| | 响应 SLA | 可更新 |
-| §3 关键指标 | 整行 | 追加 |
-| | 指标（列值） | 不可变 |
-| | 目标 | 数据刷新 |
-| | 报警阈值 | 数据刷新 |
-| §4 异常预案 | 整行 | 追加 |
-| | 场景（列值） | 不可变 |
-| | 应对措施 | 可更新 |
-| | 升级路径 | 可更新 |
+| Location | Field | Change Type |
+|----------|-------|-------------|
+| §1 Release Strategy | Release Channels | updatable |
+| | Release Cadence | updatable |
+| | Versioning Rule | updatable |
+| §2 Feedback Loop | Whole row | append-only |
+| | Channel / Category | immutable |
+| | Response SLA | updatable |
+| §3 Key Metrics | Whole row | append-only |
+| | Metric (column value) | immutable |
+| | Target | data refresh |
+| | Alert Threshold | data refresh |
+| §4 Incident Playbook | Whole row | append-only |
+| | Scenario (column value) | immutable |
+| | Response Procedure | updatable |
+| | Escalation Path | updatable |
 
-## 字段变更规则
+## Field Change Rules
 
-### §1 发布策略
+### §1 Release Strategy
 
-#### 发布渠道
+#### Release Channels
 
-- **变更类型**: 可更新
-- **允许**: 新增渠道项；修改现有渠道说明；移除已下线渠道（标注下线原因）
-- **禁止**: 无原因删除渠道
-- **触发**: 新增分发渠道或旧渠道下线
-- **校验**: 下线渠道标注"已下线（{原因}）"而非直接删除
-- ❌ 直接删除一个渠道不留记录
-- ✅ "npm registry: 正式版分发" → 新增 "GitHub Releases: 二进制分发"
+- **Change Type**: updatable
+- **Allowed**: Adding new channel items; modifying existing channel descriptions; removing retired channels (annotate the retirement reason)
+- **Forbidden**: Deleting a channel without a reason
+- **Trigger**: A new distribution channel is added or an old channel is retired
+- **Check**: Retired channels are annotated "retired ({reason})" rather than deleted directly
+- ❌ Deleting a channel outright with no record
+- ✅ "npm registry: stable distribution" → adding "GitHub Releases: binary distribution"
 
-#### 发布节奏
+#### Release Cadence
 
-- **变更类型**: 可更新
-- **允许**: 调整频率或触发条件
-- **禁止**: 改为无频率描述（"按需"）
-- **触发**: 发布策略调整
-- **校验**: 新值仍需包含频率或触发条件
-- ❌ "功能驱动，里程碑完成即发布" → "按需"
-- ✅ "功能驱动，里程碑完成即发布" → "双周固定发布，hotfix 随时"
+- **Change Type**: updatable
+- **Allowed**: Adjusting frequency or trigger conditions
+- **Forbidden**: Changing to a description without a frequency ("on demand")
+- **Trigger**: Release strategy adjustment
+- **Check**: The new value still includes a frequency or trigger condition
+- ❌ "Feature-driven; release on milestone completion" → "on demand"
+- ✅ "Feature-driven; release on milestone completion" → "Bi-weekly fixed release; hotfix as needed"
 
-#### 版本规则
+#### Versioning Rule
 
-- **变更类型**: 可更新
-- **允许**: 完善或调整版本号规则
-- **禁止**: 改为无具体规则的描述
-- **触发**: 版本管理策略调整
-- **校验**: 新值仍需说明递增规则
+- **Change Type**: updatable
+- **Allowed**: Refining or adjusting the version-number rule
+- **Forbidden**: Changing to a description without a concrete rule
+- **Trigger**: Version-management strategy adjustment
+- **Check**: The new value still describes the increment rule
 
-### §2 反馈闭环
+### §2 Feedback Loop
 
-#### 整行
+#### Whole row
 
-- **变更类型**: 追加
-- **允许**: 新增反馈渠道行
-- **禁止**: 删除已有行
-- **触发**: 新增反馈收集渠道
-- **校验**: 新行满足 checklist 所有列约束
-- ❌ 删除已有渠道行
-- ✅ 新增一行 "Discord | 社区讨论、使用问题 | 工作日 48h 内首次响应"
+- **Change Type**: append-only
+- **Allowed**: Adding new feedback channel rows
+- **Forbidden**: Deleting existing rows
+- **Trigger**: A new feedback collection channel
+- **Check**: New rows satisfy all column constraints in the checklist
+- ❌ Deleting an existing channel row
+- ✅ Adding a new row "Discord | community discussion, usage questions | first response within 48h on weekdays"
 
-#### 渠道 / 分类
+#### Channel / Category
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改已有行的渠道名或分类
-- **触发**: —
-- **校验**: 渠道变更时新增行替代，旧行标注"已迁移至 X"
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying the channel name or category of an existing row
+- **Trigger**: —
+- **Check**: When a channel changes, add a replacement row and annotate the old row as "migrated to X"
 
-#### 响应 SLA
+#### Response SLA
 
-- **变更类型**: 可更新
-- **允许**: 收紧 SLA（如 48h→24h）；因团队变化放宽 SLA（需标注原因）
-- **禁止**: 无原因放宽 SLA
-- **触发**: 团队资源变化或 SLA 达标率数据
-- **校验**: 新值仍必须是具体时间量；放宽时标注原因
-- ❌ "工作日 24h 内首次响应" → "尽快"
-- ✅ "工作日 48h 内首次响应" → "工作日 24h 内首次响应"
+- **Change Type**: updatable
+- **Allowed**: Tightening the SLA (e.g. 48h → 24h); loosening it due to team changes (annotate the reason)
+- **Forbidden**: Loosening the SLA without a reason
+- **Trigger**: Team capacity changes or SLA-attainment-rate data
+- **Check**: The new value must still be a concrete time quantity; loosenings annotate the reason
+- ❌ "First response within 24h on weekdays" → "ASAP"
+- ✅ "First response within 48h on weekdays" → "First response within 24h on weekdays"
 
-### §3 关键指标
+### §3 Key Metrics
 
-#### 整行
+#### Whole row
 
-- **变更类型**: 追加
-- **允许**: 新增指标行
-- **禁止**: 删除已有行
-- **触发**: 发现新的关键运营指标
-- **校验**: 新行满足 checklist 所有列约束
-- ❌ 删除"P95 响应时间"行
-- ✅ 新增一行 "日活用户数 | >100 | <20 连续 3 天"
+- **Change Type**: append-only
+- **Allowed**: Adding new metric rows
+- **Forbidden**: Deleting existing rows
+- **Trigger**: A new key operational metric is identified
+- **Check**: New rows satisfy all column constraints in the checklist
+- ❌ Deleting the "P95 response time" row
+- ✅ Adding a new row "DAU | >100 | <20 for 3 consecutive days"
 
-#### 指标（列值）
+#### Metric (column value)
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改已有行的指标名
-- **触发**: —
-- **校验**: 指标定义变更时新增行替代
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying the metric name of an existing row
+- **Trigger**: —
+- **Check**: When the metric definition changes, add a replacement row
 
-#### 目标
+#### Target
 
-- **变更类型**: 数据刷新
-- **允许**: "目标值，待验证"→实测基线后的合理目标；精度提升
-- **禁止**: 无数据支撑的随意调整；放宽目标不标注原因
-- **触发**: 有了真实运营数据
-- **校验**: 新值标注数据来源；目标放宽时标注原因
-- ❌ "<200ms" → "<500ms"（无原因放宽）
-- ✅ "<200ms（目标值，待验证）" → "<150ms（基于 30 天 P95 实测 120ms）"
+- **Change Type**: data refresh
+- **Allowed**: "target value, pending validation" → a sensible target after a measured baseline; precision improvements
+- **Forbidden**: Arbitrary adjustment without data backing; loosening the target without annotating the reason
+- **Trigger**: Real operational data is now available
+- **Check**: The new value annotates its data source; loosened targets annotate the reason
+- ❌ "<200ms" → "<500ms" (loosened with no reason)
+- ✅ "<200ms (target value, pending validation)" → "<150ms (based on 30-day P95 measured at 120ms)"
 
-#### 报警阈值
+#### Alert Threshold
 
-- **变更类型**: 数据刷新
-- **允许**: 基于实测数据调优阈值
-- **禁止**: 因频繁报警而放宽阈值不标注原因
-- **触发**: 报警灵敏度调优
-- **校验**: 新值标注调整依据
-- ❌ ">500ms 持续 5min" → ">2000ms 持续 30min"（因嫌烦放宽）
-- ✅ ">500ms 持续 5min" → ">800ms 持续 3min（基于 30 天误报分析，旧阈值误报率 40%）"
+- **Change Type**: data refresh
+- **Allowed**: Tuning the threshold based on measured data
+- **Forbidden**: Loosening due to frequent alerts without annotating the reason
+- **Trigger**: Alert-sensitivity tuning
+- **Check**: The new value annotates the basis for the adjustment
+- ❌ ">500ms for 5min" → ">2000ms for 30min" (loosened out of annoyance)
+- ✅ ">500ms for 5min" → ">800ms for 3min (based on 30-day false-positive analysis; old threshold had 40% false-positive rate)"
 
-### §4 异常预案
+### §4 Incident Playbook
 
-#### 整行
+#### Whole row
 
-- **变更类型**: 追加
-- **允许**: 新增异常场景行
-- **禁止**: 删除已有行
-- **触发**: 发生过新类型异常或演练发现盲区
-- **校验**: 新行满足 checklist 所有列约束
-- ❌ 删除已有预案行
-- ✅ 事故复盘后新增一行 "数据库连接池耗尽 | 1. 重启连接池 2. 限流降级 | 10min 未恢复 → 升级至 DBA"
+- **Change Type**: append-only
+- **Allowed**: Adding new incident-scenario rows
+- **Forbidden**: Deleting existing rows
+- **Trigger**: A new type of incident occurred or a drill found a blind spot
+- **Check**: New rows satisfy all column constraints in the checklist
+- ❌ Deleting an existing playbook row
+- ✅ After an incident retrospective, adding "DB connection-pool exhaustion | 1. restart the pool 2. throttle / degrade | not recovered in 10min → escalate to DBA"
 
-#### 场景（列值）
+#### Scenario (column value)
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改已有行的场景描述
-- **触发**: —
-- **校验**: 场景描述需更精确时追加新行
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying the scenario description of an existing row
+- **Trigger**: —
+- **Check**: When the scenario description needs to be more precise, append a new row
 
-#### 应对措施
+#### Response Procedure
 
-- **变更类型**: 可更新
-- **允许**: 基于事故复盘优化步骤；补充遗漏步骤
-- **禁止**: 删除已有步骤不标注原因
-- **触发**: 事故复盘、演练发现改进点
-- **校验**: 更新后仍需是具体操作步骤
-- ❌ "1. 切换备用 2. 通知用户 3. 排查根因" → "处理"
-- ✅ "1. 切换备用 2. 通知用户" → "1. 切换备用 2. 通知用户 3. 排查根因 4. 写事故报告"
+- **Change Type**: updatable
+- **Allowed**: Optimizing steps based on an incident retrospective; supplementing missing steps
+- **Forbidden**: Deleting existing steps without annotating the reason
+- **Trigger**: Incident retrospective; improvements found in drills
+- **Check**: After updating, the value must still be concrete operational steps
+- ❌ "1. fail over 2. notify users 3. investigate root cause" → "handle"
+- ✅ "1. fail over 2. notify users" → "1. fail over 2. notify users 3. investigate root cause 4. write incident report"
 
-#### 升级路径
+#### Escalation Path
 
-- **变更类型**: 可更新
-- **允许**: 人员变动时更新角色/负责人；基于复盘调整时间条件
-- **禁止**: 改为无具体角色的描述
-- **触发**: 团队人员变动、事故复盘
-- **校验**: 新值仍必须包含具体角色/负责人
-- ❌ "15min → 升级至 {CTO}" → "升级处理"
-- ✅ "15min → 升级至 张三" → "15min → 升级至 李四（张三已离职，2024.03 交接）"
+- **Change Type**: updatable
+- **Allowed**: Updating the role / owner upon personnel changes; adjusting time conditions based on a retrospective
+- **Forbidden**: Changing to a description without a concrete role
+- **Trigger**: Team personnel changes; incident retrospective
+- **Check**: The new value must still include a concrete role / owner
+- ❌ "15min → escalate to {CTO}" → "escalate to handle"
+- ✅ "15min → escalate to Zhang San" → "15min → escalate to Li Si (Zhang San left; handed over 2024.03)"
 
-## 操作流程
+## Operating Procedure
 
-### 创建 Ops
+### Create Ops
 
-1. 填写 §1-§4 所有字段
-2. §1 发布渠道至少 1 项，发布节奏和版本规则各 1 段
-3. §2 反馈闭环至少 2 行，SLA 必须是具体时间
-4. §3 关键指标至少 3 行，目标和阈值必须有数字
-5. §4 异常预案至少 2 行，升级路径必须指名角色/负责人
+1. Fill in all fields of §1–§4
+2. §1 Release Channels at least 1 item; Release Cadence and Versioning Rule each one paragraph
+3. §2 Feedback Loop at least 2 rows; SLA must be a concrete time
+4. §3 Key Metrics at least 3 rows; Target and threshold must contain numbers
+5. §4 Incident Playbook at least 2 rows; Escalation Path must name a concrete role / owner
 
-### 新增反馈渠道
+### Add a Feedback Channel
 
-1. §2 追加新行
-2. 确认 SLA 为具体时间
+1. §2 Append a new row
+2. Confirm the SLA is a concrete time
 
-### 指标调优
+### Metric Tuning
 
-1. §3 目标或报警阈值数据刷新
-2. 标注数据来源和调整依据
-3. 如需新增指标，追加新行
+1. §3 Refresh the Target or Alert Threshold
+2. Annotate the data source and the basis for the adjustment
+3. Append a new row if a new metric is needed
 
-### 事故复盘更新
+### Incident Retrospective Update
 
-1. §4 如为新场景，追加新行
-2. §4 如为已有场景，更新应对措施和/或升级路径
-3. §3 如发现指标盲区，追加新指标行
+1. §4 Append a new row if it is a new scenario
+2. §4 Update the Response Procedure and/or Escalation Path if it is an existing scenario
+3. §3 Append a new metric row if a metric blind spot was found
 
-## 校验规则
+## Validation Rules
 
-1. **不可变字段未被修改** — diff 中不应出现已有行的渠道名、指标名、场景描述的变化
-2. **追加字段只增不减** — §2/§3/§4 行数只增不减
-3. **SLA 始终为具体时间** — 不得出现"尽快""ASAP"等无时间量描述
-4. **目标和阈值始终有数字** — 不得出现"越低越好""异常时告警"等无数字描述
-5. **升级路径始终有角色** — 不得出现"升级处理""找人解决"等无具体角色描述
-6. **数据刷新标注来源** — 目标/阈值调整时标注数据来源和调整依据
+1. **Immutable fields unchanged** — The diff must not contain changes to channel names, metric names, or scenario descriptions of existing rows
+2. **Append-only fields only grow** — §2 / §3 / §4 row counts only grow
+3. **SLA always a concrete time** — Descriptions like "ASAP" without a time quantity are forbidden
+4. **Target and threshold always have numbers** — Descriptions like "lower is better" or "alert on anomalies" without numbers are forbidden
+5. **Escalation path always has a role** — Descriptions like "escalate to handle" or "find someone" without a concrete role are forbidden
+6. **Data refresh annotates source** — When adjusting Target / threshold, annotate the data source and the basis for the adjustment

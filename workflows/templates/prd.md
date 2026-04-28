@@ -1,121 +1,121 @@
-# {需求名}
+# {requirement name}
 
-<!-- 核心问题: 需求到哪了、验收标准是什么？
-     定位: 需求级定义 + 进度跟踪
-     不属于本文档: 产品全局规划（→ roadmap）、技术方案（→ tech）、系统架构（→ arch）
-     字段规格: 见 templates/prd-checklist.md
-     变更规则: 见 templates/prd-update.md
-     数据置信: 有实测标来源；有推算标"估算"+依据；有目标标"目标值，待验证"；无法估算标"无数据（原因）"。禁止编造。
-     结构锁定: 不得增删 section、不得增删表格列。只填值。 -->
+<!-- Core question: where does this requirement stand and what are the acceptance criteria?
+     Positioning: requirement-level definition + progress tracking
+     Out of scope: product-wide planning (→ roadmap), technical solution (→ tech), system architecture (→ arch)
+     Field spec: see templates/prd-checklist.md
+     Change rules: see templates/prd-update.md
+     Data confidence: measured values annotate source; derived values annotate "estimated" + basis; targets annotate "target value, pending validation"; values that cannot be estimated annotate "no data ({reason})". No fabrication.
+     Structure locked: do not add or remove sections, do not add or remove table columns. Only fill in values. -->
 
-## 1. 问题
+## 1. Problem
 
-<!-- 为什么要做这个需求。回答"值不值得做"。3 个固定字段。 -->
+<!-- Why this requirement is worth building. Answers "is it worth doing". 3 fixed fields. -->
 
-### 痛点
+### Pain Point
 
-<!-- 用户遇到的具体困难。
-  - 格式: 1-3 句。主语是用户/agent，描述现象不描述缺失
-  - 禁止: "缺乏X""没有Y"；技术实现原因；内部架构限制
-  - ❌ "系统缺乏自测能力"
-  - ✅ "支付 webhook 验签逻辑改动后无法验证是否引入回归，错误放行的请求上线后才发现" -->
+<!-- The concrete difficulty the user encounters.
+  - Format: 1-3 sentences. Subject is the user/agent; describe the phenomenon, not the missing capability.
+  - Forbidden: "lacks X" / "doesn't have Y"; technical-implementation reasons; internal architectural limitations
+  - ❌ "the system lacks self-test capability"
+  - ✅ "after changes to the payment-webhook signature-verification logic, there is no way to verify whether a regression has been introduced; incorrectly accepted requests are only discovered after release" -->
 
-{用户视角的具体困难}
+{concrete user-perspective difficulty}
 
-### 影响范围
+### Impact Scope
 
-<!-- 多少人/场景受影响，多频繁。
-  - 格式: 量化描述。含受影响群体 + 频次
-  - 禁止: "很多用户""影响较大"
-  - 数据: 有实测用实测；无实测标"估算"
-  - ❌ "影响较大"
-  - ✅ "每次修改 webhook 验签逻辑（估算: 周均 2-3 次）都面临回归风险，影响所有支付回调链路" -->
+<!-- How many people/scenarios are affected, how often.
+  - Format: quantified description. Includes affected population + frequency.
+  - Forbidden: "many users" / "significant impact"
+  - Data: when measured, use measured values; without measurement, annotate "estimated"
+  - ❌ "significant impact"
+  - ✅ "every change to the webhook signature-verification logic (estimated: 2-3 times per week) carries regression risk, affecting all payment callback chains" -->
 
-{量化的影响范围和频次}
+{quantified impact scope and frequency}
 
-### 为什么现在做
+### Why Now
 
-<!-- 触发事件。为什么不是下个版本做。
-  - 格式: 1-2 句。含触发事件 + 不做的后果
-  - 禁止: "重要所以先做""优先级高"
-  - ❌ "这个需求很重要"
-  - ✅ "本次会话中签名计算 bug 导致部分合法回调被拒绝，直到客户上报才发现" -->
+<!-- Triggering event. Why not next version.
+  - Format: 1-2 sentences. Includes triggering event + consequence of not doing it.
+  - Forbidden: "important so do it first" / "high priority"
+  - ❌ "this requirement is very important"
+  - ✅ "in this session, a signature-calculation bug caused some legitimate callbacks to be rejected, only discovered when a customer reported it" -->
 
-{触发事件 + 不做的后果}
+{triggering event + consequence of not doing it}
 
-## 2. 目标用户
+## 2. Target Users
 
-<!-- 给谁做。回答"谁会用"。
-  - 格式: 表格，≥1 行
-  - 角色: "{限定条件}的{角色名}"。禁止无限定的泛称
-  - 场景: 什么时候触发使用。禁止"日常使用"
-  - Before: 使用前的痛感，量化。禁止"效率低"
-  - After: 使用后的状态，与 Before 对称。禁止"效率高"
-  - EXCLUDE: 系统内部组件名、数据模型 -->
+<!-- Who it is for. Answers "who will use it".
+  - Format: table, ≥1 row
+  - Role: "{qualifier} {role name}". Forbidden: generic role names without qualifiers.
+  - Scenario: when usage is triggered. Forbidden: "daily use".
+  - Before: pain felt before use, quantified. Forbidden: "low efficiency".
+  - After: state after use, symmetric to Before. Forbidden: "high efficiency".
+  - EXCLUDE: internal system component names, data models -->
 
-| 角色 | 场景 | Before | After |
+| Role | Scenario | Before | After |
+|------|----------|--------|-------|
+| {qualified role} | {trigger scenario} | {pre-use pain, quantified} | {post-use state, quantified} |
+
+## 3. Core Hypothesis
+
+<!-- What will happen after building it. Answers "which hypothesis is being validated".
+  - Hypothesis: 1 cause-and-effect sentence ("did X → user will Y"). Forbidden: multiple hypotheses mixed together.
+  - Validation method: an executable check, with a decision criterion. Forbidden: "test it and see".
+  - EXCLUDE: technical solution, implementation details
+  - ❌ Hypothesis: "the experience will be better after optimization" / Validation: "see how it goes"
+  - ✅ Hypothesis: "providing a contract test suite → developers can verify with one command that no regressions are introduced after changing signature-verification logic" / Validation: "deliberately introduce a signature-calculation bug; the contract test catches it" -->
+
+- **Hypothesis**: {did X → user will Y}
+- **Validation method**: {executable check + decision criterion}
+
+## 4. Plan
+
+<!-- What to do (not how to do it). Answers "how the user experience changes".
+  - Before→After: one sentence per change point, user-perspective behavior change.
+  - ROWS: ≥1
+  - Forbidden: operation flow diagrams, interaction details, internal data structures, storage formats, algorithms, file paths
+  - ❌ "add a contract test suite covering signature/replay/timeout scenarios"
+  - ✅ "Before: manually run each command after changes → After: run one command to automatically verify all core features" -->
+
+- **Before**: {what the user has to do now} → **After**: {what the user only has to do afterwards}
+
+### Task Tracking
+
+<!-- Track at tech granularity. One PRD may correspond to multiple tech docs.
+  - Task: task name
+  - Tech: link to the tech doc "[{plan name}]({path})", "—" if no tech
+  - Status: not started | in progress | done | shelved
+  - Notes: "done" or "has leftover items: {specifics}"
+  - ROWS: ≥1
+  - Forbidden: deleting existing rows; reverting status
+  - ❌ Notes: "in progress"
+  - ✅ Notes: "has leftover items: insufficient edge-case coverage" -->
+
+| Task | Tech | Status | Notes |
 |------|------|--------|-------|
-| {限定角色} | {触发场景} | {使用前痛感，量化} | {使用后状态，量化} |
+| {task name} | [{plan name}]({tech path}) | {enum status} | {done/has leftover items: specifics} |
 
-## 3. 核心假设
+## 5. Acceptance Criteria
 
-<!-- 做了之后会怎样。回答"在验证什么假设"。
-  - 假设: 1 句因果句（"做了 X → 用户会 Y"）。禁止多个假设混在一起
-  - 验证方式: 可执行的检查，含判定条件。禁止"测试一下看看"
-  - EXCLUDE: 技术方案、实现细节
-  - ❌ 假设: "优化后体验更好" / 验证: "看看效果"
-  - ✅ 假设: "提供 contract test 套件 → 开发者改动验签逻辑后可一键验证无回归" / 验证: "故意引入签名计算 bug，contract test 能捕获" -->
-
-- **假设**: {做了 X → 用户会 Y}
-- **验证方式**: {可执行检查 + 判定条件}
-
-## 4. 方案
-
-<!-- 做什么（不是怎么做）。回答"用户体验怎么变"。
-  - Before→After: 每个变化点 1 句，用户视角行为变化
-  - ROWS: ≥1
-  - 禁止: 操作流程图、交互细节、内部数据结构、存储格式、算法、文件路径
-  - ❌ "新增 contract test 套件，覆盖签名/重放/超时等场景"
-  - ✅ "Before: 改动后手动逐命令检查 → After: 运行一条命令自动验证全部核心功能" -->
-
-- **Before**: {现在用户需要做什么} → **After**: {之后用户只需做什么}
-
-### 任务追踪
-
-<!-- 以 tech 为单位追踪。一个 PRD 可对应多个 tech。
-  - 任务: 任务名称
-  - Tech: 链接到 tech 文档 "[{方案名}]({路径})"，无 tech 填 —
-  - 状态: 未开始 | 进行中 | 已完成 | 已搁置
-  - 备注: "完成"或"有遗留项：{具体内容}"
-  - ROWS: ≥1
-  - 禁止: 删除已有行；回退状态
-  - ❌ 备注: "进行中"
-  - ✅ 备注: "有遗留项：边界 case 覆盖不足" -->
-
-| 任务 | Tech | 状态 | 备注 |
-|------|------|------|------|
-| {任务名} | [{方案名}]({tech路径}) | {枚举状态} | {完成/有遗留项：具体内容} |
-
-## 5. 验收标准
-
-<!-- 怎么算做完了。回答"验收标准"。
-  - 格式: 每条 "用户做 X → 应看到 Y"。覆盖核心场景 + 关键边界
+<!-- What counts as done. Answers "acceptance criteria".
+  - Format: each item "user does X → should see Y". Cover core scenarios + key edges.
   - ROWS: ≥3
-  - 每条可独立验证
-  - 禁止: 单元测试用例、代码覆盖率、内部接口断言
-  - ❌ "contract test 正常工作"
-  - ✅ "开发者运行 `npm run test:contract` → 应看到 6 个核心 case 全部 PASS，耗时 <30s" -->
+  - Each item must be independently verifiable
+  - Forbidden: unit test cases, code coverage, internal interface assertions
+  - ❌ "contract test works correctly"
+  - ✅ "the developer runs `npm run test:contract` → should see all 6 core cases PASS, taking <30s" -->
 
-- {用户做 X → 应看到 Y}
+- {user does X → should see Y}
 
-## 6. 排除项
+## 6. Exclusions
 
-<!-- 不做什么。回答"边界在哪"。
-  - 格式: "不支持 X（{原因}）" 或 "X 推迟到 v{N}（{原因}）"
+<!-- What is not done. Answers "where is the boundary".
+  - Format: "does not support X ({reason})" or "X postponed to v{N} ({reason})"
   - ROWS: ≥2
-  - 只列容易被误认为在 scope 内的项
-  - 禁止: 无原因的裸排除项；技术债、重构计划
-  - ❌ "暂不支持"
-  - ✅ "不支持跨项目一致性检查（当前只需单项目使用）" -->
+  - Only list items that could easily be mistaken as in scope
+  - Forbidden: bare exclusions without reason; technical debt, refactor plans
+  - ❌ "not supported for now"
+  - ✅ "does not support cross-project consistency check (single-project usage is sufficient for now)" -->
 
-- {排除项}（{原因}）
+- {exclusion} ({reason})

@@ -1,102 +1,102 @@
-# {{主题名}} 接口规范
+# {{topic name}} Interface Specification
 
-<!-- 数据置信: 实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。 -->
-<!-- 结构锁定: 章节顺序与字段结构不可变。只能在现有框架内填充内容。 -->
+<!-- Data confidence: measured > annotate source > estimated > annotate basis > target > annotate "pending validation" > no data > annotate reason. No fabrication. -->
+<!-- Structure locked: section order and field structure are immutable. Only fill content within the existing framework. -->
 
-<!-- 核心问题: 接口契约是什么、怎么调用？
-     定位: 契约描述
-     不属于本文档: 内部实现（→ tech）、系统架构（→ arch） -->
+<!-- Core question: what is the interface contract and how is it called?
+     Positioning: contract description
+     Out of scope: internal implementation (→ tech), system architecture (→ arch) -->
 
-## 1. 概述
+## 1. Overview
 
-<!-- 接口的范围、调用方、协议类型。回答"这套接口干什么、谁用、什么协议"
-  - EXCLUDE: 内部实现细节、存储方案（在 tech 里） -->
+<!-- The scope, callers, and protocol type of the interface. Answers "what this set of interfaces does, who uses it, and which protocol".
+  - EXCLUDE: internal implementation details, storage solution (in tech) -->
 
-### 范围
+### Scope
 
-<!-- 1-2 句话说明接口覆盖的业务场景 -->
+<!-- 1-2 sentences describing the business scenarios the interfaces cover -->
 
-{{接口覆盖的业务场景}}
+{{business scenarios covered by the interfaces}}
 
-### 调用方
+### Callers
 
-<!-- 列出所有调用方 -->
+<!-- List all callers -->
 
-- {{调用方 1}}
-- {{调用方 2}}
+- {{caller 1}}
+- {{caller 2}}
 
-### 协议类型
+### Protocol Type
 
-<!-- 枚举: REST | gRPC | CLI | file -->
+<!-- Enum: REST | gRPC | CLI | file -->
 
 {{REST/gRPC/CLI/file}}
 
-## 2. 数据结构
+## 2. Data Model
 
-<!-- 核心数据模型。回答"数据长什么样"
+<!-- Core data model. Answers "what the data looks like".
   - ROWS ≥3
-  - 类型必须具体（❌ "any" ✅ "string" / "int" / "string[]"）
-  - 必填: 是/否 枚举
-  - EXCLUDE: 数据库表结构、ORM 映射（在 tech 里） -->
+  - Type must be concrete (❌ "any" ✅ "string" / "int" / "string[]")
+  - Required: yes/no enum
+  - EXCLUDE: database table schema, ORM mapping (in tech) -->
 
-| 字段 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| {{字段}} | {{具体类型}} | {{是/否}} | {{说明}} |
-| {{字段}} | {{具体类型}} | {{是/否}} | {{说明}} |
-| {{字段}} | {{具体类型}} | {{是/否}} | {{说明}} |
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| {{field}} | {{concrete type}} | {{yes/no}} | {{description}} |
+| {{field}} | {{concrete type}} | {{yes/no}} | {{description}} |
+| {{field}} | {{concrete type}} | {{yes/no}} | {{description}} |
 
-## 3. 接口定义
+## 3. Interface Definitions
 
-<!-- 每个接口: method + path + params + response + errors。回答"怎么调用"
-  - 错误码表 ROWS ≥2
-  - EXCLUDE: 内部校验逻辑、中间件配置 -->
+<!-- For each interface: method + path + params + response + errors. Answers "how to call".
+  - Error-code table ROWS ≥2
+  - EXCLUDE: internal validation logic, middleware configuration -->
 
-### {{接口名称}}
+### {{interface name}}
 
-- **方法**: {{GET/POST/PUT/DELETE/CLI command}}
-- **路径**: {{/api/v1/resource 或 command syntax}}
-- **参数**:
+- **Method**: {{GET/POST/PUT/DELETE/CLI command}}
+- **Path**: {{/api/v1/resource or command syntax}}
+- **Parameters**:
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| {{参数}} | {{类型}} | {{是/否}} | {{说明}} |
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| {{parameter}} | {{type}} | {{yes/no}} | {{description}} |
 
-- **响应**:
+- **Response**:
 
 ```json
-{{响应结构}}
+{{response structure}}
 ```
 
-- **错误码**:
+- **Error codes**:
 
-| 错误码 | 含义 | 处理建议 |
-|--------|------|---------|
-| {{错误码}} | {{含义}} | {{处理建议}} |
-| {{错误码}} | {{含义}} | {{处理建议}} |
+| Error Code | Meaning | Handling Recommendation |
+|------------|---------|--------------------------|
+| {{error code}} | {{meaning}} | {{handling recommendation}} |
+| {{error code}} | {{meaning}} | {{handling recommendation}} |
 
-## 4. 约束与规则
+## 4. Constraints and Rules
 
-<!-- 校验规则 + 边界值 + 兼容性要求。回答"有什么限制"
+<!-- Validation rules + boundary values + compatibility requirements. Answers "what limits exist".
   - ROWS ≥2
-  - EXCLUDE: 实现层面的性能优化策略 -->
+  - EXCLUDE: implementation-level performance optimization strategies -->
 
-- {{约束规则 1}}
-- {{约束规则 2}}
+- {{constraint rule 1}}
+- {{constraint rule 2}}
 
-## 5. 示例
+## 5. Example
 
-<!-- 典型调用 + 预期响应。回答"实际用起来什么样"
-  - ≥1 个完整的 request/response 示例
-  - EXCLUDE: 测试用例代码 -->
+<!-- Typical call + expected response. Answers "what it looks like in actual use".
+  - ≥1 complete request/response example
+  - EXCLUDE: test-case code -->
 
-**请求:**
-
-```
-{{完整请求示例}}
-```
-
-**响应:**
+**Request:**
 
 ```
-{{完整响应示例}}
+{{complete request example}}
+```
+
+**Response:**
+
+```
+{{complete response example}}
 ```

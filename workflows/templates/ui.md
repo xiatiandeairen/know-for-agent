@@ -1,48 +1,48 @@
-# {{页面/模块名}} 交互设计
+# {{page/module name}} Interaction Design
 
-<!-- 核心问题: 这个页面长什么样、怎么操作？
-     定位: 单页面/模块的交互描述（每页独立文件）
-     不属于本文档: 产品需求（→ prd）、技术实现（→ tech）、系统架构（→ arch） -->
+<!-- Core question: what does this page look like and how is it operated?
+     Positioning: interaction description for a single page/module (one file per page)
+     Out of scope: product requirement (→ prd), technical implementation (→ tech), system architecture (→ arch) -->
 
-## 1. 布局
+## 1. Layout
 
-<!-- 区域排布。回答"长什么样"
-  - INCLUDE: ASCII 草图 + 区域说明表、信息层级、视觉重点
-  - 引用项目术语表中的组件命名
-  - EXCLUDE: CSS 实现、组件 API（→ tech） -->
+<!-- Region arrangement. Answers "what it looks like".
+  - INCLUDE: ASCII sketch + region description table, information hierarchy, visual emphasis
+  - Reference component names from the project glossary
+  - EXCLUDE: CSS implementation, component API (→ tech) -->
 
 ```
-{{ASCII 布局草图}}
+{{ASCII layout sketch}}
 ```
 
-| 区域 | 内容 | 优先级 |
-|------|------|--------|
-| {{区域名}} | {{区域内容描述}} | {{优先级}} |
+| Region | Content | Priority |
+|--------|---------|----------|
+| {{region name}} | {{region content description}} | {{priority}} |
 
-## 2. 交互流程
+## 2. Interaction Flow
 
-<!-- 本页面内的操作路径。回答"用户怎么操作"
-  - 每步 = 触发→响应→下一步
-  - INCLUDE: 操作步骤、分支路径、触发方式、响应行为、过渡效果
-  - EXCLUDE: 后端处理逻辑、数据流转（→ tech） -->
+<!-- Operation paths within this page. Answers "how the user operates".
+  - Each step = trigger → response → next step
+  - INCLUDE: operation steps, branch paths, trigger mechanism, response behavior, transition effects
+  - EXCLUDE: backend processing logic, data flow (→ tech) -->
 
-1. **触发:** {{用户动作}} → **响应:** {{系统反馈}} → **下一步:** {{后续状态}}
-2. **触发:** {{用户动作}} → **响应:** {{系统反馈}} → **下一步:** {{后续状态}}
-3. **触发:** {{用户动作}} → **响应:** {{系统反馈}} → **下一步:** {{后续状态}}
+1. **Trigger:** {{user action}} → **Response:** {{system feedback}} → **Next step:** {{subsequent state}}
+2. **Trigger:** {{user action}} → **Response:** {{system feedback}} → **Next step:** {{subsequent state}}
+3. **Trigger:** {{user action}} → **Response:** {{system feedback}} → **Next step:** {{subsequent state}}
 
-## 3. 状态与样式
+## 3. States and Styles
 
-<!-- 组件各状态的视觉表现。回答"各种情况下长什么样"
-  - 按组件分组，每个组件列状态表
-  - 列: state / trigger / visual / timing
-  - 必须覆盖: hover, disabled, loading, error（至少 4 种状态）
-  - EXCLUDE: 事件处理代码、状态管理实现（→ tech） -->
+<!-- Visual presentation of each component state. Answers "what it looks like under various conditions".
+  - Group by component; each component has a state table
+  - Columns: state / trigger / visual / timing
+  - Must cover: hover, disabled, loading, error (at least 4 states)
+  - EXCLUDE: event-handling code, state-management implementation (→ tech) -->
 
-### {{组件名}}
+### {{component name}}
 
 | state | trigger | visual | timing |
 |-------|---------|--------|--------|
-| hover | {{触发方式}} | {{视觉表现}} | {{时间/动画}} |
-| disabled | {{触发方式}} | {{视觉表现}} | {{时间/动画}} |
-| loading | {{触发方式}} | {{视觉表现}} | {{时间/动画}} |
-| error | {{触发方式}} | {{视觉表现}} | {{时间/动画}} |
+| hover | {{trigger mechanism}} | {{visual presentation}} | {{timing/animation}} |
+| disabled | {{trigger mechanism}} | {{visual presentation}} | {{timing/animation}} |
+| loading | {{trigger mechanism}} | {{visual presentation}} | {{timing/animation}} |
+| error | {{trigger mechanism}} | {{visual presentation}} | {{timing/animation}} |

@@ -1,397 +1,397 @@
-# Roadmap 更新规则
+# Roadmap Update Rules
 
-## 变更类型
+## Change Types
 
-| 类型 | 含义 |
-|------|------|
-| **不可变** | 一旦写入不再修改，历史记录性质 |
-| **追加** | 只能新增行/条目，不能改已有的 |
-| **数据刷新** | 已有值可被更准确的数据替换 |
-| **可更新** | 内容可修改，但有明确约束 |
+| Type | Meaning |
+|------|---------|
+| **immutable** | Once written, never modified — historical-record nature |
+| **append-only** | Only new rows / entries can be added; existing ones cannot be modified |
+| **data refresh** | Existing values may be replaced with more accurate data |
+| **updatable** | Content can be modified, but with explicit constraints |
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 变更类型 |
-|------|------|---------|
-| §1.1 产品核心 | 定位 | 不可变 |
-| | 动机 | 不可变 |
-| | 长远愿景 | 不可变 |
-| §1.2 价值体系 | 价值列 | 不可变 |
-| | 衡量指标列 | 数据刷新 |
-| §1.3 核心问题 | 问题（行） | 追加 |
-| | 问题（列值） | 不可变 |
-| | 发生频率 | 数据刷新 |
-| | 单次成本 | 数据刷新 |
-| | 影响面 | 数据刷新 |
-| | 现有应对 | 可更新 |
-| §1.4 目标用户 | 角色（行） | 追加 |
-| | Before / After | 数据刷新 |
-| | 预估提效 | 数据刷新 |
-| §1.5 竞品对比 | 整行 | 追加 |
-| | 方案/定位/目标用户 | 不可变 |
-| | 核心功能/优势/局限 | 可更新 |
-| §2.1 版本汇总 | 整行 | 追加 |
-| | 版本/核心方向 | 不可变 |
-| | 核心指标变化 | 数据刷新 |
-| | 状态 | 可更新 |
-| | 周期 | 可更新 |
-| | 里程碑 | 可更新 |
-| §2.2 版本详情 | 整个子节 | 追加 |
-| | 战略意图 | 不可变 |
-| | 投入产出 | 数据刷新 |
-| | 优先级依据 | 不可变 |
-| | 风险与依赖 | 可更新 |
-| | 成功指标 | 不可变 |
-| | 核心价值 | 不可变 |
-| | 用户覆盖 | 可更新 |
-| | 核心指标表 | 数据刷新 + 追加 |
-| §3 里程碑 | 整行 | 追加 |
-| | # / 核心方向 | 不可变 |
-| | 目标达成情况 | 可更新 |
-| | 状态 | 可更新 |
-| | 完成日期 | 可更新 |
+| Location | Field | Change Type |
+|----------|-------|-------------|
+| §1.1 Product Essence | Positioning | immutable |
+| | Motivation | immutable |
+| | Long-term Vision | immutable |
+| §1.2 Value System | Value column | immutable |
+| | Metric column | data refresh |
+| §1.3 Core Problems | Problem (row) | append-only |
+| | Problem (column value) | immutable |
+| | Occurrence Frequency | data refresh |
+| | Per-occurrence Cost | data refresh |
+| | Reach | data refresh |
+| | Existing Workaround | updatable |
+| §1.4 Target Users | Role (row) | append-only |
+| | Before / After | data refresh |
+| | Estimated Efficiency Gain | data refresh |
+| §1.5 Competitive Comparison | Whole row | append-only |
+| | Solution / Positioning / Target User | immutable |
+| | Core Features / Strengths / Limitations | updatable |
+| §2.1 Version Summary | Whole row | append-only |
+| | Version / Core Direction | immutable |
+| | Core-metric delta | data refresh |
+| | Status | updatable |
+| | Cycle | updatable |
+| | Milestones | updatable |
+| §2.2 Version Details | Whole subsection | append-only |
+| | Strategic Intent | immutable |
+| | Input/Output | data refresh |
+| | Priority Rationale | immutable |
+| | Risks and Dependencies | updatable |
+| | Success Metric | immutable |
+| | Core Value | immutable |
+| | User Coverage | updatable |
+| | Core Metric Table | data refresh + append-only |
+| §3 Milestones | Whole row | append-only |
+| | # / Core Direction | immutable |
+| | Goal-attainment Status | updatable |
+| | Status | updatable |
+| | Completion Date | updatable |
 
-## 字段变更规则
+## Field Change Rules
 
-### §1.1 产品核心
+### §1.1 Product Essence
 
-#### 定位
+#### Positioning
 
-- **变更类型**: 不可变
-- **允许**: 仅产品 pivot 时可重写
-- **禁止**: 日常更新中修改
-- **触发**: 用户明确要求 pivot
-- **校验**: 变更前必须用户确认 + 记录 pivot 原因
+- **Change Type**: immutable
+- **Allowed**: Rewritable only on a product pivot
+- **Forbidden**: Modifying in routine updates
+- **Trigger**: User explicitly requests a pivot
+- **Check**: The change must be confirmed by the user beforehand and the pivot reason must be recorded
 
-#### 动机
+#### Motivation
 
-- **变更类型**: 不可变
-- **允许**: 仅产品 pivot 时可重写
-- **禁止**: 日常更新中修改
-- **触发**: 用户明确要求 pivot
-- **校验**: 同定位
+- **Change Type**: immutable
+- **Allowed**: Rewritable only on a product pivot
+- **Forbidden**: Modifying in routine updates
+- **Trigger**: User explicitly requests a pivot
+- **Check**: Same as Positioning
 
-#### 长远愿景
+#### Long-term Vision
 
-- **变更类型**: 不可变
-- **允许**: 仅产品 pivot 时可重写
-- **禁止**: 日常更新中修改
-- **触发**: 用户明确要求 pivot
-- **校验**: 同定位
+- **Change Type**: immutable
+- **Allowed**: Rewritable only on a product pivot
+- **Forbidden**: Modifying in routine updates
+- **Trigger**: User explicitly requests a pivot
+- **Check**: Same as Positioning
 
-### §1.2 价值体系
+### §1.2 Value System
 
-#### 价值列（即时/累积/战略）
+#### Value column (immediate / cumulative / strategic)
 
-- **变更类型**: 不可变
-- **允许**: 仅 pivot 时可重写
-- **禁止**: 日常更新中修改
-- **触发**: 用户明确要求
-- **校验**: 变更前必须用户确认
+- **Change Type**: immutable
+- **Allowed**: Rewritable only on a pivot
+- **Forbidden**: Modifying in routine updates
+- **Trigger**: User explicitly requests it
+- **Check**: The change must be confirmed by the user beforehand
 
-#### 衡量指标列（即时/累积/战略）
+#### Metric column (immediate / cumulative / strategic)
 
-- **变更类型**: 数据刷新
-- **允许**: "目标值，待验证"→实测值；精度提升（估算→实测）
-- **禁止**: 删除旧值；用更不准确的数据替换更准确的
-- **触发**: 新版本发布后有实测数据
-- **校验**: 新值必须标注来源；旧值保留为注释做对比
-- ❌ 直接覆盖旧值不留痕
-- ✅ "learn gate 拒绝率（当前实测: 18%，目标: ≥20%）" ← 包含实测 + 目标
+- **Change Type**: data refresh
+- **Allowed**: "target value, pending validation" → measured value; precision improvements (estimated → measured)
+- **Forbidden**: Deleting old values; replacing more accurate data with less accurate data
+- **Trigger**: Measured data is now available after a new release
+- **Check**: New values must annotate their source; old values are kept as a comment for comparison
+- ❌ Overwriting the old value directly with no trace
+- ✅ "learn gate rejection rate (currently measured: 18%, target: ≥20%)" ← contains both measured and target
 
-### §1.3 核心问题
+### §1.3 Core Problems
 
-#### 问题（整行）
+#### Problem (whole row)
 
-- **变更类型**: 追加
-- **允许**: 新增行
-- **禁止**: 删除已有行；修改已有行的问题描述
-- **触发**: 发现新的核心问题
-- **校验**: 新行满足 checklist 所有列约束
+- **Change Type**: append-only
+- **Allowed**: Adding new rows
+- **Forbidden**: Deleting existing rows; modifying the problem description of an existing row
+- **Trigger**: A new core problem is identified
+- **Check**: New rows satisfy all column constraints in the checklist
 
-#### 发生频率 / 单次成本 / 影响面
+#### Occurrence Frequency / Per-occurrence Cost / Reach
 
-- **变更类型**: 数据刷新
-- **允许**: 估算值→实测值；"待量化"→具体值
-- **禁止**: 实测值被估算值替换
-- **触发**: 有了真实数据
-- **校验**: 新值标注数据来源
-- ❌ 把"实测: 日均 8 次"改成"估算: 日均 5-20 次"
-- ✅ 把"估算: 日均 5-20 次"改成"实测: 日均 8 次（基于 30 天使用记录）"
+- **Change Type**: data refresh
+- **Allowed**: estimated value → measured value; "pending quantification" → concrete value
+- **Forbidden**: Replacing a measured value with an estimated one
+- **Trigger**: Real data is now available
+- **Check**: New values annotate their data source
+- ❌ Changing "measured: 8 times/day on average" to "estimated: 5–20 times/day"
+- ✅ Changing "estimated: 5–20 times/day" to "measured: 8 times/day on average (based on 30-day usage records)"
 
-#### 现有应对
+#### Existing Workaround
 
-- **变更类型**: 可更新
-- **允许**: 替代方案变化时可修改
-- **禁止**: 无原因修改
-- **触发**: 新竞品出现或旧方案下线
-- **校验**: 说明变化原因
+- **Change Type**: updatable
+- **Allowed**: Modifying when alternatives change
+- **Forbidden**: Modifying without a reason
+- **Trigger**: A new competitor appears or an old solution retires
+- **Check**: Explain the reason for the change
 
-### §1.4 目标用户
+### §1.4 Target Users
 
-#### 角色（整行）
+#### Role (whole row)
 
-- **变更类型**: 追加
-- **允许**: 新增用户群行
-- **禁止**: 删除已有行；修改已有行的角色/场景
-- **触发**: 覆盖新用户群
-- **校验**: 新行满足 checklist 所有列约束
+- **Change Type**: append-only
+- **Allowed**: Adding new user-group rows
+- **Forbidden**: Deleting existing rows; modifying the role / scenario of an existing row
+- **Trigger**: Covering a new user group
+- **Check**: New rows satisfy all column constraints in the checklist
 
 #### Before / After
 
-- **变更类型**: 数据刷新
-- **允许**: 估算→实测
-- **禁止**: 实测被估算替换
-- **触发**: 有了真实用户反馈 / 版本发布后
-- **校验**: 标注来源
-
-#### 预估提效
+- **Change Type**: data refresh
+- **Allowed**: estimated → measured
+- **Forbidden**: Replacing measured with estimated
+- **Trigger**: Real user feedback is now available / after a release
+- **Check**: Annotate the source
+
+#### Estimated Efficiency Gain
 
-- **变更类型**: 数据刷新
-- **允许**: "待验证（预期: X）"→"实测: Y（预期: X）"
-- **禁止**: 删除原预期值
-- **触发**: 有了真实数据
-- **校验**: 保留原预期值做对比
-- ❌ "单次会话节省 15 分钟"（删除了预期标注）
-- ✅ "实测: 单次会话节省约 8 分钟（预期: 10-15 分钟）"
+- **Change Type**: data refresh
+- **Allowed**: "pending validation (expected: X)" → "measured: Y (expected: X)"
+- **Forbidden**: Deleting the original expected value
+- **Trigger**: Real data is now available
+- **Check**: Keep the original expected value for comparison
+- ❌ "Saves 15 minutes per session" (the expected annotation has been removed)
+- ✅ "Measured: ~8 minutes saved per session (expected: 10–15 minutes)"
 
-### §1.5 竞品对比
-
-#### 整行
-
-- **变更类型**: 追加
-- **允许**: 新增竞品行
-- **禁止**: 删除已有行
-- **触发**: 新竞品出现
-- **校验**: 新行满足 checklist 所有列约束
-
-#### 方案 / 定位 / 目标用户
-
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改已有行的这 3 列
-- **触发**: —
-- **校验**: 竞品更名/pivot 时新增行替代，旧行标注"已更名为 X"
-
-#### 核心功能 / 优势 / 局限
-
-- **变更类型**: 可更新
-- **允许**: 竞品功能变化时可更新
-- **禁止**: 无原因修改
-- **触发**: 竞品发布新版
-- **校验**: 标注更新原因
-
-### §2.1 版本汇总
-
-#### 整行
-
-- **变更类型**: 追加
-- **允许**: 追加新行
-- **禁止**: 删除已有行
-- **触发**: 规划新版本
-- **校验**: 同时创建 §2.2 版本详情子节
-
-#### 版本 / 核心方向
-
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改已有版本的这 2 列
-- **触发**: —
-- **校验**: —
-
-#### 核心指标变化
-
-- **变更类型**: 数据刷新
-- **允许**: "待定"/"待测量"→实测值
-- **禁止**: 编造数据；已有实测值被修改
-- **触发**: 版本发布后
-- **校验**: 必须来自真实数据，标注来源
-
-#### 状态
-
-- **变更类型**: 可更新
-- **允许**: 正向流转: 规划中→开发中→内测中→已发布→已归档
-- **禁止**: 回退（已发布→开发中）；跳级（规划中→已发布）
-- **触发**: 版本生命周期推进
-- **校验**: 新状态必须是旧状态的下一个枚举值或归档
-- ❌ 已发布→开发中
-- ✅ 开发中→内测中
-
-#### 周期
-
-- **变更类型**: 可更新
-- **允许**: "待定"→实际日期；结束日期可延期更新
-- **禁止**: 修改已写入的起始日期
-- **触发**: 版本启动/结束
-- **校验**: 起始日期一旦写入不可改
-
-#### 里程碑
-
-- **变更类型**: 可更新
-- **允许**: 范围扩展（M1-M3→M1-M4）
-- **禁止**: 范围缩减（M1-M4→M1-M3）
-- **触发**: 版本内新增里程碑
-- **校验**: 不可删除已有里程碑编号
-
-### §2.2 版本详情
-
-#### 整个子节
-
-- **变更类型**: 追加
-- **允许**: 新版本追加新子节
-- **禁止**: 删除已有子节
-- **触发**: 规划新版本
-- **校验**: 8 个固定字段全部填写
-
-#### 战略意图
-
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 事后修改
-- **触发**: —
-- **校验**: —
-
-#### 投入产出
-
-- **变更类型**: 数据刷新
-- **允许**: "预期 X"→"实测 Y（预期 X）"
-- **禁止**: 删除原预期值
-- **触发**: 版本完成后
-- **校验**: 保留原预期值做对比
-
-#### 优先级依据
-
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 事后修改
-- **触发**: —
-- **校验**: —
-
-#### 风险与依赖
-
-- **变更类型**: 可更新
-- **允许**: 追加新风险/依赖；已识别项追加状态标注
-- **禁止**: 删除已识别的风险/依赖
-- **触发**: 开发过程中
-- **校验**: 状态标注用"→已消除""→已发生"追加，不覆盖原文
-- ❌ 删除"风险：JSONL 性能未验证"
-- ✅ "风险：JSONL 性能未验证 →已验证，54 条下 <1s"
-
-#### 成功指标
-
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 事后修改（不可因未达标而改低标准）
-- **触发**: —
-- **校验**: 实际达成情况在核心指标表体现，不改成功指标本身
-
-#### 核心价值
+### §1.5 Competitive Comparison
+
+#### Whole row
+
+- **Change Type**: append-only
+- **Allowed**: Adding new competitor rows
+- **Forbidden**: Deleting existing rows
+- **Trigger**: A new competitor appears
+- **Check**: New rows satisfy all column constraints in the checklist
+
+#### Solution / Positioning / Target User
+
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying these 3 columns of an existing row
+- **Trigger**: —
+- **Check**: When a competitor renames or pivots, add a replacement row and annotate the old row as "renamed to X"
+
+#### Core Features / Strengths / Limitations
+
+- **Change Type**: updatable
+- **Allowed**: Updating when competitor features change
+- **Forbidden**: Modifying without a reason
+- **Trigger**: A competitor releases a new version
+- **Check**: Annotate the reason for the update
+
+### §2.1 Version Summary
+
+#### Whole row
+
+- **Change Type**: append-only
+- **Allowed**: Appending new rows
+- **Forbidden**: Deleting existing rows
+- **Trigger**: A new version is planned
+- **Check**: A §2.2 Version Details subsection is created at the same time
+
+#### Version / Core Direction
+
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying these 2 columns of an existing version
+- **Trigger**: —
+- **Check**: —
+
+#### Core-metric delta
+
+- **Change Type**: data refresh
+- **Allowed**: "TBD" / "pending measurement" → measured value
+- **Forbidden**: Fabricating data; modifying an existing measured value
+- **Trigger**: After version release
+- **Check**: Must come from real data; annotate the source
+
+#### Status
+
+- **Change Type**: updatable
+- **Allowed**: Forward-only transition: planning → developing → internal testing → released → archived
+- **Forbidden**: Reverting (released → developing); skipping levels (planning → released)
+- **Trigger**: Version lifecycle progression
+- **Check**: The new status must be the next enum value after the old status, or archived
+- ❌ released → developing
+- ✅ developing → internal testing
+
+#### Cycle
+
+- **Change Type**: updatable
+- **Allowed**: "TBD" → actual date; the end date may be pushed back
+- **Forbidden**: Modifying a start date once written
+- **Trigger**: Version starts / ends
+- **Check**: The start date is immutable once written
+
+#### Milestones
+
+- **Change Type**: updatable
+- **Allowed**: Range expansion (M1-M3 → M1-M4)
+- **Forbidden**: Range contraction (M1-M4 → M1-M3)
+- **Trigger**: A new milestone is added within the version
+- **Check**: Existing milestone numbers cannot be deleted
+
+### §2.2 Version Details
+
+#### Whole subsection
+
+- **Change Type**: append-only
+- **Allowed**: Appending a new subsection for a new version
+- **Forbidden**: Deleting an existing subsection
+- **Trigger**: A new version is planned
+- **Check**: All 8 fixed fields are filled in
+
+#### Strategic Intent
+
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the fact
+- **Trigger**: —
+- **Check**: —
+
+#### Input/Output
+
+- **Change Type**: data refresh
+- **Allowed**: "expected X" → "measured Y (expected X)"
+- **Forbidden**: Deleting the original expected value
+- **Trigger**: After the version completes
+- **Check**: Keep the original expected value for comparison
+
+#### Priority Rationale
+
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the fact
+- **Trigger**: —
+- **Check**: —
+
+#### Risks and Dependencies
+
+- **Change Type**: updatable
+- **Allowed**: Appending new risks / dependencies; appending status annotations to identified items
+- **Forbidden**: Deleting identified risks / dependencies
+- **Trigger**: During development
+- **Check**: Status annotations are appended with "→ resolved" / "→ occurred", never overwriting the original text
+- ❌ Deleting "Risk: JSONL performance not validated"
+- ✅ "Risk: JSONL performance not validated → validated, <1s with 54 entries"
+
+#### Success Metric
+
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the fact (do not lower the bar because it was not met)
+- **Trigger**: —
+- **Check**: Actual attainment goes in the core-metric table; the success metric itself is not changed
+
+#### Core Value
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 事后修改
-- **触发**: —
-- **校验**: —
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying after the fact
+- **Trigger**: —
+- **Check**: —
 
-#### 用户覆盖
+#### User Coverage
 
-- **变更类型**: 可更新
-- **允许**: 扩展覆盖范围
-- **禁止**: 缩减已有覆盖范围
-- **触发**: 用户群扩大
-- **校验**: —
-- ❌ "作者 dogfood" → "暂无用户"
-- ✅ "作者 dogfood" → "作者 dogfood + 3 名内测用户"
+- **Change Type**: updatable
+- **Allowed**: Expanding coverage
+- **Forbidden**: Reducing existing coverage
+- **Trigger**: User base grows
+- **Check**: —
+- ❌ "author dogfood" → "no users yet"
+- ✅ "author dogfood" → "author dogfood + 3 internal-testing users"
 
-#### 核心指标表
+#### Core Metric Table
 
-- **变更类型**: 数据刷新 + 追加
-- **允许**: 已有行数值从"无数据/目标"刷新为实测；追加新指标行
-- **禁止**: 删除已有行；修改已有实测值
-- **触发**: 版本完成后补充实测数据
-- **校验**: 每个数值标注来源
+- **Change Type**: data refresh + append-only
+- **Allowed**: Existing-row values refresh from "no data / target" to measured; appending new metric rows
+- **Forbidden**: Deleting existing rows; modifying existing measured values
+- **Trigger**: Backfilling measured data after the version completes
+- **Check**: Every value annotates its source
 
-### §3 里程碑汇总
+### §3 Milestone Summary
 
-#### 整行
+#### Whole row
 
-- **变更类型**: 追加
-- **允许**: 追加新行
-- **禁止**: 删除已有行
-- **触发**: 规划新里程碑
-- **校验**: 同时创建 `milestones/m{n}.md` 文件
+- **Change Type**: append-only
+- **Allowed**: Appending new rows
+- **Forbidden**: Deleting existing rows
+- **Trigger**: A new milestone is planned
+- **Check**: A `milestones/m{n}.md` file is created at the same time
 
-#### # / 核心方向
+#### # / Core Direction
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改编号或核心方向
-- **触发**: —
-- **校验**: 编号全局递增，不可重用
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying the number or core direction
+- **Trigger**: —
+- **Check**: Numbers are globally incrementing and not reused
 
-#### 目标达成情况
+#### Goal-attainment Status
 
-- **变更类型**: 可更新
-- **允许**: "—"→结果描述；已有描述可追加补充原因（用"——"分隔）
-- **禁止**: 删除已有达成描述；篡改已有结论
-- **触发**: 里程碑完成/验收时
-- **校验**: 追加内容用"——"分隔，不覆盖原文
-- ❌ 把"全链路跑通"改成"基本可用"
-- ✅ "全链路跑通——提取准确率无量化数据"
+- **Change Type**: updatable
+- **Allowed**: "—" → outcome description; the existing description may be appended with supplementary context (separated by "——")
+- **Forbidden**: Deleting an existing attainment description; tampering with an existing conclusion
+- **Trigger**: When the milestone is completed / accepted
+- **Check**: Appended content uses "——" as a separator and never overwrites the original text
+- ❌ Changing "end-to-end pipeline working" to "basically usable"
+- ✅ "end-to-end pipeline working —— extraction accuracy lacks quantified data"
 
-#### 状态
+#### Status
 
-- **变更类型**: 可更新
-- **允许**: 正向流转: 未开始→进行中→验收中→已完成；或任意→已搁置
-- **禁止**: 从已完成回退
-- **触发**: 里程碑推进
-- **校验**: 已搁置需附原因
-- ❌ 已完成→进行中
-- ✅ 进行中→已搁置（原因: 优先级调整，v4 再启动）
+- **Change Type**: updatable
+- **Allowed**: Forward-only transition: not started → in progress → in acceptance → done; or any → shelved
+- **Forbidden**: Reverting from done
+- **Trigger**: Milestone progression
+- **Check**: "shelved" must include a reason
+- ❌ done → in progress
+- ✅ in progress → shelved (reason: priority adjustment, restart in v4)
 
-#### 完成日期
+#### Completion Date
 
-- **变更类型**: 可更新
-- **允许**: "—"→YYYY-MM-DD
-- **禁止**: 已填入的日期修改
-- **触发**: 里程碑完成时
-- **校验**: 一旦填入不可改
+- **Change Type**: updatable
+- **Allowed**: "—" → YYYY-MM-DD
+- **Forbidden**: Modifying a date once filled in
+- **Trigger**: When the milestone completes
+- **Check**: Immutable once filled in
 
-## 操作流程
+## Operating Procedure
 
-### 新增版本
+### Add a Version
 
-1. §2.1 汇总表追加新行（状态: 规划中，周期: 待定，核心指标变化: 待定）
-2. §2.2 版本详情追加新子节（8 个固定字段全部填写）
-3. §3 里程碑汇总追加该版本的里程碑行（状态: 未开始，目标达成情况: —，完成日期: —）
-4. 为每个新里程碑创建 `milestones/m{n}.md`（用 milestone 模板）
-5. 已有版本/里程碑无任何修改
+1. §2.1 Append a new row to the summary table (status: planning, cycle: TBD, core-metric delta: TBD)
+2. §2.2 Append a new subsection to Version Details (fill in all 8 fixed fields)
+3. §3 Append milestone rows for this version to the milestone summary (status: not started, goal-attainment status: —, completion date: —)
+4. Create `milestones/m{n}.md` for each new milestone (use the milestone template)
+5. No changes to existing versions / milestones
 
-### 版本状态推进
+### Version Status Progression
 
-1. §2.1 该行状态正向流转
-2. §2.1 该行周期补起始/结束日期
+1. §2.1 The row's status moves forward
+2. §2.1 The row's cycle gains start / end dates
 
-### 版本完成回填
+### Version Completion Backfill
 
-1. §2.1 该行: 状态→已发布，周期补结束日期，核心指标变化补实测数据
-2. §2.2 该子节: 投入产出补实测值（保留预期），核心指标表补实测数据
-3. §3 该版本里程碑行: 状态→已完成，目标达成情况补结果，完成日期补入
-4. 更新对应 milestone 文件
+1. §2.1 The row: status → released, cycle gains the end date, core-metric delta is backfilled with measured data
+2. §2.2 The subsection: Input/Output is backfilled with measured values (keeping expected); the core-metric table is backfilled with measured data
+3. §3 The version's milestone rows: status → done, goal-attainment status backfilled with the outcome, completion date filled in
+4. Update the corresponding milestone files
 
-### 数据刷新
+### Data Refresh
 
-1. 定位变更字段
-2. 确认新数据比旧数据更准确（实测 > 估算 > 目标 > 无数据）
-3. 替换值并标注来源
-4. 保留旧值做对比（如适用）
+1. Locate the field to change
+2. Confirm the new data is more accurate than the old (measured > estimated > target > no data)
+3. Replace the value and annotate the source
+4. Keep the old value for comparison (where applicable)
 
-## 校验规则
+## Validation Rules
 
-更新完成后检查：
+After the update, check:
 
-1. **不可变字段未被修改** — diff 中不应出现不可变字段的变化
-2. **状态只正向流转** — 不可回退
-3. **追加字段只增不减** — 行数只能增加或不变
-4. **数据刷新标注来源** — 每个新数值有来源标注
-5. **同步操作完整** — 新增版本时 §2 和 §3 同步更新，milestone 文件已创建
+1. **Immutable fields unchanged** — The diff must not contain changes to immutable fields
+2. **Status moves forward only** — No reverting
+3. **Append-only fields only grow** — Row counts can only grow or stay the same
+4. **Data refresh annotates source** — Every new numeric value has a source annotation
+5. **Synchronization complete** — When adding a version, §2 and §3 are updated together and the milestone files have been created

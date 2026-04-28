@@ -1,107 +1,107 @@
-# {需求名} 技术方案
+# {requirement name} Technical Solution
 
-<!-- 核心问题: 怎么实现、做到哪了？
-     定位: 技术方案 + 实现进度跟踪（多次 sprint 迭代完善）
-     不属于本文档: 产品需求（→ PRD）、系统架构（→ arch）、接口契约（→ schema）
-     结构锁定: 不得增删节、不得改节名、不得改格式。只填值。
-     字段规格: 见 templates/tech-checklist.md（每个字段的信息目的、语言约束、呈现方式、可省略条件、数据要求）
-     数据置信: 有实测用实测标来源；有推算标"估算"+依据；有目标标"目标值，待验证"；无法估算标"无数据（原因）"。禁止编造精确数字。 -->
+<!-- Core question: how is it implemented and how far has it gotten?
+     Positioning: technical solution + implementation progress tracking (refined across multiple sprint iterations)
+     Out of scope: product requirement (→ PRD), system architecture (→ arch), interface contract (→ schema)
+     Structure locked: do not add or remove sections, do not change section names, do not change formatting. Only fill in values.
+     Field spec: see templates/tech-checklist.md (each field's information purpose, language constraint, presentation, omission conditions, data requirements)
+     Data confidence: when measured, use measured values and annotate source; derived values annotate "estimated" + basis; targets annotate "target value, pending validation"; values that cannot be estimated annotate "no data ({reason})". No fabrication of precise numbers. -->
 
-## 1. 背景
+## 1. Background
 
-### 技术约束
+### Technical Constraints
 
-<!-- ≥1 条。影响方案选择的硬限制。每条 1 句，主语是系统/环境/平台，描述约束而非需求。
-  - 格式: 无序列表，每条 "{约束主体}: {约束内容}"
-  - EXCLUDE: 产品愿景、用户画像（→ PRD）；业务规则（→ PRD §4）
-  - 禁止: "需要X""要求Y"（那是需求不是约束）；无主体的泛泛描述
-  - ❌ "需要支持大文件"
-  - ✅ "Claude Code hook: 单次 stdout 上限 10KB，超出截断"
-  - ❌ "要兼容多平台"
-  - ✅ "运行环境: macOS/Linux shell，不保证 Windows 兼容" -->
+<!-- ≥1 item. Hard limits affecting solution choice. One sentence each; subject is system/environment/platform; describe the constraint, not the requirement.
+  - Format: unordered list, each item "{constraint subject}: {constraint content}"
+  - EXCLUDE: product vision, user persona (→ PRD); business rules (→ PRD §4)
+  - Forbidden: "needs X" / "requires Y" (those are requirements, not constraints); generic descriptions without a subject
+  - ❌ "needs to support large files"
+  - ✅ "Claude Code hook: stdout cap of 10KB per call, truncated above that"
+  - ❌ "needs cross-platform compatibility"
+  - ✅ "runtime environment: macOS/Linux shell; Windows compatibility is not guaranteed" -->
 
-- {约束主体}: {约束内容}
+- {constraint subject}: {constraint content}
 
-### 前置依赖
+### Prerequisites
 
-<!-- 必须先完成的任务/模块/外部条件。每条 1 句。无依赖时写"无"。
-  - 格式: 无序列表，每条 "{依赖项} — {状态: 已完成|进行中|未开始}"
-  - EXCLUDE: 技术约束（放上面）
-  - 禁止: 把技术约束伪装成依赖；无状态标注的裸列表
-  - ❌ "需要先搭好框架"
-  - ✅ "learn workflow gate 阶段定义 — 已完成"
-  - ❌ "依赖数据库"
-  - ✅ "## know YAML block schema 字段对齐 — 进行中" -->
+<!-- Tasks/modules/external conditions that must be completed first. One sentence each. Write "none" if no dependencies.
+  - Format: unordered list, each item "{dependency} — {status: done|in progress|not started}"
+  - EXCLUDE: technical constraints (placed above)
+  - Forbidden: disguising technical constraints as dependencies; bare lists with no status annotation
+  - ❌ "need to set up the framework first"
+  - ✅ "learn workflow gate-stage definition — done"
+  - ❌ "depends on a database"
+  - ✅ "## know YAML block schema field alignment — in progress" -->
 
-- {依赖项} — {状态}
+- {dependency} — {status}
 
-## 2. 方案
+## 2. Solution
 
-<!-- 高层技术设计，随 sprint 迭代更新。回答"怎么实现"。
-     本节包含 3 个子块: 文件/模块结构（必填）、核心流程（必填）、数据结构（选填）。
-     EXCLUDE: 函数签名、算法伪代码、完整接口定义（→ schema） -->
+<!-- High-level technical design, refined across sprints. Answers "how to implement".
+     This section contains 3 sub-blocks: file/module structure (required), core flow (required), data model (optional).
+     EXCLUDE: function signatures, algorithm pseudocode, complete interface definitions (→ schema) -->
 
-### 文件/模块结构
+### File/Module Structure
 
-<!-- 必填。树形或表格，每项标注职责（1 句话）。
-  - 格式: 树形（缩进列表）或表格（文件/模块 | 职责）
-  - 禁止: 只列文件名不写职责；把实现细节写进职责描述
-  - ❌ "workflows/learn.md"（无职责）
-  - ✅ "workflows/learn.md — learn pipeline 流程定义，按 5 stage 顺序串接"
-  - ❌ "utils.sh — 包含 parse_json 函数，用 jq 解析 .name 字段提取..."（实现细节）
-  - ✅ "utils.sh — 公共工具函数（JSON 解析、路径处理）" -->
+<!-- Required. Tree or table; annotate each item's responsibility (one sentence).
+  - Format: tree (indented list) or table (file/module | responsibility)
+  - Forbidden: listing only file names without responsibility; writing implementation details into responsibility descriptions
+  - ❌ "workflows/learn.md" (no responsibility)
+  - ✅ "workflows/learn.md — defines the learn pipeline flow, chained by the 5 stages in order"
+  - ❌ "utils.sh — contains parse_json function, extracts the .name field via jq..." (implementation detail)
+  - ✅ "utils.sh — common utility functions (JSON parsing, path handling)" -->
 
-{树形或表格}
+{tree or table}
 
-### 核心流程
+### Core Flow
 
-<!-- 必填。关键路径的步骤序列。
-  - 格式: 编号步骤列表 "1. {动作主体} → {动作} → {产出}"，≥3 步
-  - 禁止: 展开每步实现细节；用自然语言段落代替步骤列表
-  - ❌ "首先解析参数，然后调用函数处理，最后输出结果"（段落）
-  - ✅ "1. SKILL.md 解析子命令 → 路由到 workflow\n2. workflow 顺序执行各 stage → 产出中间结果\n3. 写入 CLAUDE.md ## know block → 落盘" -->
+<!-- Required. The step sequence for the critical path.
+  - Format: numbered step list "1. {action subject} → {action} → {output}", ≥3 steps
+  - Forbidden: expanding implementation details for each step; replacing the step list with a natural-language paragraph
+  - ❌ "first parse the args, then call the function to handle, finally output the result" (paragraph)
+  - ✅ "1. SKILL.md parses subcommand → routes to workflow\n2. workflow executes each stage in order → produces intermediate results\n3. write to CLAUDE.md ## know block → persist to disk" -->
 
-1. {动作主体} → {动作} → {产出}
-2. {动作主体} → {动作} → {产出}
-3. {动作主体} → {动作} → {产出}
+1. {action subject} → {action} → {output}
+2. {action subject} → {action} → {output}
+3. {action subject} → {action} → {output}
 
-### 数据结构
+### Data Model
 
-<!-- 选填。只列公开接口级的结构定义。无公开数据结构时整节省略。
-  - 格式: 表格 "字段 | 类型 | 用途"，每行 1 个字段
-  - 禁止: 内部私有结构；运行时临时变量
-  - ❌ 列出函数内部的局部变量
-  - ✅ "| id | string | 条目唯一标识，UUID v4 |" -->
+<!-- Optional. List only public, interface-level structure definitions. Omit the entire section when there are no public data structures.
+  - Format: table "field | type | purpose", one row per field
+  - Forbidden: internal private structures; runtime temporary variables
+  - ❌ list local variables inside functions
+  - ✅ "| id | string | unique entry identifier, UUID v4 |" -->
 
-| 字段 | 类型 | 用途 |
-|------|------|------|
-| {字段名} | {类型} | {用途} |
+| Field | Type | Purpose |
+|-------|------|---------|
+| {field name} | {type} | {purpose} |
 
-## 3. 关键决策
+## 3. Key Decisions
 
-<!-- 技术选型及理由，每次 sprint 后积累。回答"为什么这样做"。
-  - ROWS: ≥1。追加 only，不可修改已有行。
-  - 决策列: 1 句描述决策点（❌ "存储" ✅ "知识条目持久化格式"）
-  - 选择列: 最终选择（❌ "用了比较好的方案" ✅ "JSONL 文件"）
-  - 为什么列: 必须包含被拒方案及拒绝原因（❌ "性能好" ✅ "SQLite 引入二进制依赖，JSONL 纯文本可 git 追踪且无依赖"）
-  - 边界: 实现层选型放这里；战略/架构层决策用 decision 模版
-  - EXCLUDE: 产品方向决策 -->
+<!-- Technical selections and rationale, accumulated after each sprint. Answers "why it is done this way".
+  - ROWS: ≥1. Append-only; existing rows must not be modified.
+  - Decision column: 1 sentence describing the decision point (❌ "storage" ✅ "knowledge-entry persistence format")
+  - Choice column: the final choice (❌ "we used a better option" ✅ "JSONL file")
+  - Why column: must include the rejected alternative and reason for rejection (❌ "good performance" ✅ "SQLite introduces a binary dependency; JSONL is plain text, can be tracked in git, and has zero dependencies")
+  - Boundary: implementation-level selections go here; strategic/architectural decisions use the decision template
+  - EXCLUDE: product-direction decisions -->
 
-| 决策 | 选择 | 为什么 |
-|------|------|--------|
-| {决策点} | {选择} | {理由，含被拒方案: "X 因为 Y 不选"} |
+| Decision | Choice | Why |
+|----------|--------|-----|
+| {decision point} | {choice} | {reason, including rejected alternative: "X not chosen because Y"} |
 
-## 4. 迭代记录
+## 4. Iteration Log
 
-<!-- 每次 sprint 实现了什么。追加 only，新增在前，不可修改已有条目。
-  - 每条: 日期 heading（### YYYY-MM-DD）+ 内容
-  - 内容格式: 无序列表，每条 "{做了什么}（{关键变更}）"
-  - 禁止: 无日期的裸内容；修改历史条目；用段落代替列表
-  - ❌ "做了很多优化改进"
-  - ✅ "- 新增 learn gate stage 单元测试（覆盖 信息熵 / 复用 / 可触发 三道 gate）"
-  - ❌ "重构了代码"
-  - ✅ "- 重构 learn 流程（detect → gate → refine 三阶段拆分，原单 step → 3 个独立 stage）" -->
+<!-- What was implemented in each sprint. Append-only; new entries go at the top; existing entries must not be modified.
+  - Each entry: date heading (### YYYY-MM-DD) + content
+  - Content format: unordered list, each item "{what was done} ({key change})"
+  - Forbidden: bare content without a date; modifying historical entries; replacing the list with a paragraph
+  - ❌ "did a lot of optimizations and improvements"
+  - ✅ "- added unit tests for the learn gate stage (covers information-entropy / reuse / triggerability gates)"
+  - ❌ "refactored the code"
+  - ✅ "- refactored the learn flow (split detect → gate → refine into three stages; the original single step → 3 independent stages)" -->
 
 ### {YYYY-MM-DD}
 
-- {做了什么}（{关键变更}）
+- {what was done} ({key change})

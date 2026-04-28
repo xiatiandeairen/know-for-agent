@@ -1,75 +1,75 @@
-# 图表检查清单
+# Diagram Checklist
 
-<!-- 共享资源。tech/arch/schema/ui 的 checklist 和 validate 步骤引用此文件。
-     write pipeline Step 5.5 Validate 对每个触发条件逐项检查。 -->
+<!-- Shared resource. Referenced by the checklist and validate steps for tech / arch / schema / ui.
+     write pipeline Step 5.5 Validate checks each trigger condition one by one. -->
 
-## 触发规则
+## Trigger Rules
 
-逐条检查。满足触发条件 → 文档中必须包含对应图表。不满足 → 跳过。
+Check each item one by one. When the trigger condition is met → the document must include the corresponding diagram. When not met → skip.
 
-### 数据流图
+### Data Flow Diagram
 
-- **when**: ≥2 个组件之间有数据传递
-- **action**: ASCII 流向图，标注数据格式和传递方向
-- **适用**: tech, arch
-- **格式**: `组件A --{数据格式}--> 组件B`，每条流向独立一行
-- **禁止**: 无标注的裸箭头；省略数据格式
+- **when**: ≥2 components exchange data
+- **action**: ASCII flow diagram, annotating data format and direction
+- **Applicability**: tech, arch
+- **Format**: `Component A --{data format}--> Component B`, one flow per line
+- **Forbidden**: Bare arrows without annotations; omitting the data format
 - ❌ `A --> B`
-- ✅ `learn workflow --YAML block--> 项目 CLAUDE.md --嵌套加载--> Claude Code 上下文`
+- ✅ `learn workflow --YAML block--> project CLAUDE.md --nested loading--> Claude Code context`
 
-### 依赖图
+### Dependency Diagram
 
-- **when**: ≥3 个模块存在依赖关系
-- **action**: ASCII 依赖拓扑，标注强/弱依赖
-- **适用**: arch
-- **格式**: `模块A ==(强)==> 模块B` 或 `模块A --(弱)--> 模块B`
-- **禁止**: 不区分强弱依赖；循环依赖不标注
+- **when**: ≥3 modules with dependency relationships
+- **action**: ASCII dependency topology, annotating strong/weak dependencies
+- **Applicability**: arch
+- **Format**: `Module A ==(strong)==> Module B` or `Module A --(weak)--> Module B`
+- **Forbidden**: Not distinguishing strong from weak dependencies; not annotating circular dependencies
 - ❌ `A -> B -> C`
-- ✅ `SKILL.md ==(强)==> workflows/learn.md --(弱)--> docs/templates/`
+- ✅ `SKILL.md ==(strong)==> workflows/learn.md --(weak)--> docs/templates/`
 
-### 时序图
+### Sequence Diagram
 
-- **when**: 存在异步交互，或 ≥3 步跨组件调用链
-- **action**: ASCII 时序图，标注调用方→被调用方→返回
-- **适用**: tech, schema
-- **格式**: 竖向时间轴，每行 `调用方 -> 被调用方: {动作}` 或 `被调用方 --> 调用方: {返回}`
-- **禁止**: 省略返回值；不标注异步/同步
-- ❌ 只画调用不画返回
+- **when**: Asynchronous interaction exists, or a cross-component call chain has ≥3 steps
+- **action**: ASCII sequence diagram, annotating caller → callee → return
+- **Applicability**: tech, schema
+- **Format**: Vertical time axis, each line `caller -> callee: {action}` or `callee --> caller: {return}`
+- **Forbidden**: Omitting return values; not annotating async/sync
+- ❌ Drawing only the call without the return
 - ✅
 ```
 User -> CLI: /know learn
-CLI -> learn workflow: 启动 5 stage pipeline
+CLI -> learn workflow: start the 5-stage pipeline
 learn workflow --> CLI: "Persisted: {summary}"
 CLI --> User: [persisted] {summary}
 ```
 
-### 状态图
+### State Diagram
 
-- **when**: 存在生命周期或状态机（≥3 个状态）
-- **action**: ASCII 状态转移图，标注触发条件
-- **适用**: tech
-- **格式**: `状态A --{触发条件}--> 状态B`，每条转移独立一行
-- **禁止**: 省略触发条件；遗漏终态
+- **when**: A lifecycle or state machine exists (≥3 states)
+- **action**: ASCII state-transition diagram, annotating trigger conditions
+- **Applicability**: tech
+- **Format**: `State A --{trigger condition}--> State B`, one transition per line
+- **Forbidden**: Omitting trigger conditions; missing terminal states
 - ❌ `created -> running -> done`
 - ✅ `created --activate--> running --end--> completed` / `running --cancel--> cancelled`
 
-### ER/数据模型图
+### ER / Data Model Diagram
 
-- **when**: ≥3 个相关实体，或 ≥2 个表/结构有关联关系
-- **action**: ASCII 实体关系图，标注关系类型和基数
-- **适用**: tech, schema
-- **格式**: `实体A }|--|| 实体B : {关系描述}` 或简化为 `实体A 1--N 实体B`
-- **禁止**: 不标注基数（1:1/1:N/N:M）；遗漏关键外键
+- **when**: ≥3 related entities, or ≥2 tables/structures with associations
+- **action**: ASCII entity-relationship diagram, annotating relationship type and cardinality
+- **Applicability**: tech, schema
+- **Format**: `Entity A }|--|| Entity B : {relationship description}` or simplified `Entity A 1--N Entity B`
+- **Forbidden**: Not annotating cardinality (1:1/1:N/N:M); missing key foreign keys
 - ❌ `User - Order`
 - ✅ `User 1--N Order : places` / `Order N--N Product : contains`
 
-### 模块结构图
+### Module Structure Diagram
 
-- **when**: ≥3 个子模块/层次
-- **action**: ASCII 树形或分层图，标注职责边界
-- **适用**: arch
-- **格式**: 树形缩进，每项附 1 句话职责
-- **禁止**: 只列名字不标职责
+- **when**: ≥3 sub-modules / layers
+- **action**: ASCII tree or layered diagram, annotating responsibility boundaries
+- **Applicability**: arch
+- **Format**: Tree indentation, each item attached with a one-sentence responsibility
+- **Forbidden**: Listing names only without responsibilities
 - ❌
 ```
 know/
@@ -79,34 +79,34 @@ know/
 - ✅
 ```
 know/
-  skills/          # Skill 入口
-    know/SKILL.md  # 路由 + conventions（最小常驻上下文）
-  workflows/       # 管线流程定义
-    learn.md       # 知识写入 5 stage 管线
-    write.md       # 文档撰写 5 stage 管线
+  skills/          # Skill entry point
+    know/SKILL.md  # Routing + conventions (minimal resident context)
+  workflows/       # Pipeline flow definitions
+    learn.md       # Knowledge-write 5-stage pipeline
+    write.md       # Document-authoring 5-stage pipeline
 ```
 
-### 交互流程图
+### Interaction Flow Diagram
 
-- **when**: 用户操作有分支路径（≥2 个分支）
-- **action**: ASCII 流程图，标注触发→响应→分支
-- **适用**: ui
-- **格式**: 每步 `[触发] → {响应} → [下一步 | 分支A / 分支B]`
-- **禁止**: 省略分支条件；只画主路径不画异常路径
+- **when**: User operations have branching paths (≥2 branches)
+- **action**: ASCII flow diagram, annotating trigger → response → branches
+- **Applicability**: ui
+- **Format**: Each step `[trigger] → {response} → [next step | branch A / branch B]`
+- **Forbidden**: Omitting branch conditions; drawing only the main path without exception paths
 
-### 布局草图
+### Layout Sketch
 
-- **when**: 有页面/界面设计
-- **action**: ASCII 区域划分图
-- **适用**: ui
-- **格式**: 用 `+---+` 框线划分区域，每个区域标注名称和优先级
-- **禁止**: 用文字描述替代草图
+- **when**: A page / interface design exists
+- **action**: ASCII region-partition diagram
+- **Applicability**: ui
+- **Format**: Use `+---+` borders to partition regions; each region annotated with a name and priority
+- **Forbidden**: Replacing the sketch with a textual description
 
-## 校验规则
+## Validation Rules
 
-Step 5.5 Validate 检查：
+Step 5.5 Validate checks:
 
-1. **逐条触发检查** — 遍历所有图表类型，满足 when 条件的必须有对应图表
-2. **图表有标注** — 每个图的连线/箭头/节点都有文字标注
-3. **图文一致** — 图中的组件/实体名与正文描述一致
-4. **缺失报告** — 满足触发但无图表 → 报告缺失，要求补充或标注"待补充（原因）"
+1. **Per-trigger check** — iterate over all diagram types; whichever satisfies its when condition must have a corresponding diagram
+2. **Diagrams have annotations** — every line / arrow / node in each diagram has a textual annotation
+3. **Diagram-text consistency** — component / entity names in the diagram match the descriptions in the body
+4. **Missing report** — when a trigger is satisfied but no diagram exists → report the omission and require either supplementing it or annotating "to be supplemented (reason)"

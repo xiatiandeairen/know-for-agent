@@ -1,134 +1,134 @@
-# Decision 更新规则
+# Decision Update Rules
 
-## 变更类型
+## Change Types
 
-| 类型 | 含义 |
-|------|------|
-| **不可变** | 一旦写入不再修改 |
-| **追加** | 只能新增条目，不能改已有的 |
-| **数据刷新** | 已有值可被更准确的数据替换 |
-| **可更新** | 内容可修改，但有约束 |
+| Type | Meaning |
+|------|---------|
+| **immutable** | Once written, never modified |
+| **append-only** | Only new entries can be added; existing ones cannot be modified |
+| **data refresh** | Existing values may be replaced with more accurate data |
+| **updatable** | Content can be modified, but with constraints |
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 变更类型 |
-|------|------|---------|
-| §1 背景 | 触发事件 | 不可变 |
-| | 约束 | 不可变 |
-| | 决策范围 | 不可变 |
-| §2 决策 | 结论 | 不可变 |
-| | 核心理由 | 不可变 |
-| §3 备选方案 | 方案 | 不可变 |
-| | 优点/缺点 | 不可变 |
-| §4 影响 | 正面影响 | 可更新 |
-| | 负面影响 | 可更新 |
-| | 后续行动 | 可更新 |
-| §5 状态 | 状态 | 可更新 |
-| | 决策日期 | 不可变 |
-| | 决策人 | 不可变 |
+| Location | Field | Change Type |
+|----------|-------|-------------|
+| §1 Background | Triggering Event | immutable |
+| | Constraints | immutable |
+| | Decision Scope | immutable |
+| §2 Decision | Outcome | immutable |
+| | Core Rationale | immutable |
+| §3 Alternatives | Alternative | immutable |
+| | Pros / Cons | immutable |
+| §4 Impact | Positive Impact | updatable |
+| | Negative Impact | updatable |
+| | Follow-up Actions | updatable |
+| §5 Status | Status | updatable |
+| | Decision Date | immutable |
+| | Decision Maker | immutable |
 
-## 字段变更规则
+## Field Change Rules
 
-### §1 背景
+### §1 Background
 
-#### 触发事件 / 约束 / 决策范围
+#### Triggering Event / Constraints / Decision Scope
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 决策记录创建后修改背景（历史事实不可篡改）
-- **触发**: —
-- **校验**: diff 中不应出现 §1 的变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying the background after the decision record is created (historical facts must not be tampered with)
+- **Trigger**: —
+- **Check**: The diff must not contain changes to §1
 
-### §2 决策
+### §2 Decision
 
-#### 结论 / 核心理由
+#### Outcome / Core Rationale
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 决策一旦做出不可修改（需要推翻时将状态改为 deprecated/superseded 并新建决策记录）
-- **触发**: —
-- **校验**: diff 中不应出现 §2 的变化
-- ❌ 发现决策有问题后修改结论
-- ✅ 将状态改为 superseded，新建决策记录
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying a decision once it has been made (to overturn it, change the status to deprecated/superseded and create a new decision record)
+- **Trigger**: —
+- **Check**: The diff must not contain changes to §2
+- ❌ Modifying the outcome after finding a flaw in the decision
+- ✅ Changing the status to superseded and creating a new decision record
 
-### §3 备选方案
+### §3 Alternatives
 
-#### 方案 / 优点 / 缺点
+#### Alternative / Pros / Cons
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 事后修改方案分析（当时的分析是历史记录）
-- **触发**: —
-- **校验**: diff 中不应出现 §3 的变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying the alternative analysis after the fact (the analysis at the time is a historical record)
+- **Trigger**: —
+- **Check**: The diff must not contain changes to §3
 
-### §4 影响
+### §4 Impact
 
-#### 正面影响 / 负面影响
+#### Positive Impact / Negative Impact
 
-- **变更类型**: 可更新
-- **允许**: 追加新发现的影响；更新已有影响的描述（如实际影响与预期不同）
-- **禁止**: 删除已记录的影响
-- **触发**: 决策执行后发现新的正面/负面影响
-- **校验**: 条目数只增不减
-- ❌ 删除负面影响假装没有代价
-- ✅ 追加 "实际写入性能下降 15%（实测），超出预期"
+- **Change Type**: updatable
+- **Allowed**: Appending newly discovered impacts; updating the description of an existing impact (e.g. when actual impact differs from expected)
+- **Forbidden**: Deleting recorded impacts
+- **Trigger**: New positive / negative impacts surface after the decision is executed
+- **Check**: Entry count only grows
+- ❌ Deleting a negative impact to pretend there was no cost
+- ✅ Appending "Actual write performance dropped 15% (measured), worse than expected"
 
-#### 后续行动
+#### Follow-up Actions
 
-- **变更类型**: 可更新
-- **允许**: 追加新的后续行动；更新已有行动的完成状态
-- **禁止**: 删除已有行动
-- **触发**: 发现新的跟进需求；行动完成
-- **校验**: 条目数只增不减
+- **Change Type**: updatable
+- **Allowed**: Appending new follow-up actions; updating the completion status of an existing action
+- **Forbidden**: Deleting existing actions
+- **Trigger**: A new follow-up need is identified; an action is completed
+- **Check**: Entry count only grows
 
-### §5 状态
+### §5 Status
 
-#### 状态
+#### Status
 
-- **变更类型**: 可更新
-- **允许**: 正向流转: proposed→accepted；终态流转: accepted→deprecated | accepted→superseded
-- **禁止**: 回退（accepted→proposed）；从终态复活（deprecated→accepted）
-- **触发**: 决策被采纳、废弃或被新决策取代
-- **校验**: 状态流转方向合法
-- ❌ accepted→proposed（回退）
-- ✅ accepted→superseded（被新决策取代，关联新决策文档）
+- **Change Type**: updatable
+- **Allowed**: Forward-only transition: proposed → accepted; terminal transition: accepted → deprecated | accepted → superseded
+- **Forbidden**: Reverting (accepted → proposed); resurrecting from a terminal state (deprecated → accepted)
+- **Trigger**: The decision is adopted, deprecated, or superseded by a new decision
+- **Check**: The status transition direction is legal
+- ❌ accepted → proposed (revert)
+- ✅ accepted → superseded (replaced by a new decision; link the new decision document)
 
-#### 决策日期 / 决策人
+#### Decision Date / Decision Maker
 
-- **变更类型**: 不可变
-- **允许**: —
-- **禁止**: 修改历史记录
-- **触发**: —
-- **校验**: diff 中不应出现变化
+- **Change Type**: immutable
+- **Allowed**: —
+- **Forbidden**: Modifying historical records
+- **Trigger**: —
+- **Check**: The diff must not contain changes
 
-## 操作流程
+## Operating Procedure
 
-### 创建决策记录
+### Create a Decision Record
 
-1. 填写 §1-§5 所有字段
-2. §1 约束 ≥1 条
-3. §3 备选方案 ≥2 个，每个优点 ≥2、缺点 ≥2
-4. §4 正面/负面影响各 ≥1 条，后续行动 ≥1 条
-5. §5 初始状态通常为 proposed
+1. Fill in all fields of §1–§5
+2. §1 Constraints ≥1 item
+3. §3 Alternatives ≥2, each with ≥2 pros and ≥2 cons
+4. §4 Positive / Negative Impact each ≥1 item, Follow-up Actions ≥1 item
+5. §5 Initial status is typically proposed
 
-### 决策采纳
+### Decision Adoption
 
-1. §5 状态从 proposed 更新为 accepted
+1. §5 Status moves from proposed to accepted
 
-### 决策废弃/取代
+### Decision Deprecation / Supersession
 
-1. §5 状态更新为 deprecated 或 superseded
-2. §4 后续行动追加新决策文档链接（如 superseded）
+1. §5 Status updates to deprecated or superseded
+2. §4 Follow-up Actions appends a link to the new decision document (if superseded)
 
-### 影响更新
+### Impact Update
 
-1. §4 追加新发现的正面/负面影响
-2. §4 更新后续行动的完成状态
+1. §4 Append newly discovered positive / negative impacts
+2. §4 Update the completion status of follow-up actions
 
-## 校验规则
+## Validation Rules
 
-1. **§1-§3 不可变** — diff 中不应出现 §1 背景、§2 决策、§3 备选方案的变化
-2. **§4 只增不删** — 影响和后续行动条目数只增不减
-3. **§5 状态流转合法** — proposed→accepted→deprecated/superseded，不可回退
-4. **决策日期/决策人不可变** — diff 中不应出现变化
-5. **推翻决策走新建** — 不修改原记录，而是新建决策记录并将原记录标记为 superseded
+1. **§1–§3 immutable** — The diff must not contain changes to §1 Background, §2 Decision, or §3 Alternatives
+2. **§4 only grows** — Impact and follow-up action entry counts only grow
+3. **§5 status transitions legal** — proposed → accepted → deprecated/superseded, no reverting
+4. **Decision date / maker immutable** — The diff must not contain changes
+5. **Overturn via creation** — Do not modify the original record; create a new decision record and mark the original as superseded

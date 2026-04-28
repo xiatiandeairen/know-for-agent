@@ -1,77 +1,77 @@
-# {项目名} 运营方案
+# {project name} Operations Plan
 
-<!-- 核心问题: 上线后怎么运转、怎么保持健康？
-     定位: 运营方案——发布、反馈、指标、异常的完整闭环
-     不属于本文档: 用户获取和传播（→ marketing）、产品规划（→ roadmap）、技术方案（→ tech）
-     结构锁定: 不得增删列、不得改列名、不得改格式。只填值。
-     字段规格: 见 templates/ops-checklist.md（每个字段的信息目的、语言约束、呈现方式、可省略条件、数据要求）
-     数据置信: 有实测用实测标来源；有推算标"估算"+依据；有目标标"目标值，待验证"；无法估算标"无数据（原因）"。禁止编造精确数字。 -->
+<!-- Core question: how does the product run after launch and how do we keep it healthy?
+     Positioning: operations plan — the complete closed loop of release, feedback, metrics, and incidents
+     Out of scope: user acquisition and outreach (→ marketing), product planning (→ roadmap), technical solution (→ tech)
+     Structure locked: do not add or remove columns, do not change column names, do not change formatting. Only fill in values.
+     Field spec: see templates/ops-checklist.md (each field's information purpose, language constraint, presentation, omission conditions, data requirements)
+     Data confidence: when measured, use measured values and annotate source; derived values annotate "estimated" + basis; targets annotate "target value, pending validation"; values that cannot be estimated annotate "no data ({reason})". No fabrication of precise numbers. -->
 
-## 1. 发布策略
+## 1. Release Strategy
 
-<!-- 回答"怎么发出去"。3 个固定子字段，不可增删。
-  - 发布渠道: 产品到达用户的所有途径（❌ "线上渠道" ✅ "npm registry、GitHub Releases"）
-  - 发布节奏: 多久发一次、什么条件触发发布（❌ "定期发布" ✅ "功能驱动，里程碑完成即发布，预期 1-2 周一次"）
-  - 版本规则: 版本号命名规则（❌ "语义化版本" ✅ "SemVer: MAJOR 破坏性变更，MINOR 新功能，PATCH bug 修复"）
-  - EXCLUDE: CI/CD 配置细节、构建脚本、部署命令、灰度策略实现 -->
+<!-- Answers "how it gets shipped". 3 fixed sub-fields, neither addable nor removable.
+  - Release channels: all paths through which the product reaches users (❌ "online channels" ✅ "npm registry, GitHub Releases")
+  - Release cadence: how often, what triggers a release (❌ "release periodically" ✅ "feature-driven, release on milestone completion, expected every 1-2 weeks")
+  - Versioning rule: version-number naming rule (❌ "semantic versioning" ✅ "SemVer: MAJOR for breaking changes, MINOR for new features, PATCH for bug fixes")
+  - EXCLUDE: CI/CD configuration details, build scripts, deployment commands, canary-rollout implementation -->
 
-### 发布渠道
+### Release Channels
 
-<!-- 列表呈现。≥1 项。每项: "{渠道名}: {用途/说明}" -->
+<!-- Presented as a list. ≥1 item. Each: "{channel name}: {purpose/description}" -->
 
-- {渠道名}: {用途/说明}
+- {channel name}: {purpose/description}
 
-### 发布节奏
+### Release Cadence
 
-<!-- 1-2 句。必须包含频率或触发条件 -->
+<!-- 1-2 sentences. Must include either frequency or trigger condition. -->
 
-{多久发一次，什么条件触发发布}
+{how often it ships, what condition triggers a release}
 
-### 版本规则
+### Versioning Rule
 
-<!-- 1-2 句。必须说明版本号递增规则 -->
+<!-- 1-2 sentences. Must explain the version-number increment rule. -->
 
-{版本号命名和递增规则}
+{version-number naming and increment rule}
 
-## 2. 反馈闭环
+## 2. Feedback Loop
 
-<!-- 收集渠道 + 分类规则 + 响应 SLA。回答"怎么听用户的声音"
-  - ROWS: ≥2。每个反馈渠道一行
-  - 渠道: 具体名称（❌ "线上" ✅ "GitHub Issues"）
-  - 分类: 该渠道收集什么类型反馈（❌ "各种" ✅ "bug report、feature request"）
-  - 响应 SLA: 必须是具体时间（❌ "尽快" ✅ "工作日 24h 内首次响应"）
-  - EXCLUDE: 具体 bug 处理流程、技术排查步骤 -->
+<!-- Collection channel + classification rule + response SLA. Answers "how we listen to user voice".
+  - ROWS: ≥2. One row per feedback channel.
+  - Channel: concrete name (❌ "online" ✅ "GitHub Issues")
+  - Classification: what kind of feedback this channel collects (❌ "various" ✅ "bug report, feature request")
+  - Response SLA: must be a concrete time (❌ "ASAP" ✅ "first response within 24h on business days")
+  - EXCLUDE: specific bug-handling flow, technical investigation steps -->
 
-| 渠道 | 分类 | 响应 SLA |
-|------|------|---------|
-| {具体渠道名} | {反馈类型} | {具体时间，如"工作日 24h 内首次响应"} |
-| {具体渠道名} | {反馈类型} | {具体时间} |
+| Channel | Classification | Response SLA |
+|---------|----------------|--------------|
+| {concrete channel name} | {feedback type} | {concrete time, e.g. "first response within 24h on business days"} |
+| {concrete channel name} | {feedback type} | {concrete time} |
 
-## 3. 关键指标
+## 3. Key Metrics
 
-<!-- 运营健康度指标 + 目标值 + 报警阈值。回答"怎么衡量健康"
-  - ROWS: ≥3。每个核心指标一行
-  - 指标: 具体可观测的指标名（❌ "用户体验" ✅ "P95 响应时间"）
-  - 目标: 必须有数字（❌ "越低越好" ✅ "<200ms"）
-  - 报警阈值: 必须有数字，触发告警的具体值（❌ "异常时告警" ✅ ">500ms 持续 5min"）
-  - EXCLUDE: 代码覆盖率、技术债指标（不是运营视角） -->
+<!-- Operational health metrics + target values + alert thresholds. Answers "how we measure health".
+  - ROWS: ≥3. One row per core metric.
+  - Metric: a concrete observable metric name (❌ "user experience" ✅ "P95 response time")
+  - Target: must include a number (❌ "the lower the better" ✅ "<200ms")
+  - Alert threshold: must include a number; the concrete value that triggers an alert (❌ "alert on anomaly" ✅ ">500ms sustained for 5min")
+  - EXCLUDE: code coverage, technical-debt metrics (not from an operational perspective) -->
 
-| 指标 | 目标 | 报警阈值 |
-|------|------|---------|
-| {具体指标名} | {含数字的目标值} | {含数字的报警条件} |
-| {具体指标名} | {含数字的目标值} | {含数字的报警条件} |
-| {具体指标名} | {含数字的目标值} | {含数字的报警条件} |
+| Metric | Target | Alert Threshold |
+|--------|--------|-----------------|
+| {concrete metric name} | {numeric target value} | {numeric alert condition} |
+| {concrete metric name} | {numeric target value} | {numeric alert condition} |
+| {concrete metric name} | {numeric target value} | {numeric alert condition} |
 
-## 4. 异常预案
+## 4. Incident Playbook
 
-<!-- 常见异常 + 应对措施 + 升级路径。回答"出问题怎么办"
-  - ROWS: ≥2。每个异常场景一行
-  - 场景: 用户可感知的异常（❌ "系统出错" ✅ "核心服务不可用超过 10min"）
-  - 应对措施: 第一响应人的具体操作步骤（❌ "修复" ✅ "1. 切换到备用服务 2. 通知用户降级说明 3. 排查根因"）
-  - 升级路径: 必须指名具体角色或负责人（❌ "升级处理" ✅ "15min 未恢复 → 升级至 {项目负责人}，30min 未恢复 → 升级至 {技术总监}"）
-  - EXCLUDE: 代码级 debug 步骤、日志查询命令 -->
+<!-- Common incidents + response procedures + escalation paths. Answers "what to do when something goes wrong".
+  - ROWS: ≥2. One row per incident scenario.
+  - Scenario: a user-perceivable incident (❌ "system error" ✅ "core service unavailable for over 10min")
+  - Response procedure: concrete step-by-step actions for the first responder (❌ "fix it" ✅ "1. switch to the standby service 2. notify users of degradation 3. investigate the root cause")
+  - Escalation path: must name a concrete role or owner (❌ "escalate" ✅ "if not recovered in 15min → escalate to {project owner}; if not recovered in 30min → escalate to {tech director}")
+  - EXCLUDE: code-level debug steps, log-query commands -->
 
-| 场景 | 应对措施 | 升级路径 |
-|------|---------|---------|
-| {用户可感知的异常} | {具体操作步骤} | {含具体角色/负责人的升级链路} |
-| {用户可感知的异常} | {具体操作步骤} | {含具体角色/负责人的升级链路} |
+| Scenario | Response Procedure | Escalation Path |
+|----------|--------------------|-----------------|
+| {user-perceivable incident} | {concrete step-by-step actions} | {escalation chain with concrete roles/owners} |
+| {user-perceivable incident} | {concrete step-by-step actions} | {escalation chain with concrete roles/owners} |

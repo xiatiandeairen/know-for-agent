@@ -1,82 +1,82 @@
-# 能力全景 检查清单
+# Capability Inventory Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1 能力清单 | 能力 | 不可（≥3 行） |
-| | 描述 | 不可 |
-| | 状态 | 不可 |
-| | 版本 | 不可 |
-| §2 覆盖范围 | 已知限制 | 不可（≥2 条） |
-| | 未覆盖场景 | 不可（≥2 条） |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1 Capability Inventory | Capability | No (≥3 rows) |
+| | Description | No |
+| | Status | No |
+| | Version | No |
+| §2 Coverage | Known Limitations | No (≥2 items) |
+| | Uncovered Scenarios | No (≥2 items) |
 
-## 字段定义
+## Field Definitions
 
-### §1 能力清单
+### §1 Capability Inventory
 
-#### 能力
+#### Capability
 
-- **信息**: 用户可感知的能力名称
-- **格式**: 用户视角的动作/功能名，非技术模块名
-- **禁止**: 内部模块名（"数据处理模块"）；技术术语堆砌；实现细节
-- **省略**: 不可
-- **数据**: —
-- ❌ "数据处理模块"
-- ✅ "批量导入数据"
+- **Information**: The user-perceivable capability name
+- **Format**: An action/feature name from the user's perspective, not an internal module name
+- **Forbidden**: Internal module names ("data processing module"); piling up technical terminology; implementation details
+- **Omit**: No
+- **Data**: —
+- ❌ "Data processing module"
+- ✅ "Bulk data import"
 
-#### 描述
+#### Description
 
-- **信息**: 该能力做什么
-- **格式**: 1 句话，用户视角，说明能力带来的效果
-- **禁止**: 技术实现描述；多句话；内部架构术语
-- **省略**: 不可
-- **数据**: —
-- ❌ "基于 streaming parser 实现增量处理 JSON 数据"
-- ✅ "上传 CSV/JSON 文件后自动解析并写入项目"
+- **Information**: What this capability does
+- **Format**: 1 sentence, from the user's perspective, describing the effect the capability provides
+- **Forbidden**: Technical implementation descriptions; multiple sentences; internal architecture terminology
+- **Omit**: No
+- **Data**: —
+- ❌ "Incrementally processes JSON data via a streaming parser"
+- ✅ "Upload a CSV/JSON file and it is automatically parsed and written into the project"
 
-#### 状态
+#### Status
 
-- **信息**: 该能力的当前可用性
-- **格式**: 枚举值：可用 | 实验 | 计划
-- **禁止**: 自定义状态值（"开发中""测试中""beta"）
-- **省略**: 不可
-- **数据**: —
-- ❌ "beta 测试中"
-- ✅ "实验"
+- **Information**: The current availability of this capability
+- **Format**: Enum: available | experimental | planned
+- **Forbidden**: Custom status values ("in development", "in testing", "beta")
+- **Omit**: No
+- **Data**: —
+- ❌ "In beta testing"
+- ✅ "experimental"
 
-#### 版本
+#### Version
 
-- **信息**: 该能力所属版本
-- **格式**: v{n}，n 为正整数
-- **禁止**: 无 v 前缀的版本号；语义版本号（v1.2.3）
-- **省略**: 不可
-- **数据**: —
+- **Information**: The version this capability belongs to
+- **Format**: v{n}, where n is a positive integer
+- **Forbidden**: Version numbers without the v prefix; semantic version numbers (v1.2.3)
+- **Omit**: No
+- **Data**: —
 - ❌ "1.0" / "v1.2.3"
 - ✅ "v1"
 
-### §2 覆盖范围
+### §2 Coverage
 
-#### 已知限制
+#### Known Limitations
 
-- **信息**: 产品能力的已知边界
-- **格式**: "{限制}（{影响}）"，≥2 条
-- **禁止**: 无影响说明的裸限制；技术债描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "不支持并发"
-- ✅ "单次导入上限 1000 行（超出需分批操作）"
+- **Information**: Known boundaries of the product capability
+- **Format**: "{limitation} ({impact})", ≥2 items
+- **Forbidden**: Bare limitations without impact descriptions; technical-debt descriptions
+- **Omit**: No
+- **Data**: —
+- ❌ "Concurrency not supported"
+- ✅ "Single-import limit of 1000 rows (larger inputs require batching)"
 
-#### 未覆盖场景
+#### Uncovered Scenarios
 
-- **信息**: 产品明确不覆盖的使用场景
-- **格式**: "{场景}（{原因}）"，≥2 条
-- **禁止**: 无原因的裸场景；未来计划（→ roadmap）
-- **省略**: 不可
-- **数据**: —
-- ❌ "多租户"
-- ✅ "跨组织数据共享（当前架构为单租户设计）"
+- **Information**: Use cases the product explicitly does not cover
+- **Format**: "{scenario} ({reason})", ≥2 items
+- **Forbidden**: Bare scenarios without reasons; future plans (→ roadmap)
+- **Omit**: No
+- **Data**: —
+- ❌ "Multi-tenant"
+- ✅ "Cross-organization data sharing (current architecture is single-tenant by design)"
 
-## 数据置信规则
+## Data Confidence Rules
 
-实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。
+Measured > annotate source; estimated > annotate basis; target > "pending validation"; no data > annotate reason. No fabrication.

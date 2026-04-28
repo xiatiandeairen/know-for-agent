@@ -1,43 +1,43 @@
-# {{项目名}} 能力全景
+# {{project name}} Capability Overview
 
-<!-- 数据置信: 实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。 -->
-<!-- 结构锁定: 章节顺序与字段结构不可变。只能在现有框架内填充内容。 -->
+<!-- Data confidence: measured > annotate source > estimated > annotate basis > target > annotate "pending validation" > no data > annotate reason. No fabrication. -->
+<!-- Structure locked: section order and field structure are immutable. Only fill content within the existing framework. -->
 
-<!-- 核心问题: 产品现在能做什么？
-     定位: 跨版本能力清单快照
-     不属于本文档: 版本规划（→ roadmap）、单个需求细节（→ prd）、技术方案（→ tech） -->
+<!-- Core question: what can the product do right now?
+     Positioning: a snapshot of the cross-version capability inventory
+     Out of scope: version planning (→ roadmap), individual requirement details (→ prd), technical solution (→ tech) -->
 
-## 1. 能力清单
+## 1. Capability Inventory
 
-<!-- 所有用户可感知的能力。回答"能做什么"
-  - 每行 1 个能力，ROWS ≥3
-  - 能力: 用户视角能力名。❌ "数据处理模块" ✅ "批量导入数据"
-  - 描述: 1 句话用户视角
-  - 状态: 可用 | 实验 | 计划（枚举，不可自定义）
-  - 版本: v{n} 格式
-  - EXCLUDE: 内部实现细节、技术架构、命令参数、模块名 -->
+<!-- All user-perceivable capabilities. Answers "what it can do".
+  - One capability per row, ROWS ≥3
+  - Capability: a user-perspective capability name. ❌ "data processing module" ✅ "bulk data import"
+  - Description: one sentence from the user's perspective
+  - Status: available | experimental | planned (enum, not customizable)
+  - Version: v{n} format
+  - EXCLUDE: internal implementation details, technical architecture, command parameters, module names -->
 
-| 能力 | 描述 | 状态 | 版本 |
-|------|------|------|------|
-| **{{能力名}}** | {{一句话用户视角描述}} | {{可用/实验/计划}} | v{{n}} |
-| **{{能力名}}** | {{一句话用户视角描述}} | {{可用/实验/计划}} | v{{n}} |
-| **{{能力名}}** | {{一句话用户视角描述}} | {{可用/实验/计划}} | v{{n}} |
+| Capability | Description | Status | Version |
+|------------|-------------|--------|---------|
+| **{{capability name}}** | {{one-sentence user-perspective description}} | {{available/experimental/planned}} | v{{n}} |
+| **{{capability name}}** | {{one-sentence user-perspective description}} | {{available/experimental/planned}} | v{{n}} |
+| **{{capability name}}** | {{one-sentence user-perspective description}} | {{available/experimental/planned}} | v{{n}} |
 
-## 2. 覆盖范围
+## 2. Coverage
 
-<!-- 产品边界。回答"什么不能做"
-  - EXCLUDE: 排期计划（→ roadmap） -->
+<!-- Product boundaries. Answers "what cannot be done".
+  - EXCLUDE: schedule and roadmap (→ roadmap) -->
 
-### 已知限制
+### Known Limitations
 
-<!-- ≥2 items，格式: "{限制}（{影响}）" -->
+<!-- ≥2 items, format: "{limitation} ({impact})" -->
 
-- {{限制}}（{{影响}}）
-- {{限制}}（{{影响}}）
+- {{limitation}} ({{impact}})
+- {{limitation}} ({{impact}})
 
-### 未覆盖场景
+### Uncovered Scenarios
 
-<!-- ≥2 items，格式: "{场景}（{原因}）" -->
+<!-- ≥2 items, format: "{scenario} ({reason})" -->
 
-- {{场景}}（{{原因}}）
-- {{场景}}（{{原因}}）
+- {{scenario}} ({{reason}})
+- {{scenario}} ({{reason}})

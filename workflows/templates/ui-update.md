@@ -1,124 +1,124 @@
-# UI 更新规则
+# UI Update Rules
 
-## 变更类型
+## Change Types
 
-| 类型 | 含义 |
-|------|------|
-| **不可变** | 一旦写入不再修改 |
-| **追加** | 只能新增条目，不能改已有的 |
-| **数据刷新** | 已有值可被更准确的数据替换 |
-| **可更新** | 内容可修改，但有约束 |
+| Type | Meaning |
+|------|---------|
+| **immutable** | Once written, never modified |
+| **append-only** | Only new entries can be added; existing ones cannot be modified |
+| **data refresh** | Existing values may be replaced with more accurate data |
+| **updatable** | Content can be modified, but with constraints |
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 变更类型 |
-|------|------|---------|
-| §1 布局 | ASCII 草图 | 可更新 |
-| | 区域说明表 | 可更新 |
-| §2 交互流程 | 步骤（已有） | 可更新 |
-| | 步骤（新增） | 追加 |
-| §3 状态与样式 | 组件（新增） | 追加 |
-| | 已有组件.状态行（新增） | 追加 |
-| | 已有组件.状态行（已有） | 可更新 |
+| Location | Field | Change Type |
+|----------|-------|-------------|
+| §1 Layout | ASCII sketch | updatable |
+| | Region table | updatable |
+| §2 Interaction Flow | Step (existing) | updatable |
+| | Step (new) | append-only |
+| §3 States and Styles | Component (new) | append-only |
+| | Existing component.State row (new) | append-only |
+| | Existing component.State row (existing) | updatable |
 
-## 字段变更规则
+## Field Change Rules
 
-### §1 布局
+### §1 Layout
 
-#### ASCII 草图
+#### ASCII sketch
 
-- **变更类型**: 可更新
-- **允许**: 调整区域排布、新增区域、合并区域
-- **禁止**: 无理由删除已有区域（需说明原因）
-- **触发**: 布局迭代、新增功能区域
-- **校验**: 更新后的草图与区域说明表一致
-- ❌ 悄悄删除一个区域不留记录
-- ✅ 新增 sidebar 区域，区域说明表同步更新
+- **Change Type**: updatable
+- **Allowed**: Adjusting region layout, adding new regions, merging regions
+- **Forbidden**: Deleting an existing region without a reason (the reason must be stated)
+- **Trigger**: Layout iteration; adding a new functional region
+- **Check**: The updated sketch is consistent with the region table
+- ❌ Quietly deleting a region with no record
+- ✅ Adding a sidebar region; sync the region table
 
-#### 区域说明表
+#### Region table
 
-- **变更类型**: 可更新
-- **允许**: 新增区域行；更新已有区域的内容描述和优先级
-- **禁止**: 与 ASCII 草图不一致
-- **触发**: 布局变更
-- **校验**: 区域名与 ASCII 草图对应
+- **Change Type**: updatable
+- **Allowed**: Adding new region rows; updating the content description and priority of existing regions
+- **Forbidden**: Inconsistency with the ASCII sketch
+- **Trigger**: Layout change
+- **Check**: Region names correspond to the ASCII sketch
 
-### §2 交互流程
+### §2 Interaction Flow
 
-#### 步骤（已有）
+#### Step (existing)
 
-- **变更类型**: 可更新
-- **允许**: 更新触发/响应/下一步的描述
-- **禁止**: 删除已有步骤（废弃的步骤标注"已废弃: {原因}"）
-- **触发**: 交互方式调整
-- **校验**: 更新后仍满足三要素格式
-- ❌ 删除一个已有步骤
-- ✅ 更新步骤的响应描述，或标注"已废弃: 改用拖拽替代点击"
+- **Change Type**: updatable
+- **Allowed**: Updating the description of trigger / response / next step
+- **Forbidden**: Deleting an existing step (deprecated steps are annotated "deprecated: {reason}")
+- **Trigger**: Interaction adjustment
+- **Check**: The updated entry still satisfies the three-element format
+- ❌ Deleting an existing step
+- ✅ Updating the response description of a step, or annotating "deprecated: replaced click with drag"
 
-#### 步骤（新增）
+#### Step (new)
 
-- **变更类型**: 追加
-- **允许**: 新增交互步骤
-- **禁止**: —
-- **触发**: 新增交互路径
-- **校验**: 新步骤满足三要素格式
+- **Change Type**: append-only
+- **Allowed**: Adding new interaction steps
+- **Forbidden**: —
+- **Trigger**: A new interaction path
+- **Check**: New steps satisfy the three-element format
 
-### §3 状态与样式
+### §3 States and Styles
 
-#### 组件（新增）
+#### Component (new)
 
-- **变更类型**: 追加
-- **允许**: 新增组件及其状态表
-- **禁止**: —
-- **触发**: 新增 UI 组件
-- **校验**: 新组件状态表 ≥4 行，覆盖 hover/disabled/loading/error
+- **Change Type**: append-only
+- **Allowed**: Adding new components and their state tables
+- **Forbidden**: —
+- **Trigger**: A new UI component
+- **Check**: New component state tables ≥4 rows, covering hover/disabled/loading/error
 
-#### 已有组件.状态行（新增）
+#### Existing component.State row (new)
 
-- **变更类型**: 追加
-- **允许**: 为已有组件新增状态行
-- **禁止**: —
-- **触发**: 发现需要覆盖的新状态
-- **校验**: 新行满足 state/trigger/visual/timing 格式
+- **Change Type**: append-only
+- **Allowed**: Adding new state rows to an existing component
+- **Forbidden**: —
+- **Trigger**: A new state to cover is identified
+- **Check**: New rows satisfy the state/trigger/visual/timing format
 
-#### 已有组件.状态行（已有）
+#### Existing component.State row (existing)
 
-- **变更类型**: 可更新
-- **允许**: 更新已有状态的 trigger/visual/timing 描述
-- **禁止**: 删除已有状态行
-- **触发**: 视觉/交互调整
-- **校验**: 状态行数只增不减
-- ❌ 删除 error 状态行
-- ✅ 更新 error 状态的 visual 描述
+- **Change Type**: updatable
+- **Allowed**: Updating the trigger / visual / timing description of an existing state
+- **Forbidden**: Deleting an existing state row
+- **Trigger**: Visual / interaction adjustment
+- **Check**: State row count only grows
+- ❌ Deleting the error state row
+- ✅ Updating the visual description of the error state
 
-## 操作流程
+## Operating Procedure
 
-### 创建 UI 文档
+### Create a UI Document
 
-1. §1 画出 ASCII 草图 + 填写区域说明表
-2. §2 列出 ≥3 步交互流程，每步含触发/响应/下一步
-3. §3 每个组件列状态表，≥4 状态，覆盖 hover/disabled/loading/error
+1. §1 Draw the ASCII sketch + fill in the region table
+2. §2 List ≥3 interaction-flow steps; each step contains trigger / response / next step
+3. §3 List a state table for each component, ≥4 states, covering hover/disabled/loading/error
 
-### 布局迭代
+### Layout Iteration
 
-1. §1 更新 ASCII 草图
-2. §1 同步更新区域说明表
-3. §2 追加或更新受影响的交互步骤
+1. §1 Update the ASCII sketch
+2. §1 Sync the region table
+3. §2 Append or update affected interaction steps
 
-### 新增组件
+### Add a Component
 
-1. §3 追加新组件状态表（≥4 状态）
-2. §2 追加相关交互步骤（如需要）
+1. §3 Append a new component state table (≥4 states)
+2. §2 Append related interaction steps (if needed)
 
-### 交互调整
+### Interaction Adjustment
 
-1. §2 更新已有步骤或追加新步骤
-2. §3 更新受影响组件的状态描述
+1. §2 Update existing steps or append new steps
+2. §3 Update the state descriptions of affected components
 
-## 校验规则
+## Validation Rules
 
-1. **§1 草图与表格一致** — ASCII 草图中的区域名必须在区域说明表中有对应行
-2. **§2 步骤三要素完整** — 每步必须包含触发/响应/下一步
-3. **§3 状态覆盖完整** — 每组件至少覆盖 hover/disabled/loading/error
-4. **§3 状态行只增不删** — 已有组件的状态行数只增不减
-5. **§2 步骤不可删除** — 废弃的步骤标注原因而非删除
+1. **§1 Sketch and table consistent** — Every region name in the ASCII sketch has a corresponding row in the region table
+2. **§2 Three elements complete per step** — Every step contains trigger / response / next step
+3. **§3 State coverage complete** — Each component covers at least hover/disabled/loading/error
+4. **§3 State rows only grow** — Existing components' state row count only grows
+5. **§2 Steps cannot be deleted** — Deprecated steps are annotated with a reason rather than deleted

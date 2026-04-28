@@ -1,21 +1,21 @@
-# learn — 知识沉淀
+# learn — knowledge capture
 
-5 stage 串行：detect → gate → refine → locate → write。每条 claim 独立走完一次，某条 fail 不阻断其余。
+5 stages run serially: detect → gate → refine → locate → write. Each claim runs through once independently; one claim's failure does not block the rest.
 
-每个 stage 入口先输出两行：
+At each stage entry, first emit two lines:
 
 ```
 [learn] stage X/5 — {name}
-目的：{purpose}
+Purpose: {purpose}
 ```
 
-Stage 概览：
+Stage overview:
 
-- Stage 1 detect — 从对话抽全部 claim 候选，用户取子集（Step 1）
-- Stage 2 gate — 5 道闸筛选，任一 fail 则 reject（Step 2-6）
-- Stage 3 refine — 从多个维度加工知识，提升 entry 质量（Step 7-9）
-- Stage 4 locate — 决定写入哪个 CLAUDE.md（Step 10）
-- Stage 5 write — 起草 entry，查重，确认，写入（Step 11-15）
+- Stage 1 detect — extract all claim candidates from conversation, user selects a subset (Step 1)
+- Stage 2 gate — 5 gates filter; any fail rejects the claim (Step 2-6)
+- Stage 3 refine — refine the knowledge along multiple dimensions to raise entry quality (Step 7-9)
+- Stage 4 locate — decide which CLAUDE.md to write to (Step 10)
+- Stage 5 write — draft entry, dedupe, confirm, write (Step 11-15)
 
 ---
 
@@ -23,41 +23,41 @@ Stage 概览：
 
 ```
 [learn] stage 1/5 — detect
-目的：从最近 ≤20 轮对话中抽出全部 claim 候选并由用户取子集；找不到就请用户用一句话给出。
+Purpose: extract all claim candidates from the most recent ≤20 turns of conversation and let the user select a subset; if none found, ask the user to give one in a sentence.
 ```
 
 ### Step 1 — detect
 
-先按来源分类，再扫描：
+Classify by source first, then scan:
 
-**A 类（用户纠正了 AI 的判断）** — 直接进候选，无需额外验证：
+**Class A (user corrected the AI's judgment)** — admit as candidate directly, no extra validation needed:
 
-- 用户指出 AI 的输出有误，给出了正确做法
-- 用户否定了 AI 的方案，提出了不同方向
-- 用户补充了 AI 遗漏的约束或前提
+- The user pointed out the AI's output was wrong and gave the correct approach
+- The user rejected the AI's plan and proposed a different direction
+- The user added a constraint or premise the AI had missed
 
-**B 类（AI 主动捕捉）** — 列为候选，但需通过强化版信息熵才能留下：
+**Class B (AI captures on its own)** — list as candidate, but must pass a strengthened information-entropy check to remain:
 
-- 本次对话做了哪些技术选择，且说明了理由？
-- 遇到了什么问题，总结出什么经验？
-- 用户表达了什么倾向或风格要求？
+- What technical choices were made in this conversation, with stated reasoning?
+- What problems were encountered, and what lessons were drawn?
+- What preferences or style requirements did the user express?
 
-A 类标注 `[纠正]`，B 类标注 `[捕捉]`，输出时一并列出。
+Tag Class A as `[correction]` and Class B as `[capture]`, listed together in the output.
 
-输出模版：
+Output template:
 
 ```
-[learn] 检出 {N} 条 claim 候选：
-  1. {claim 主体}
-  2. {claim 主体}
+[learn] detected {N} claim candidate(s):
+  1. {claim body}
+  2. {claim body}
   ...
-请回复编号（如 "1,3" 取子集 / "all" 全要 / "none" 取消 / 自由文本补一条）
+Reply with numbers (e.g. "1,3" to pick a subset / "all" for all / "none" to cancel / free text to add one)
 ```
 
-等待用户回复后继续。用户确认子集后，Stage 2-5 对每条 claim 独立各走一遍。
+Wait for the user's reply, then continue. After the user confirms the subset, Stages 2-5 run independently for each claim.
 
-- 无候选 → 输出 `[learn] no claim detected — 请用一句话说出要沉淀的知识`，等待用户输入
-- 单条候选 → 直接进 Stage 2，不走选择菜单
+- No candidate → emit `[learn] no claim detected — please state in one sentence the knowledge to capture`, wait for user input
+- Single candidate → enter Stage 2 directly, skip the selection menu
 
 ---
 
@@ -65,65 +65,65 @@ A 类标注 `[纠正]`，B 类标注 `[捕捉]`，输出时一并列出。
 
 ```
 [learn] stage 2/5 — gate
-目的：对每条 claim 独立跑 5 道闸；某条 fail 仅 reject 该条，不影响其余。
+Purpose: run the 5 gates independently for each claim; one fail rejects only that claim, not the others.
 ```
 
-每道闸：pass → 继续；未通过 → 给出调整建议等用户确认，重跑一次；仍不过 → `[learn] reject: {原因}`。
+Each gate: pass → continue; not passed → offer a revision direction, wait for user confirmation, rerun once; still not passing → `[learn] reject: {reason}`.
 
-闸从大到小排列，越靠前能过滤的范围越广。classify 不是过滤闸，先于 gate 执行。
+Gates are ordered from broad to narrow — the earlier the gate, the wider the range it filters. Classify is not a filter gate; it runs before the gates.
 
 ### Step 2 — classify
 
-违反这条会有什么后果？
+What is the consequence of violating this claim?
 
-- 不可逆（安全 / 数据 / 金钱损失）→ `must`
-- 可恢复 → `should`
-- 触发陷阱 → `avoid`
-- 只是倾向 → `prefer`
+- Irreversible (safety / data / monetary loss) → `must`
+- Recoverable → `should`
+- Triggers a pitfall → `avoid`
+- Just a preference → `prefer`
 
-输出 `[learn] 选 {field}（{中文标签}）`。
+Emit `[learn] selected {field} ({label})`.
 
-### Step 3 — 信息熵
+### Step 3 — information entropy
 
-**[纠正] 类**：直接 pass，跳过信息熵检验——用户纠正本身即证明 AI 会犯错。
+**[correction] class**: pass directly, skip the information-entropy check — the correction itself proves the AI made a mistake.
 
-**[捕捉] 类**：
+**[capture] class**:
 
-Q1: 在只有项目 CLAUDE.md 的全新会话里，AI 会在什么具体操作中犯什么具体错误？
+Q1: In a fresh session with only the project CLAUDE.md, in what concrete operation will the AI make what concrete error?
 
-- 能写出具体错误场景 → pass
-- 写不出 → 未通过。调整：把 claim 绑定到一个 AI 真实会犯错的场景重答。仍写不出 → reject
+- Can describe a concrete error scenario → pass
+- Cannot → not passed. Direction for revision: bind the claim to a scenario where the AI actually makes the mistake, then answer again. Still cannot → reject
 
-### Step 4 — 复用
+### Step 4 — reuse
 
-Q1: 除了当前任务，列出一个未来会用上这条的场景。
+Q1: Beyond the current task, list one future scenario where this claim will be used.
 
-- 列得出 → 通过（产物不入 entry）
-- 列不出 → 把 claim 改写为能跨任务迁移的表述，重列。仍列不出 → reject
+- Can list one → pass (the listed item does not enter the entry)
+- Cannot list → rewrite the claim into a form that transfers across tasks, then re-list. Still cannot → reject
 
-Q2: 什么条件下这条不再成立？→ 填入 `until` 字段（`must` 必填，其余选填）
+Q2: Under what condition does this claim no longer hold? → fill into the `until` field (`must` is required; the rest are optional)
 
-- 想不出 → 推断框架版本 / 配置开关 / 外部服务的变化点重答。仍想不出 → reject
+- Cannot think of one → infer change points in framework version / config flag / external service and answer again. Still cannot → reject
 
-### Step 5 — 可触发
+### Step 5 — triggerability
 
-Q1: 改哪个文件、用哪个库、遇到什么代码模式时，AI 应该想起这条？→ 填入 `when` 字段
-Q2: 这个触发描述能定位到具体文件路径 / 关键词 / 代码模式吗？
+Q1: When editing which file, using which library, or encountering which code pattern should the AI recall this claim? → fill into the `when` field
+Q2: Does this trigger description pin down a concrete file path / keyword / code pattern?
 
-- 能 → pass
-- 不能 → 未通过。从对话涉及的路径、函数名、库名重答 Q1
+- Yes → pass
+- No → not passed. Re-answer Q1 from paths, function names, and library names mentioned in the conversation
 
-### Step 6 — 可执行
+### Step 6 — actionability
 
-Q1: 这条是声明性规则还是需要操作步骤？
+Q1: Is this claim a declarative rule or does it need operational steps?
 
-- 声明性（如"用中文回答"）→ pass，省略 `how`
-- 需要操作步骤 → 继续 Q2
+- Declarative (e.g. "answer in Chinese") → pass, omit `how`
+- Needs operational steps → continue to Q2
 
-Q2: 具体怎么做？代码在哪 / 文档在哪？→ 填入 `how` 字段
+Q2: How specifically? Where is the code / where is the doc? → fill into the `how` field
 
-- 写得出 → pass
-- 写不出 → 从对话中找操作步骤或文档引用重答。仍写不出 → reject
+- Can write it out → pass
+- Cannot → re-answer using operational steps or doc references from the conversation. Still cannot → reject
 
 ---
 
@@ -131,33 +131,33 @@ Q2: 具体怎么做？代码在哪 / 文档在哪？→ 填入 `how` 字段
 
 ```
 [learn] stage 3/5 — refine
-目的：从场景泛化、知识深化、颗粒度校准三个维度加工 claim，提升 entry 的覆盖面和推理质量。
+Purpose: refine the claim along three dimensions — scenario generalization, knowledge deepening, granularity calibration — to raise entry coverage and reasoning quality.
 ```
 
-每个步骤均为可跳过的加工，无需调整则直接继续。有改动时输出调整内容等用户确认。
+Each step is a skippable refinement; if no adjustment is needed, continue directly. When a change is made, emit the adjustment for user confirmation.
 
-### Step 7 — 场景泛化
+### Step 7 — scenario generalization
 
-Q1: `when` 描述的触发场景，背后的本质操作是什么？
-Q2: 还有哪些文件路径 / 库 / 代码模式在本质上属于同一类场景，却没被当前 `when` 覆盖？
+Q1: For the trigger scenario described by `when`, what is the underlying essential operation?
+Q2: What other file paths / libraries / code patterns are essentially the same scenario but not covered by the current `when`?
 
-- 有 → 提出更通用但仍精准的 `when` 描述，等用户确认后更新
-- 无 → 跳过
+- Yes → propose a more general but still precise `when`, wait for user confirmation, then update
+- No → skip
 
-### Step 8 — 知识深化
+### Step 8 — knowledge deepening
 
-Q1: 这条规则为什么成立？违反后发生的机制是什么（不只是后果描述）？
-Q2: 这个根因能用一句话补入 claim 的理由部分，让 AI 在边界情况下能推断而不是机械执行吗？
+Q1: Why does this rule hold? What is the mechanism that fires when it is violated (not just the consequence)?
+Q2: Can this root cause be added to the claim's reasoning in one sentence so the AI can reason at edge cases instead of executing mechanically?
 
-- 能且当前理由不够充分 → 提出补充后的 claim 表述，等用户确认后更新
-- 已充分 → 跳过
+- Yes and the current reasoning is not sufficient → propose the supplemented claim wording, wait for user confirmation, then update
+- Already sufficient → skip
 
-### Step 9 — 颗粒度校准
+### Step 9 — granularity calibration
 
-Q1: 这条 claim 包含几个独立的"当 X 时做 Y"逻辑？
+Q1: How many independent "when X, do Y" logics does this claim contain?
 
-- 1 个 → 跳过
-- 多个 → 拆分为多条独立 claim，列出拆分方案等用户确认；确认后每条从 Step 7 重走
+- 1 → skip
+- Multiple → split into multiple independent claims, list the split plan, wait for user confirmation; once confirmed, each one re-runs from Step 7
 
 ---
 
@@ -165,36 +165,36 @@ Q1: 这条 claim 包含几个独立的"当 X 时做 Y"逻辑？
 
 ```
 [learn] stage 4/5 — locate
-目的：决定 entry 写到哪个 CLAUDE.md（level: user / project / module → file path）。
+Purpose: decide which CLAUDE.md to write the entry to (level: user / project / module → file path).
 ```
 
 ### Step 10 — locate
 
-按作用域从大到小判，命中即停：
+Judge by scope from large to small; stop on first hit:
 
-1. **user** — 有真实跨项目证据（在另一个项目里 AI 实际发生过此错误，或有具体理由相信会发生）？yes → user。"理论上成立"不够。
-2. **module** — 能指出一个具体代码目录？yes → module
+1. **user** — is there real cross-project evidence (the AI actually made this mistake in another project, or there is concrete reason to believe it would)? yes → user. "Theoretically holds" is not enough.
+2. **module** — can a concrete code directory be pointed to? yes → module
 3. **else** → project
 
-路径规则：
+Path rules:
 
 - user → `~/.claude/rules/know.md`
 - project → `{git root}/.claude/rules/know.md`
-- module → `{对话涉及文件路径的最深代码目录}/CLAUDE.md`（从上下文推断，给 1-3 候选）
+- module → `{deepest code directory among file paths involved in the conversation}/CLAUDE.md` (infer from context, give 1-3 candidates)
 
-git root 从对话上下文的工作目录推断。
+The git root is inferred from the working directory in the conversation context.
 
-输出：
+Output:
 
 ```
-[learn] 候选落位:
+[learn] candidate placement:
   level: {level}
   file:  {path}
-  module 候选（如适用）: {dir1} / {dir2} / {dir3}
-请确认 / 改 level / 改 file / cancel
+  module candidate(s) (if applicable): {dir1} / {dir2} / {dir3}
+Confirm / change level / change file / cancel
 ```
 
-等待用户确认后进入 Stage 5。
+Wait for user confirmation, then enter Stage 5.
 
 ---
 
@@ -202,63 +202,63 @@ git root 从对话上下文的工作目录推断。
 
 ```
 [learn] stage 5/5 — write
-目的：产出 YAML entry → 查重 → 用户确认 → 写文件 → 给 commit 建议。
+Purpose: produce the YAML entry → dedupe → user confirmation → write file → suggest commit.
 ```
 
 ### Step 11 — format
 
-仅产出已通过 gate + refine 加工后的字段，不加额外字段：
+Emit only the fields that passed the gates and were processed by refine; add no extra fields:
 
 ```yaml
-- when: {可触发产物}
-  {field}: {claim 主体}[ — {理由}]   # field ∈ must / should / avoid / prefer，理由可选（Step 8 充分时跳过）
-  how: {可执行产物}                  # 仅技术细节 rule
-  until: {失效检查产物}              # must 必填，其余选
+- when: {triggerable artifact}
+  {field}: {claim body}[ — {reasoning}]   # field ∈ must / should / avoid / prefer; reasoning optional (skip if Step 8 sufficient)
+  how: {actionable artifact}              # technical-detail rules only
+  until: {invalidation-check artifact}    # required for must, optional for the rest
 ```
 
-输出 `[learn] entry candidate:` + YAML block。
+Emit `[learn] entry candidate:` + YAML block.
 
 ### Step 12 — conflict
 
-读目标 file 的 `## know` YAML block（不存在则跳过）。`when` 重合 + 内容字段重合 → 视为重复。
+Read the `## know` YAML block of the target file (skip if absent). Overlapping `when` + overlapping content field → treated as duplicate.
 
-发现重复：
+If a duplicate is found:
 
 ```
-[learn] 近似条目已存在:
+[learn] near-duplicate entry already exists:
   {existing entry YAML}
-本流程不修改已有 entry。请选: skip / add anyway / cancel
+This flow does not modify existing entries. Choose: skip / add anyway / cancel
 ```
 
-等待用户回复：`skip`（默认）→ 终止；`add anyway` → 继续写入；`cancel` → 取消。
+Wait for the user's reply: `skip` (default) → terminate; `add anyway` → continue writing; `cancel` → cancel.
 
 ### Step 13 — confirm
 
 ```
-[learn] 即将写入:
+[learn] about to write:
   file: {path}
   section: ## know (YAML block)
   entry:
     {YAML}
-确认写入？(yes / no / 调整某字段)
+Confirm write? (yes / no / adjust some field)
 ```
 
-等待用户回复：`yes` → 写入；`no`/`cancel` → 终止；调整文案（`when` / `how` / `until` / 理由 / claim 主体）→ 重走 Step 11 + Step 13；改 classification（must↔should↔avoid↔prefer）→ 回 Stage 2 Step 2 重走。
+Wait for the user's reply: `yes` → write; `no`/`cancel` → terminate; adjust wording (`when` / `how` / `until` / reasoning / claim body) → rerun Step 11 + Step 13; change classification (must↔should↔avoid↔prefer) → return to Stage 2 Step 2 and rerun.
 
 ### Step 14 — write
 
-按目标 file 状态执行 Edit：
+Execute the Edit based on the target file's state:
 
-- file 不存在 → 创建，内容为 `## know` + YAML block 含 entry
-- file 存在 + 无 `## know` 段 → 文件末尾追加 `## know` + YAML block 含 entry
-- `## know` 段存在 + 无 YAML block → 段末追加新 YAML block，已有自由内容不动
-- `## know` 段已有 YAML block → append entry 到 list 末尾
+- File does not exist → create, with content `## know` + YAML block containing the entry
+- File exists + no `## know` section → append `## know` + YAML block containing the entry to the end of the file
+- `## know` section exists + no YAML block → append a new YAML block at the end of the section, leaving existing free-form content untouched
+- `## know` section already has a YAML block → append the entry to the end of the list
 
 ### Step 15 — suggest-commit
 
 ```
 [learn] suggested commit message:
-  know: add {field} ({when 简短化}) — {claim 简短化}
+  know: add {field} ({short when}) — {short claim}
 ```
 
-不自动 commit。
+Do not commit automatically.

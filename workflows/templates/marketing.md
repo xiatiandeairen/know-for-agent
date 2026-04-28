@@ -1,68 +1,68 @@
-# {{项目名}} 营销方案
+# {{project name}} Marketing Plan
 
-<!-- 核心问题: 怎么让目标用户知道并使用产品？
-     定位: 传播方案
-     不属于本文档: 运营健康（→ ops）、产品规划（→ roadmap）、开发排期（→ tech） -->
+<!-- Core question: how do we get the target users to know about and adopt the product?
+     Positioning: communication plan
+     Out of scope: operational health (→ ops), product planning (→ roadmap), development schedule (→ tech) -->
 
-## 1. 目标受众
+## 1. Target Audience
 
-<!-- 用户画像 + 在哪里 + 关心什么。回答"卖给谁"
-  - INCLUDE: 用户角色、痛点、活跃社区/平台、决策因素
-  - EXCLUDE: 内部技术架构、系统能力列表 -->
+<!-- User persona + where they are + what they care about. Answers "who we are selling to".
+  - INCLUDE: user role, pain point, active community/platform, decision factors
+  - EXCLUDE: internal technical architecture, system capability inventory -->
 
-**用户画像:** {{用户画像描述}}
+**User persona:** {{user persona description}}
 
-**活跃平台:**
-- {{平台1}}
-- {{平台2}}
+**Active platforms:**
+- {{platform 1}}
+- {{platform 2}}
 
-**决策因素:**
-- {{因素1}}
-- {{因素2}}
+**Decision factors:**
+- {{factor 1}}
+- {{factor 2}}
 
-## 2. 核心信息
+## 2. Core Message
 
-<!-- 一句话卖点 + 关键差异化。回答"怎么说服他"
-  - INCLUDE: 用户语言的价值主张、与竞品的可感知差异
-  - EXCLUDE: 技术实现优势（用户不关心用了什么算法）
+<!-- One-line pitch + key differentiation. Answers "how to convince them".
+  - INCLUDE: value proposition in user language, perceivable differentiation vs. competitors
+  - EXCLUDE: technical implementation advantages (users don't care which algorithm is used)
   - ❌ tech jargon ✅ user language -->
 
-**一句话卖点:** {{用户语言的价值主张}}
+**One-line pitch:** {{value proposition in user language}}
 
-**差异化:**
-- {{差异点1}}
-- {{差异点2}}
+**Differentiation:**
+- {{differentiator 1}}
+- {{differentiator 2}}
 
-## 3. 推广渠道
+## 3. Promotion Channels
 
-<!-- 渠道/策略/优先级 + 预算分配。回答"通过什么渠道"
-  - INCLUDE: 渠道选择、内容策略、优先级排序
-  - EXCLUDE: 运营流程细节（在 ops 里）
-  - 优先级枚举: P0 | P1 | P2 -->
+<!-- Channel/strategy/priority + budget allocation. Answers "through which channels".
+  - INCLUDE: channel selection, content strategy, priority ordering
+  - EXCLUDE: operational process details (in ops)
+  - Priority enum: P0 | P1 | P2 -->
 
-| 渠道 | 策略 | 优先级 |
-|------|------|--------|
-| {{渠道1}} | {{策略1}} | {{P0/P1/P2}} |
-| {{渠道2}} | {{策略2}} | {{P0/P1/P2}} |
+| Channel | Strategy | Priority |
+|---------|----------|----------|
+| {{channel 1}} | {{strategy 1}} | {{P0/P1/P2}} |
+| {{channel 2}} | {{strategy 2}} | {{P0/P1/P2}} |
 
-## 4. 传播节奏
+## 4. Communication Cadence
 
-<!-- 什么时候做什么对外传播动作。回答"传播时间线"
-  - 每步 = 日期 + 对外动作（发文、社区帖、launch event）
-  - EXCLUDE: 内部发布部署（→ ops）、开发排期（→ roadmap） -->
+<!-- When to take which outbound communication action. Answers "communication timeline".
+  - Each step = date + outbound action (post, community thread, launch event)
+  - EXCLUDE: internal release deployment (→ ops), development schedule (→ roadmap) -->
 
-1. {{YYYY.MM.DD}} — {{对外传播动作1}}
-2. {{YYYY.MM.DD}} — {{对外传播动作2}}
-3. {{YYYY.MM.DD}} — {{对外传播动作3}}
+1. {{YYYY.MM.DD}} — {{outbound communication action 1}}
+2. {{YYYY.MM.DD}} — {{outbound communication action 2}}
+3. {{YYYY.MM.DD}} — {{outbound communication action 3}}
 
-## 5. 效果衡量
+## 5. Impact Measurement
 
-<!-- 转化指标 + 目标值 + 复盘节点。回答"做得好不好"
-  - INCLUDE: 营销漏斗指标（曝光、点击、转化、留存）
-  - EXCLUDE: 技术性能指标（延迟、错误率属于 ops）
-  - 目标必须是具体数字，复盘节点必须是具体日期 -->
+<!-- Conversion metrics + target values + review checkpoints. Answers "how well it is going".
+  - INCLUDE: marketing-funnel metrics (impressions, clicks, conversion, retention)
+  - EXCLUDE: technical performance metrics (latency, error rate belong in ops)
+  - Targets must be concrete numbers; review checkpoints must be concrete dates -->
 
-| 指标 | 目标 | 复盘节点 |
-|------|------|---------|
-| {{指标1}} | {{目标数字1}} | {{YYYY.MM.DD}} |
-| {{指标2}} | {{目标数字2}} | {{YYYY.MM.DD}} |
+| Metric | Target | Review Checkpoint |
+|--------|--------|-------------------|
+| {{metric 1}} | {{target number 1}} | {{YYYY.MM.DD}} |
+| {{metric 2}} | {{target number 2}} | {{YYYY.MM.DD}} |

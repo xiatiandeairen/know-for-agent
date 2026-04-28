@@ -1,204 +1,204 @@
-# Milestone 检查清单
+# Milestone Checklist
 
-## 概览
+## Overview
 
-| 位置 | 字段 | 可省略 |
-|------|------|--------|
-| §1 目标 | 完成定义 | 不可 |
-| | 价值目标 | 不可 |
-| | 假设 | 无核心假设填"工程交付，无核心假设需验证" |
-| | 假设.类型 | 随假设 |
-| | 假设.验证方式 | 随假设 |
-| §2 计划 | 预期交付物 | 不可（≥1 项） |
-| | 达标标准（5 维） | 不可（不适用填"本里程碑不涉及"） |
-| | 预估投入 | 不可 |
-| | 决策路径.通过 | 不可 |
-| | 决策路径.未通过 | 不可 |
-| | 风险 | 无风险填"无已识别风险" |
-| §3 结果 | 实际交付物 | 未完成的里程碑整个 §3 留空 |
-| | 假设验证结论 | 随 §1 假设 |
-| | 达标评估（5 维） | 未完成留空 |
-| | 实际投入 | 未完成留空 |
-| | 决策结论 | 未完成留空 |
-| 关联文档 | PRD | 无则填 — |
-| | Tech | 无则填 — |
+| Location | Field | Omittable |
+|----------|-------|-----------|
+| §1 Goal | Definition of Done | No |
+| | Value Target | No |
+| | Hypothesis | When no core hypothesis, fill "engineering delivery, no core hypothesis to validate" |
+| | Hypothesis.Type | Follows the hypothesis |
+| | Hypothesis.Validation Method | Follows the hypothesis |
+| §2 Plan | Planned Deliverables | No (≥1 item) |
+| | Go/No-Go Criteria (5 dimensions) | No (when not applicable, fill "this milestone does not involve it") |
+| | Estimated Effort | No |
+| | Decision Path.Pass | No |
+| | Decision Path.Fail | No |
+| | Risks | When no risks, fill "no identified risks" |
+| §3 Outcome | Actual Deliverables | For unfinished milestones, leave the entire §3 blank |
+| | Hypothesis-Validation Conclusion | Follows §1 Hypothesis |
+| | Go/No-Go Assessment (5 dimensions) | Leave blank when not finished |
+| | Actual Effort | Leave blank when not finished |
+| | Decision Outcome | Leave blank when not finished |
+| Related Documents | PRD | Fill — when none |
+| | Tech | Fill — when none |
 
-## 字段定义
+## Field Definitions
 
-### §1 目标
+### §1 Goal
 
-#### 完成定义
+#### Definition of Done
 
-- **信息**: 该里程碑"完成"意味着什么终态
-- **格式**: 1-2 句。描述终态，不描述过程
-- **禁止**: 百分比进度；过程描述（"开发完X然后测试Y"）
-- **省略**: 不可
-- **数据**: —
-- ❌ "体验优化完成"
-- ✅ "learn 管线从对话信号检测→确认→写入全链路可运行，无需手动干预"
+- **Information**: What terminal state "done" means for this milestone
+- **Format**: 1-2 sentences. Describes the terminal state, not the process
+- **Forbidden**: Percentage progress; process descriptions ("develop X then test Y")
+- **Omit**: No
+- **Data**: —
+- ❌ "Experience optimization complete"
+- ✅ "The learn pipeline runs end-to-end from conversation-signal detection → confirmation → write, with no manual intervention required"
 
-#### 价值目标
+#### Value Target
 
-- **信息**: 达成后用户获得什么
-- **格式**: 1 句。主语是用户，不是产品/系统
-- **禁止**: 以产品为主语（"系统支持..."）
-- **省略**: 不可
-- **数据**: —
-- ❌ "系统支持指标查看功能"
-- ✅ "用户可通过 /know learn 与 /know write 在对话中沉淀和复用项目知识"
+- **Information**: What the user gains once it is achieved
+- **Format**: 1 sentence. The subject is the user, not the product/system
+- **Forbidden**: The product as the subject ("the system supports...")
+- **Omit**: No
+- **Data**: —
+- ❌ "The system supports metric viewing"
+- ✅ "Through /know learn and /know write, users can capture and reuse project knowledge in conversation"
 
-#### 假设
+#### Hypothesis
 
-- **信息**: 本里程碑要消灭的核心不确定性
-- **格式**: 1 句因果句或条件句
-- **禁止**: 抽象描述（"验证技术方案"）
-- **省略**: 无核心假设填"本里程碑为工程交付，无核心假设需验证"
-- **数据**: —
-- ❌ "验证技术方案是否可行"
-- ✅ "AI 可以从对话中准确识别值得沉淀的隐性知识信号"
+- **Information**: The core uncertainty this milestone aims to eliminate
+- **Format**: 1 causal or conditional sentence
+- **Forbidden**: Abstract descriptions ("validate the technical solution")
+- **Omit**: When no core hypothesis, fill "this milestone is an engineering delivery, no core hypothesis to validate"
+- **Data**: —
+- ❌ "Validate whether the technical solution is feasible"
+- ✅ "AI can accurately identify capture-worthy implicit-knowledge signals from a conversation"
 
-#### 假设.类型
+#### Hypothesis.Type
 
-- **信息**: 假设属于哪个类别
-- **格式**: 枚举: 技术可行性 | 用户接受度 | 商业价值
-- **禁止**: 枚举外的值
-- **省略**: 随假设
-- **数据**: —
+- **Information**: The category to which the hypothesis belongs
+- **Format**: Enum: technical feasibility | user acceptance | business value
+- **Forbidden**: Values outside the enum
+- **Omit**: Follows the hypothesis
+- **Data**: —
 
-#### 假设.验证方式
+#### Hypothesis.Validation Method
 
-- **信息**: 怎么验证这个假设
-- **格式**: 具体可执行的验证动作 + 判定条件
-- **禁止**: "测试一下""看看效果"等无判定条件描述
-- **省略**: 随假设
-- **数据**: —
-- ❌ "测试一下看看"
-- ✅ "在 know 项目开发对话中运行 learn 管线，检查 10 次提取的准确率"
+- **Information**: How to validate this hypothesis
+- **Format**: A specific executable validation action + decision condition
+- **Forbidden**: Descriptions without a decision condition such as "give it a test" or "see how it goes"
+- **Omit**: Follows the hypothesis
+- **Data**: —
+- ❌ "Test it and see"
+- ✅ "Run the learn pipeline during know-project development conversations and check the extraction accuracy across 10 runs"
 
-### §2 计划
+### §2 Plan
 
-#### 预期交付物
+#### Planned Deliverables
 
-- **信息**: 计划产出什么可验证的东西
-- **格式**: 列表，每项 "{类型}: {具体产物}"。类型: 代码 | 文档 | 数据 | 工具
-- **禁止**: 抽象描述（"优化了流程"）
-- **省略**: 不可（≥1 项）
-- **数据**: —
-- ❌ "优化了知识提取流程"
-- ✅ "代码: learn workflow 5 stage（detect/gate/refine/locate/write）"
+- **Information**: What verifiable outputs are planned
+- **Format**: List, each item "{type}: {specific output}". Type: code | doc | data | tool
+- **Forbidden**: Abstract descriptions ("optimized the flow")
+- **Omit**: No (≥1 item)
+- **Data**: —
+- ❌ "Optimized the knowledge extraction flow"
+- ✅ "Code: learn workflow 5 stages (detect/gate/refine/locate/write)"
 
-#### 达标标准（5 维表）
+#### Go/No-Go Criteria (5-dimension table)
 
-- **信息**: 每个维度的通过条件
-- **格式**: 表格，5 行固定（功能完整性/质量/性能与稳定性/安全/可维护性）。每行填可量化条件
-- **禁止**: "质量好""性能高"等不可量化描述；增删维度行
-- **省略**: 不适用的维度填"本里程碑不涉及"
-- **数据**: 条件中的数值标注依据（行业标准/团队约定/经验值）
-- ❌ "质量达标"
-- ✅ "提取准确率 >80%（10 次 learn 中 ≥8 次准确）"
+- **Information**: The pass condition for each dimension
+- **Format**: Table with 5 fixed rows (functional completeness / quality / performance and stability / security / maintainability). Each row contains a quantifiable condition
+- **Forbidden**: Non-quantifiable descriptions such as "good quality" or "high performance"; adding or removing dimension rows
+- **Omit**: For dimensions that do not apply, fill "this milestone does not involve it"
+- **Data**: For numeric values in the conditions, annotate the basis (industry standard / team agreement / experience value)
+- ❌ "Quality is acceptable"
+- ✅ "Extraction accuracy >80% (≥8 out of 10 learn runs accurate)"
 
-#### 预估投入
+#### Estimated Effort
 
-- **信息**: 预计花多少资源
-- **格式**: "{时间} {人力}"
-- **禁止**: "不多""很快"等无量化描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "投入不大"
-- ✅ "1 天全职开发"
+- **Information**: The expected resource cost
+- **Format**: "{time} {staffing}"
+- **Forbidden**: Non-quantified descriptions such as "not much" or "very fast"
+- **Omit**: No
+- **Data**: —
+- ❌ "Not a big investment"
+- ✅ "1 day full-time development"
 
-#### 决策路径.通过
+#### Decision Path.Pass
 
-- **信息**: 达标后做什么
-- **格式**: 具体行动 + 资源流向
-- **禁止**: "继续开发"等无信息描述
-- **省略**: 不可
-- **数据**: —
-- ❌ "继续下一步"
-- ✅ "进入 M2 write 管线开发，learn 产出的知识库为 write 提供数据基础"
+- **Information**: What to do once the criteria are met
+- **Format**: Specific action + resource flow
+- **Forbidden**: Information-free descriptions such as "continue developing"
+- **Omit**: No
+- **Data**: —
+- ❌ "Move on to the next step"
+- ✅ "Enter M2 write-pipeline development; the knowledge base produced by learn provides the data foundation for write"
 
-#### 决策路径.未通过
+#### Decision Path.Fail
 
-- **信息**: 未达标怎么办
-- **格式**: 具体应对策略
-- **禁止**: "再试试"
-- **省略**: 不可
-- **数据**: —
-- ❌ "继续优化"
-- ✅ "排查 learn 管线阻塞点，暂不启动 write"
+- **Information**: What to do if the criteria are not met
+- **Format**: A specific response strategy
+- **Forbidden**: "Try again"
+- **Omit**: No
+- **Data**: —
+- ❌ "Keep optimizing"
+- ✅ "Investigate the blocking points in the learn pipeline; do not start write for now"
 
-#### 风险
+#### Risks
 
-- **信息**: 什么可能卡住
-- **格式**: "依赖: {项}；风险: {项}"
-- **禁止**: "风险不大"
-- **省略**: 无风险填"无已识别风险"
-- **数据**: —
+- **Information**: What might block progress
+- **Format**: "Dependencies: {items}; risks: {items}"
+- **Forbidden**: "Risks are minor"
+- **Omit**: When no risks, fill "no identified risks"
+- **Data**: —
 
-### §3 结果
+### §3 Outcome
 
-#### 实际交付物
+#### Actual Deliverables
 
-- **信息**: 实际产出了什么
-- **格式**: 同预期交付物。预期未交付标"未交付（原因）"；计划外新增标"计划外新增"
-- **禁止**: 与预期交付物无法对照的描述
-- **省略**: 未完成的里程碑整个 §3 留空
-- **数据**: —
+- **Information**: What was actually produced
+- **Format**: Same as planned deliverables. For planned items not delivered, mark "not delivered (reason)"; for unplanned additions, mark "unplanned addition"
+- **Forbidden**: Descriptions that cannot be cross-checked against the planned deliverables
+- **Omit**: For unfinished milestones, leave the entire §3 blank
+- **Data**: —
 
-#### 假设验证结论
+#### Hypothesis-Validation Conclusion
 
-- **信息**: §1 假设的验证结果
-- **格式**: "{成立/不成立/部分成立} + 数据支撑"
-- **禁止**: 无数据的结论（"验证通过"）；编造数据
-- **省略**: §1 无假设时填"不适用"
-- **数据**: 必须附数据来源。无数据标"无数据（原因）"
-- ❌ "验证通过"
-- ✅ "成立。10 次 learn 中 8 次准确提取（know 项目实测），2 次 tag 偏差但内容正确"
+- **Information**: The validation result of the §1 hypothesis
+- **Format**: "{holds / does not hold / partially holds} + supporting data"
+- **Forbidden**: Conclusions without data ("validation passed"); fabricated data
+- **Omit**: When §1 has no hypothesis, fill "not applicable"
+- **Data**: A data source must be attached. When there is no data, mark "no data (reason)"
+- ❌ "Validation passed"
+- ✅ "Holds. 8 out of 10 learn runs extracted accurately (measured in the know project); 2 had tag deviations but the content was correct"
 
-#### 达标评估（5 维表）
+#### Go/No-Go Assessment (5-dimension table)
 
-- **信息**: 对照 §2 标准的实际达成情况
-- **格式**: 表格，从 §2 复制标准列，新增评分/说明/遗留列
-- **禁止**: 修改标准列（从 §2 原样复制）；无数据的说明；编造评分
-- **省略**: 未完成留空
-- **数据**: 说明列必须含数据或可验证事实。遗留列标注去向（哪个版本/里程碑解决）
-- ❌ 说明: "还行"
-- ✅ 说明: "实测 5-15s 完成，未出现超时"
+- **Information**: Actual achievement against the §2 criteria
+- **Format**: Table; copy the criteria column from §2; add Score / Notes / Leftover columns
+- **Forbidden**: Modifying the criteria column (copy from §2 verbatim); notes without data; fabricated scores
+- **Omit**: Leave blank when not finished
+- **Data**: The Notes column must contain data or verifiable facts. The Leftover column annotates the destination (which version / milestone will resolve it)
+- ❌ Notes: "OK"
+- ✅ Notes: "Measured at 5-15s to complete, no timeouts observed"
 
-#### 实际投入
+#### Actual Effort
 
-- **信息**: 实际花了多少资源
-- **格式**: "{实际值}（预估: {§2值}）"。偏差大时附原因
-- **禁止**: "和预期差不多"
-- **省略**: 未完成留空
-- **数据**: —
-- ❌ "和预期差不多"
-- ✅ "实际 2 天（预估 1 天），路径解析 bug 调试多花 1 天"
+- **Information**: How many resources were actually spent
+- **Format**: "{actual value} (estimated: {§2 value})". When the deviation is large, attach the reason
+- **Forbidden**: "About what was expected"
+- **Omit**: Leave blank when not finished
+- **Data**: —
+- ❌ "About what was expected"
+- ✅ "Actual 2 days (estimated 1 day); debugging the path-resolution bug took an extra 1 day"
 
-#### 决策结论
+#### Decision Outcome
 
-- **信息**: 最终做了什么决策
-- **格式**: "{通过/未通过/部分通过} → {实际行动}"
-- **禁止**: "继续开发了"
-- **省略**: 未完成留空
-- **数据**: —
-- ❌ "继续开发了"
-- ✅ "通过 → 进入 M2 write 管线开发"
+- **Information**: What decision was finally made
+- **Format**: "{pass / fail / partial pass} → {actual action}"
+- **Forbidden**: "Kept developing"
+- **Omit**: Leave blank when not finished
+- **Data**: —
+- ❌ "Kept developing"
+- ✅ "Pass → enter M2 write-pipeline development"
 
-### 关联文档
+### Related Documents
 
 #### PRD
 
-- **信息**: 关联的需求文档
-- **格式**: "[{需求名}]({相对路径})"
-- **省略**: 无关联 PRD 填 —
+- **Information**: The associated requirement document
+- **Format**: "[{requirement name}]({relative path})"
+- **Omit**: When there is no associated PRD, fill —
 
 #### Tech
 
-- **信息**: 关联的技术方案
-- **格式**: "[{方案名}]({相对路径})"
-- **省略**: 无关联 tech 填 —
+- **Information**: The associated technical solution
+- **Format**: "[{solution name}]({relative path})"
+- **Omit**: When there is no associated tech, fill —
 
-## 数据置信规则
+## Data Confidence Rules
 
-同 roadmap-checklist.md：实测标来源 > 估算标依据 > 目标标"待验证" > 无数据标原因。禁止编造。
+Same as roadmap-checklist.md: measured > annotate source; estimated > annotate basis; target > "pending validation"; no data > annotate reason. No fabrication.
